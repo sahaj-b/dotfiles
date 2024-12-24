@@ -1,0 +1,44 @@
+#!/bin/env bash
+
+# usage: (j, j -1, j w 2, etc.)
+local offset=0
+local type=d
+
+if [[ $1 =~ ^[dwmy]$ ]]; then
+  type=$1
+  shift
+fi
+
+if [[ $1 =~ ^[+-]?[0-9]+$ ]]; then
+  offset=$1
+fi
+
+local desired_date
+local subpath
+
+case "$type" in
+d)
+  desired_date=$(date -d "$offset days" +"%F")
+  subpath="daily"
+  ;;
+w)
+  desired_date=$(date -d "$offset weeks" +"%Y-W%V")
+  subpath="weekly"
+  ;;
+m)
+  desired_date=$(date -d "$offset months" +"%Y-%m")
+  subpath="monthly"
+  ;;
+y)
+  desired_date=$(date -d "$offset years" +"%Y")
+  subpath="yearly"
+  ;;
+esac
+
+local file_path=~/notes/journal/"$subpath"/"$desired_date".md
+
+if [ ! -f "$file_path" ]; then
+  nvim -c "e $file_path" -c "ObsidianTemplate $subpath.md" -c "norm \"_dd"
+else
+  nvim "$file_path"
+fi

@@ -2,12 +2,13 @@
 
 {
 	"layer": "top",
-	"position": "bottom",
+	"position": "top",
     "height": 0,
     "spacing": 8,
-	"modules-left": ["clock#1", "clock#2", "clock#3", "custom/scratchOutput", "hyprland/submap" ],
+	"modules-left": ["clock#1", "clock#2", "clock#3", "custom/scratchOutput", "hyprland/submap"],
 	"modules-center": [  "hyprland/workspaces" ],
-	"modules-right": ["custom/cal", "custom/audio", "bluetooth", "battery", "tray" ],
+	"modules-right": ["custom/music", "custom/audio", "bluetooth", "battery", "custom/dunst", "custom/easyeffects", "tray" ],
+	//"modules-right": ["custom/audio", "bluetooth", "battery", "custom/dunst", "custom/easyeffects", "tray" ],
 
      "hyprland/workspaces":{
         "on-scroll-up": "hyprctl dispatch workspace e+1",
@@ -22,7 +23,7 @@
     "return-type" : "json",
     "format" : "{}",
     "interval" : 1,
-    "exec": "~/scripts/getScratchOutput.sh" 
+    "exec": "~/.config/waybar/scripts/getScratchOutput.sh" 
 },   
 
     "custom/cal" :{
@@ -30,7 +31,34 @@
         "exec": "python3 ~/scripts/cal.py",
         "on-click": "xdg-open https://calendar.google.com/calendar/u/0/r"
     },
-
+    "custom/music": {
+      "format": "{icon}{0}",
+      "format-icons": {
+              // "Playing": " ", // Uncomment if not using the dynamic script
+              "Paused": " ",
+              "Stopped": "&#x202d;ﭥ " // This stop symbol is RTL. So &#x202d; is left-to-right override.
+      },
+      "escape": true,
+      "tooltip": true,
+      "exec": "~/.config/waybar/scripts/caway -b 10",
+      "return-type": "json",
+      "on-click": "playerctl play-pause -p spotify %any",
+      "on-scroll-up": "playerctl previous -p spotify",
+      "on-scroll-down": "playerctl next -p spotify",
+      "on-click-right": "spotify",
+      "max-length": 15
+    },
+    "pulseaudio/slider": {
+      "min": 0,
+      "max": 100,
+      "orientation": "horizontal"
+    },
+    "pulseaudio": {
+      "format": "󰕾 {volume}",
+      "format-muted": "󰖁 {volume}",
+		"on-click-right": "pavucontrol",
+		"on-click": "pamixer -t"
+    },
 	"custom/audio": {
         "interval" : 1,
         "return-type" : "json",
@@ -39,8 +67,8 @@
     "exec": "printf '{\"text\":\"%s %s\",\"class\":\"%s\"}\n' \"$([[ $(pamixer --get-volume-human) == \"muted\" ]] && echo \"󰖁\" || echo \"󰕾\")\" \"$(pamixer --get-volume)\" \"$([[ $(pamixer --get-volume-human) == \"muted\" ]] && echo \"muted\" || echo \"unmuted\")\"",
         "signal" : 10,
         "tooltip": false,
-		"on-click": "pavucontrol",
-		"on-click-right": "pamixer -t && pkill -RTMIN+10 waybar",
+		"on-click-right": "pavucontrol",
+		"on-click": "pamixer -t && pkill -RTMIN+10 waybar",
         "on-scroll-up": "pamixer -i  2 --allow-boost",
         "on-scroll-down": "pamixer -d  2 --allow-boost"
     },
@@ -103,6 +131,23 @@
         "tooltip-format-plugged" : "Using {power:4.1f}W",
         "tooltip-format-charging" : "Charging {power:4.1f}W"
 	},
+  "custom/dunst": {
+    "return-type": "json",
+    "exec": "~/.config/waybar/scripts/dunst.sh",
+    "on-click": "dunstctl set-paused toggle",
+    "on-click-right": "dunstctl history-pop",
+    "format": "{}"
+  },
+  "custom/easyeffects": {
+    "return-type": "json",
+    "exec": "pgrep easyeffects > /dev/null && echo '{\"text\": \"󱡫\", \"class\":\"enabled\"}' || echo '{\"text\": \"󱡫\", \"class\":\"disabled\"}'",
+    "on-click": "pgrep easyeffects && easyeffects -q || easyeffects --gapplication-service&",
+    "on-click-right": "easyeffects",
+    "tooltip": true,
+    "tooltip-format":"EasyEffects",
+    "format": "{}",
+    "interval": 1
+  },
 	"tray": {
         "spacing" : 5,
 		"icon-size": 20

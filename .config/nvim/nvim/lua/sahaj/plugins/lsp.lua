@@ -108,27 +108,26 @@ return {
             },
           },
         },
-        pylsp = {
-          settings = {
-            pylsp = {
-              plugins = {
-                pycodestyle = {
-                  -- ignore = { '' },
-                  maxLineLength = 140
-                },
-                mccabe = {
-                  threshold = 50
-                },
-                -- jedi_completion = { include_params = true },
-                -- jedi_hover = { enabled = true },
-                -- jedi_references = { enabled = true },
-                -- jedi_signature_help = { enabled = true },
-                -- jedi_symbols = { enabled = true }
-              }
-            }
-          }
-
-        },
+        -- pylsp = {
+        --   settings = {
+        --     pylsp = {
+        --       plugins = {
+        --         pycodestyle = {
+        --           -- ignore = { '' },
+        --           maxLineLength = 140
+        --         },
+        --         mccabe = {
+        --           threshold = 50
+        --         },
+        --         -- jedi_completion = { include_params = true },
+        --         -- jedi_hover = { enabled = true },
+        --         -- jedi_references = { enabled = true },
+        --         -- jedi_signature_help = { enabled = true },
+        --         -- jedi_symbols = { enabled = true }
+        --       }
+        --     }
+        --   }
+        -- },
 
         lua_ls = {
           settings = {
@@ -159,7 +158,8 @@ return {
         'lua_ls',
         'bashls',
         'clangd',
-        'pylsp',
+        -- 'pylsp',
+        'pyright',
         -- 'tsserver',
         'tailwindcss',
       })
@@ -180,9 +180,9 @@ return {
       -- DIAGNOSTICS
 
       vim.diagnostic.config({
-        underline = {
-          severity = { min = vim.diagnostic.severity.ERROR }
-        },
+        -- underline = {
+        -- severity = { min = vim.diagnostic.severity.ERROR }
+        -- },
         virtual_text = {
           severity = { min = vim.diagnostic.severity.WARN },
           -- severity = { min = vim.diagnostic.severity.ERROR },
@@ -191,7 +191,6 @@ return {
         },
         float = { border = "rounded" },
       })
-      local hi
       vim.cmd [[
             " sign define DiagnosticSignError text= texthl=DiagnosticError
             " sign define DiagnosticSignWarning text= texthl=DiagnosticWarning
@@ -226,7 +225,7 @@ return {
         if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then
           return
         end
-        return { timeout_ms = 500, lsp_format = "fallback" }
+        return { timeout_ms = 800, lsp_format = "fallback" }
       end,
 
       vim.api.nvim_create_user_command("ConformToggle", function(args)
@@ -244,8 +243,9 @@ return {
         sh = { 'shfmt' },
         -- javascript = { 'prettier' },
         html = { 'prettierd' },
-        javascriptreact = { 'prettierd' },
+        javascriptreact = { 'prettierd', 'prettier' },
         -- css = { 'prettierd' },
+        python = { 'blackd', 'black' },
       }
       -- Conform can also run multiple formatters sequentially
       -- python = { "isort", "black" },
@@ -290,13 +290,12 @@ return {
       "onsails/lspkind-nvim",
     },
     config = function()
-      -- See `:help cmp`
       local cmp = require 'cmp'
       local luasnip = require 'luasnip'
       luasnip.config.setup {}
-      local ELLIPSIS_CHAR = '…'
-      local MAX_LABEL_WIDTH = 20
-      local MIN_LABEL_WIDTH = 20
+      -- local ELLIPSIS_CHAR = '…'
+      -- local MAX_LABEL_WIDTH = 20
+      -- local MIN_LABEL_WIDTH = 20
 
       local cmp_autopairs = require('nvim-autopairs.completion.cmp')
 
@@ -304,13 +303,13 @@ return {
         'confirm_done',
         cmp_autopairs.on_confirm_done()
       )
-      local has_words_before = function()
-        unpack = unpack or table.unpack
-        local line, col = unpack(vim.api.nvim_win_get_cursor(0))
-        return col ~= 0 and
-            vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match("%s") ==
-            nil
-      end
+      -- local has_words_before = function()
+      --   unpack = unpack or table.unpack
+      --   local line, col = unpack(vim.api.nvim_win_get_cursor(0))
+      --   return col ~= 0 and
+      --       vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match("%s") ==
+      --       nil
+      -- end
       cmp.setup {
         snippet = {
           expand = function(args)
@@ -318,7 +317,10 @@ return {
           end,
         },
         window = {
-          completion = cmp.config.window.bordered(),
+          completion = cmp.config.window.bordered({
+            --   border = "none",
+            --   winhighlight = "NormalFloat:NormalFloat,FloatBorder:FloatBorder",
+          }),
           documentation = cmp.config.window.bordered(),
         },
         completion = { completeopt = 'menu,menuone,noinsert' },
@@ -329,6 +331,15 @@ return {
           ['<C-u>'] = cmp.mapping.scroll_docs(-4),
           ['<C-d>'] = cmp.mapping.scroll_docs(4),
           ['<C-Space>'] = cmp.mapping.confirm { select = true },
+          ["<C-e>"] = cmp.mapping({
+            i = function()
+              if cmp.visible() then
+                cmp.abort()
+              else
+                cmp.complete()
+              end
+            end,
+          }),
           -- ['<Down>'] = cmp.mapping(function(fallback)
           --   cmp.close()
           --   fallback()

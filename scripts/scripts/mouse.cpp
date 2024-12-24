@@ -78,8 +78,7 @@ void moveMouseWhileKeyHeld(std::atomic<bool> &moveH, std::atomic<bool> &moveJ,
       std::system(("echo 'mousemove " + std::to_string(speed) + " 0' | dotoolc").c_str());
     }
 
-    std::this_thread::sleep_for(
-        std::chrono::milliseconds(5)); // Control mouse movement speed
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
   }
 }
 
@@ -101,9 +100,8 @@ int main() {
 
   std::atomic<bool> moveH(false), moveJ(false), moveK(false), moveL(false);
   std::atomic<bool> altPressed(false);
-  std::atomic<bool> speedDecrease(false); // Flag for reduced speed when 'Z' is pressed
+  std::atomic<bool> speedDecrease(false);
 
-  // Start the mouse movement thread
   std::thread movementThread(moveMouseWhileKeyHeld, std::ref(moveH), std::ref(moveJ),
                              std::ref(moveK), std::ref(moveL), std::ref(speedDecrease));
 
@@ -113,7 +111,7 @@ int main() {
     if (rc == 0 && ev.type == EV_KEY) {
       if (ev.code == KEY_LEFTALT || ev.code == KEY_RIGHTALT) {
         altPressed = (ev.value != 0);
-        if (!altPressed) { // Reset on alt key release
+        if (!altPressed) {
           moveH = moveJ = moveK = moveL = false;
           speedDecrease = false;
         }
@@ -131,15 +129,13 @@ int main() {
         case KEY_L:
           moveL = (ev.value != 0);
           break;
-        case KEY_Z:
-          speedDecrease = (ev.value != 0); // Reduce speed when 'Z' is held with 'alt'
+        case KEY_X:
+          speedDecrease = (ev.value != 0);
           break;
         default:
-          break; // Ignore other keys when alt is pressed
+          break;
         }
       } else {
-        // Process other key events normally (i.e., H, J, K, L will be typed if
-        // alt is not pressed)
         switch (ev.code) {
         case KEY_H:
         case KEY_J:
@@ -153,7 +149,6 @@ int main() {
     }
   }
 
-  // Cleanup (will never be reached due to the infinite loop)
   movementThread.join();
   libevdev_free(dev);
   close(fd);

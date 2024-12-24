@@ -1,3 +1,4 @@
+-- require("sahaj.startup")
 require("sahaj.remap")
 
 vim.g.mapleader = " "
@@ -22,115 +23,84 @@ require("lazy").setup({
   checker = { enabled = true, notify = false, },
   change_detection = { notify = false, },
 })
-codeiumString = " {.}%3{codeium#GetStatusString()}"
 
--- plugs = require("sahaj.plugins")
--- function DevMode()
---     require("lazy").setup({
---         { import = "sahaj.plugins" }, }, {
---         checker = { enabled = true, notify = false, },
---         change_detection = { notify = false, },
---     })
---     codeiumString = " {.}%3{codeium#GetStatusString()}"
--- end
---
--- file = vim.fn.expand('%')
---
--- If text type file, use Light plugins
--- if (not file:find(".", 1, true) or file:find(".txt", 1, true) or file:find(".md", 1, true)) and file ~= "" then
---     require("lazy").setup({
---         { import = "sahaj.pluginsLight" }, }, {
---         checker = { enabled = true, notify = false, },
---         change_detection = { notify = false, },
---     })
--- else
---     DevMode()
--- end
-
--- function DevMode()
---     require("lazy").load({    {
---         "ThePrimeagen/vim-apm",
---         config = function()
---             local apm = require("vim-apm")
---
---             apm:setup({})
---             vim.keymap.set("n", "<leader>apm", function() apm:toggle_monitor() end)
---         end
---
---     },
---     { 'declancm/cinnamon.nvim',   opts = { default_delay = 4 } },
--- })
---     codeiumString = " {.}%3{codeium#GetStatusString()}"
--- end
---
--- file = vim.fn.expand('%')
---
--- -- If not text type file, load all plugins
--- if not ((not file:find(".", 1, true) or file:find(".txt", 1, true))) and file ~= "" then
---     DevMode()
--- end
-
--- vim.keymap.set("n", "<leader>D", ":lua DevMode()<CR>")
-
-vim.cmd [[colorscheme catppuccin]]
-vim.cmd [[hi LocalHighlight guibg=#2a2b3c guifg=none]]
+vim.cmd [[colorscheme catppuccin
+]]
 
 -- vim.g.codeium_enabled = false
 vim.opt.showmode = false
 vim.opt.breakindent = true
--- vim.opt.signcolumn = 'yes'
+vim.opt.signcolumn = 'auto'
 
 -- Transparent 󰈸󰈸
-function transparent()
+function Transparent()
+  vim.g.transparent = true
   vim.cmd [[colorscheme catppuccin
-    hi Normal guibg=none ctermbg=none
-    hi NormalFloat guibg=none ctermbg=none
-    hi LineNr guibg=none ctermbg=none
-    hi Folded guibg=none ctermbg=none
-    hi NonText guibg=none ctermbg=none
-    hi SpecialKey guibg=none ctermbg=none
-    hi VertSplit guibg=none ctermbg=none
-    hi SignColumn guibg=none ctermbg=none
-    hi EndOfBuffer guibg=none ctermbg=none
-    hi CursorLine guibg=none
-    hi StatusLine none
-    hi NormalNC guibg=none ctermbg=none
-    hi TelescopePreviewNormal none
-    hi TelescopePreviewBorder none
-    hi TelescopeResultNormal none
-    hi TelescopeResultBorder none
-    hi TelescopePromptNormal none
-    hi TelescopePromptBorder none
-    hi TelescopePromptPrefix none
-    hi TelescopeSelection none
-    hi DiagnosticVirtualTextWarn none
-    hi DiagnosticVirtualTextError none
-    hi DiagnosticVirtualTextInfo none
-    hi DiagnosticVirtualTextHint none
-    hi LocalHighlight guibg=none gui=underline
-    " hi Constant guibg=none
-    " hi WarningMsg guibg=none
-    " hi Comment guibg=none
-    " hi Title guibg=none
-    " hi Question guibg=none
-
-]]
+  hi lualine_c_normal guibg=none
+  hi lualine_x_normal guibg=none
+  hi Normal guibg=none ctermbg=none
+  hi NormalFloat guibg=none ctermbg=none
+  " hi LineNr guibg=none ctermbg=none
+  hi Folded guibg=none ctermbg=none
+  hi NonText guibg=none ctermbg=none
+  hi SpecialKey guibg=none ctermbg=none
+  hi VertSplit guibg=none ctermbg=none
+  " hi SignColumn guibg=none ctermbg=none
+  hi EndOfBuffer guibg=none ctermbg=none
+  hi CursorLine guibg=none
+  hi StatusLine none
+  hi NormalNC guibg=none ctermbg=none
+  hi TelescopePreviewNormal none
+  hi TelescopePreviewBorder none
+  hi TelescopeResultNormal none
+  hi TelescopeResultBorder none
+  hi TelescopePromptNormal none
+  hi TelescopePromptBorder none
+  hi TelescopePromptPrefix none
+  hi TelescopeSelection none
+  hi DiagnosticVirtualTextWarn none
+  hi DiagnosticVirtualTextError none
+  hi DiagnosticVirtualTextInfo none
+  hi DiagnosticVirtualTextHint none
+  " hi LocalHighlight guibg=none gui=underline
+  " hi MiniCursorword guibg=none cterm=none guibg=none
+  hi MiniCursorwordCurrent guibg=none cterm=none gui=none
+  " hi FoldIcon guibg=#cba6f7 guifg=#1e1e2e gui=bold
+  hi FoldIcon guibg=#f9e2af guifg=#1e1e2e gui=bold
+  hi IblScope guifg=#585b70
+  hi TabLineSel guibg=#a6e3a1 guifg=#11111b
+  hi TabLine  guifg=#cdd6f4
+  ]]
+  vim.g.minicursorword_disable = true
+  -- enabled bordered completion menu
+  -- local cmp = require("cmp")
+  -- cmp.setup({ window = { completion = cmp.config.window.bordered({}) } })
 end
 
-transparent()
+function Opaque()
+  vim.g.minicursorword_disable = false
+  vim.g.transparent = false
+  vim.cmd [[ colorscheme catppuccin
+  " hi LocalHighlight guibg= guifg=none
+  hi MiniCursorword guibg=#313340 cterm=none gui=none
+  hi MiniCursorwordCurrent guibg=none cterm=none gui=none
+  " hi CursorLine guibg=#181825
+  " hi SignColumn guibg=#181825
+  " hi CursorLineNr guibg=#181825
+  " hi LineNr guibg=#181825
+  hi Folded guibg=#313244
+  hi FoldIcon guibg=#3d382a guifg=#f9e2af gui=bold
+  " hi FoldIcon guibg=#cba6f7 guifg=#1e1e2e gui=bold
+  hi IblScope guifg=#585b70
+  hi TabLineSel guibg=#a6e3a1 guifg=#11111b
+  hi TabLine  guifg=#cdd6f4
+  ]]
 
---Remove Transparency
-function opaque()
-  vim.cmd [[colorscheme catppuccin
-    hi LocalHighlight guibg=#2a2b3c guifg=none
-    " hi Normal guibg=#1e1e2e
-    ]]
   --Telescope Colours
   local colors = require("catppuccin.palettes").get_palette()
   local TelescopeColor = {
     TelescopeMatching = { fg = colors.flamingo },
     TelescopeSelection = { fg = colors.text, bg = colors.surface0, bold = true },
-
     TelescopePromptPrefix = { bg = colors.surface0 },
     TelescopePromptNormal = { bg = colors.surface0 },
     TelescopeResultsNormal = { bg = colors.mantle },
@@ -146,11 +116,31 @@ function opaque()
   for hl, col in pairs(TelescopeColor) do
     vim.api.nvim_set_hl(0, hl, col)
   end
+
+  -- disable bordered completion menu
+  -- local cmp = require("cmp")
+  -- cmp.setup({
+  --   window = {
+  --     completion = cmp.config.window.bordered({
+  --       border = "none",
+  --       winhighlight = "NormalFloat:NormalFloat,FloatBorder:FloatBorder",
+  --     })
+  --   }
+  -- })
 end
 
--- opaque()
+-- Opaque()
+Transparent()
 
-vim.cmd [[let g:buftabline_show = 1]]
+function CopilotToCodeium()
+  vim.cmd [[ Copilot disable ]]
+  vim.api.nvim_command("CodeiumEnable")
+  require('lualine').setup {
+    sections = {
+      lualine_y = { function() return "{.}%3{codeium#GetStatusString()}" end, 'progress' },
+    },
+  }
+end
 
 vim.opt.guicursor = {
   "n-v-c:block-Cursor",
@@ -159,12 +149,15 @@ vim.opt.guicursor = {
   "o:hor50-Cursor",
 }
 
-vim.opt.conceallevel = 1
+vim.g.tailwindSortOnSave = true
+
+vim.opt.conceallevel = 2
+vim.opt.concealcursor = 'n'
 vim.opt.magic = false
 
 vim.opt.inccommand = 'split'
 
-vim.opt.mouse = ''
+vim.opt.mouse = 'a'
 
 vim.opt.nu = true
 vim.opt.rnu = true
@@ -207,6 +200,9 @@ vim.opt.cursorline = true
 vim.opt.clipboard:append("unnamedplus")
 vim.opt.iskeyword:append("-")
 
+vim.opt.nrformats:append("unsigned")
+
+-- folds
 vim.opt.foldmethod = "expr"
 vim.opt.foldexpr = "nvim_treesitter#foldexpr()"
 vim.opt.foldenable = true
@@ -215,7 +211,9 @@ vim.opt.foldlevelstart = 99
 vim.opt.foldnestmax = 4
 vim.opt.foldminlines = 1
 vim.opt.foldcolumn = "0"
-vim.opt.fillchars = "fold: ,foldopen:⯆,foldsep:│,foldclose:⯈"
+vim.opt.fillchars = "fold: ,foldopen:,foldsep:│,foldclose:"
+
+
 function HighlightedFoldtext()
   local pos = vim.v.foldstart
   local line = vim.api.nvim_buf_get_lines(0, pos - 1, pos, false)[1]
@@ -253,15 +251,10 @@ function HighlightedFoldtext()
     end
   end
   local fold_lines = vim.v.foldend - pos + 1
-  table.insert(result, { " 󰁂 " .. fold_lines .. " ", "DiagnosticVirtualTextOk" })
+  table.insert(result, { " 󰁂 " .. fold_lines .. " ", "FoldIcon" })
   return result
 end
 
-local bg = vim.api.nvim_get_hl(0, { name = "StatusLine" }).bg
-local hl = vim.api.nvim_get_hl(0, { name = "Folded" })
-
-hl.bg = bg
-vim.api.nvim_set_hl(0, "Folded", hl)
 vim.opt.foldtext = "v:lua.HighlightedFoldtext()"
 
 
@@ -276,46 +269,60 @@ vim.api.nvim_create_user_command("ToggleAutoComplete", function()
   end
 end, {})
 
--- local highlight_group = vim.api.nvim_create_augroup('YankHighlight', { clear = true })
--- vim.api.nvim_create_autocmd('TextYankPost', {
---     callback = function()
---         vim.highlight.on_yank()
---     end,
---     group = highlight_group,
---     pattern = '*',
+-- -- Status Column for folding
+-- local fcs = vim.opt.fillchars:get()
+-- local function get_fold(lnum)
+--   if vim.fn.foldlevel(lnum) <= vim.fn.foldlevel(lnum - 1) then return ' ' end
+--   local fold_sym = vim.fn.foldclosed(lnum) == -1 and fcs.foldopen or fcs.foldclose
+--   return fold_sym
+-- end
+-- _G.get_statuscol = function()
+--   return "%s%l " .. get_fold(vim.v.lnum) .. " "
+-- end
+-- vim.o.statuscolumn = "%!v:lua.get_statuscol()"
+
+-- vim.api.nvim_create_autocmd("QuickFixCmdPost", {
+--   callback = function()
+--     vim.cmd([[Trouble qflist open]])
+--   end,
 -- })
+
 vim.api.nvim_create_autocmd("BufEnter", {
   callback = function()
     vim.opt.formatoptions:remove { "c", "r", "o" }
   end,
   desc = "Disable New Line Comment",
 })
-vim.cmd [[
-augroup highlight_yank
-autocmd!
-au TextYankPost * silent! lua vim.highlight.on_yank({higroup="Search", timeout=150})
-augroup END
-]]
--- vim.api.nvim_create_autocmd("BufWritePre", {
---   pattern = "*.jsx,*.tsx",
---   callback = function()
---     vim.cmd("TailwindSortSync")
---   end,
--- })
+vim.api.nvim_create_autocmd("TextYankPost", {
+  group = vim.api.nvim_create_augroup("highlight_yank", { clear = true }),
+  callback = function()
+    vim.highlight.on_yank({ higroup = "Search", timeout = 150 })
+  end,
+})
+vim.api.nvim_create_autocmd("BufWritePre", {
+  pattern = "*.jsx,*.tsx",
+  group = vim.api.nvim_create_augroup("TailwindSortSync", { clear = true }),
+  callback = function()
+    if vim.g.TailwindSortOnSave then
+      vim.cmd("TailwindSortSync")
+    end
+  end,
+})
 
-vim.o.statusline = " "
-    .. "  "
-    .. " %F"
-    .. " %#StatusModified#"
-    .. " %m"
-    .. " %#StatusNorm#"
-    .. "%="
-    .. "%y"
-    .. " %#StatusBuffer#"
-    .. "  "
-    .. "%n"
-    .. "%#StatusLocation#"
-    .. " %l,%c"
-    .. " %#StatusPercent#"
-    .. " %p%%  "
-    .. codeiumString
+-- local codeiumString = " {.}%3{codeium#GetStatusString()}"
+-- vim.o.statusline = " "
+--     .. "  "
+--     .. " %F"
+--     .. " %#StatusModified#"
+--     .. " %m"
+--     .. " %#StatusNorm#"
+--     .. "%="
+--     .. "%y"
+--     .. " %#StatusBuffer#"
+--     .. "  "
+--     .. "%n"
+--     .. "%#StatusLocation#"
+--     .. " %l,%c"
+--     .. " %#StatusPercent#"
+--     .. " %p%%  "
+--     .. codeiumString
