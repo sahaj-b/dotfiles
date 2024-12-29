@@ -26,7 +26,7 @@ return {
         },
       })
     end,
-    -- ft = "oil",
+    ft = { "oil" },
   },
   { "ofseed/copilot-status.nvim" },
   { "github/copilot.vim" },
@@ -34,6 +34,7 @@ return {
     "m4xshen/hardtime.nvim",
     dependencies = { "MunifTanjim/nui.nvim" },
     opts = {
+      disable_mouse = false,
       disabled_keys = {
         ["<Up>"] = {},
         ["<Down>"] = {},
@@ -41,7 +42,7 @@ return {
         ["<Right>"] = {},
 
       },
-      max_time = 600,
+      max_time = 400,
       max_count = 6,
 
     }

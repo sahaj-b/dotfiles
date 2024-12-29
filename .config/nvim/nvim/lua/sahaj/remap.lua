@@ -147,10 +147,23 @@ keymap.set("v", "<leader><leader>t", ":lua ToggleCheckboxVisual()<CR>")
 -- keymap.set("n", "<leader><leader>d", ":DiffviewToggle<CR>")
 
 -- Oil.nvim
-keymap.set("n", "-", "<cmd>Oil<cr>")
+-- open preview pane by default
+keymap.set('n', '-', function()
+  local oil = require('oil')
+  oil.open()
+
+  -- Wait until oil has opened, for a maximum of 1 second.
+  vim.wait(1000, function()
+    return oil.get_cursor_entry() ~= nil
+  end)
+  if oil.get_cursor_entry() then
+    oil.open_preview()
+  end
+end)
 
 -- tailwind
 keymap.set("n", "<leader>tc", ":TailwindConcealToggle<CR>")
+
 --ccc
 keymap.set("n", "<leader>cc", ":CccPick<CR>")
 
@@ -169,25 +182,6 @@ keymap.set("n", "<leader>lrf", ":lua vim.lsp.buf.references()<CR>")
 keymap.set("n", "<leader>lrn", ":lua vim.lsp.buf.rename()<CR>")
 keymap.set("n", "<leader>cmd", ":lua require('cmp').setup.buffer { enabled = false }<CR>")
 keymap.set("n", "<leader>cme", ":lua require('cmp').setup.buffer { enabled = true }<CR>")
-
-local show_only_errors = false
-function ToggleDiagnostics()
-  if show_only_errors then
-    vim.diagnostic.config({
-      virtual_text = { severity = { min = vim.diagnostic.severity.WARN }, prefix = '•' }
-    })
-    show_only_errors = false
-    print("Showing warnings and errors")
-  else
-    vim.diagnostic.config({
-      virtual_text = { severity = { min = vim.diagnostic.severity.ERROR }, prefix = '•' }
-    })
-    show_only_errors = true
-    print("Showing only errors")
-  end
-end
-
-vim.keymap.set("n", "<leader>tw", ToggleDiagnostics, { desc = "Toggle warnings+errors/errors" })
 
 -- telescope
 keymap.set("n", "<leader>fh", "<cmd>Telescope help_tags<cr>", { desc = "File Browser" })
@@ -244,6 +238,25 @@ autocmd filetype cpp nnoremap <leader>8  :!(footclient -a float -w1200x700-e sh 
 autocmd filetype qml nnoremap <leader>9  :!qmlscene %<CR>
 autocmd filetype qml nnoremap <leader>8  :!(footclient -a float -w1200x700-e sh -c 'qmlscene %'&)<CR>
 ]]
+
+local show_only_errors = false
+function ToggleDiagnostics()
+  if show_only_errors then
+    vim.diagnostic.config({
+      virtual_text = { severity = { min = vim.diagnostic.severity.WARN }, prefix = '•' }
+    })
+    show_only_errors = false
+    print("Showing warnings and errors")
+  else
+    vim.diagnostic.config({
+      virtual_text = { severity = { min = vim.diagnostic.severity.ERROR }, prefix = '•' }
+    })
+    show_only_errors = true
+    print("Showing only errors")
+  end
+end
+
+vim.keymap.set("n", "<leader>tw", ToggleDiagnostics, { desc = "Toggle warnings+errors/errors" })
 
 -- -- trouble
 --
