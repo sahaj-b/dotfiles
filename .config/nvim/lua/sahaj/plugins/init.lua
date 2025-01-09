@@ -1,5 +1,53 @@
 return {
   {
+    "3rd/image.nvim",
+    build = false,
+    config = function()
+      require("image").setup({
+        backend = "ueberzug",
+        processor = "magick_cli",
+        max_width = 1000,
+        max_height = 1000,
+        max_width_window_percentage = nil,
+        max_height_window_percentage = 50,
+        window_overlap_clear_enabled = false,
+        window_overlap_clear_ft_ignore = { "cmp_menu", "cmp_docs", "" },
+        editor_only_render_when_focused = true,
+        tmux_show_only_in_active_window = true,
+        hijack_file_patterns = { "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp", "*.avif" }, -- render image files as images when opened
+
+        integrations = {
+          markdown = {
+            enabled = true,
+            only_render_image_at_cursor = true,
+            filetypes = { "markdown", "vimwiki" },
+            -- filetypes = {},
+          },
+        },
+      })
+    end,
+    ft = { "oil" },
+  },
+  { "ofseed/copilot-status.nvim" },
+  { "github/copilot.vim" },
+  {
+    "m4xshen/hardtime.nvim",
+    dependencies = { "MunifTanjim/nui.nvim" },
+    opts = {
+      disable_mouse = false,
+      disabled_keys = {
+        ["<Up>"] = {},
+        ["<Down>"] = {},
+        ["<Left>"] = {},
+        ["<Right>"] = {},
+
+      },
+      max_time = 400,
+      max_count = 6,
+
+    }
+  },
+  {
     'crispgm/nvim-tabline',
     dependencies = { 'nvim-tree/nvim-web-devicons' },
     opts = {
@@ -28,65 +76,12 @@ return {
     event = "VeryLazy",
     ft = { "javascriptreact", "typescriptreact" }
   },
-  {
-    'linrongbin16/lsp-progress.nvim',
-    config = function()
-      require("lsp-progress").setup({
-        client_format = function(client_name, spinner, series_messages)
-          if #series_messages == 0 then
-            return nil
-          end
-          return {
-            name = client_name,
-            body = spinner .. " " .. table.concat(series_messages, ", "),
-          }
-        end,
-        format = function(client_messages)
-          --- @param name string
-          --- @param msg string?
-          --- @return string
-          local function stringify(name, msg)
-            return msg and string.format("%s %s", name, msg) or name
-          end
-
-          local sign = "" -- nf-fa-gear \uf013
-          local lsp_clients = vim.lsp.get_active_clients()
-          local messages_map = {}
-          for _, climsg in ipairs(client_messages) do
-            messages_map[climsg.name] = climsg.body
-          end
-
-          if #lsp_clients > 0 then
-            table.sort(lsp_clients, function(a, b)
-              return a.name < b.name
-            end)
-            local builder = {}
-            for _, cli in ipairs(lsp_clients) do
-              if
-                  type(cli) == "table"
-                  and type(cli.name) == "string"
-                  and string.len(cli.name) > 0
-              then
-                if messages_map[cli.name] then
-                  table.insert(
-                    builder,
-                    stringify(cli.name,
-                      messages_map[cli.name])
-                  )
-                else
-                  table.insert(builder, stringify(cli.name))
-                end
-              end
-            end
-            if #builder > 0 then
-              return sign .. " " .. table.concat(builder, ", ")
-            end
-          end
-          return ""
-        end,
-      })
-    end
-  },
+  -- {
+  --   'linrongbin16/lsp-progress.nvim',
+  --   config = function()
+  --     require("lsp-progress").setup()
+  --   end
+  -- },
   {
     'sindrets/diffview.nvim',
     opts = {
@@ -112,17 +107,12 @@ return {
           lualine_a = { 'branch' },
           lualine_b = { { 'filename', new_file = true, path = 1, shorting_target = 40 } },
           lualine_c = { 'diagnostics' },
-          lualine_x = { function() return require('lsp-progress').progress() end, 'diff', 'filetype' },
-          lualine_y = { function() return "{.}%3{codeium#GetStatusString()}" end, 'progress' },
+          lualine_x = { 'diff', 'filetype' },
+          -- lualine_y = { function() return "{.}%3{codeium#GetStatusString()}" end, 'progress' },
+          lualine_y = { 'copilot', 'progress' },
           lualine_z = { 'location' }
         },
       }
-      vim.api.nvim_create_augroup("lualine_augroup", { clear = true })
-      vim.api.nvim_create_autocmd("User", {
-        group = "lualine_augroup",
-        pattern = "LspProgressStatusUpdated",
-        callback = require("lualine").refresh,
-      })
     end
   },
   {
@@ -170,24 +160,24 @@ return {
     end,
   },
   -- { "jmbuhr/otter.nvim",      ft = "markdown" },
-  {
-    "epwalsh/obsidian.nvim",
-    version = "*",
-    lazy = true,
-    ft = "markdown",
-    dependencies = { "nvim-lua/plenary.nvim", },
-    opts = {
-      workspaces = { { name = "notes", path = "~/notes", }, },
-      disable_frontmatter = true,
-      -- daily_notes = {
-      --     folder = "journal/daily",
-      --     template = "daily.md",
-      -- },
-      templates = {
-        subdir = "templates",
-      },
-    },
-  },
+  -- {
+  --   "epwalsh/obsidian.nvim",
+  --   version = "*",
+  --   lazy = true,
+  --   ft = "markdown",
+  --   dependencies = { "nvim-lua/plenary.nvim", },
+  --   opts = {
+  --     workspaces = { { name = "notes", path = "~/notes", }, },
+  --     disable_frontmatter = true,
+  --     -- daily_notes = {
+  --     --     folder = "journal/daily",
+  --     --     template = "daily.md",
+  --     -- },
+  --     templates = {
+  --       subdir = "templates",
+  --     },
+  --   },
+  -- },
   {
     "folke/flash.nvim",
     event = "VeryLazy",
@@ -227,14 +217,10 @@ return {
   },
   {
     "Exafunction/codeium.vim",
-    event = "BufEnter",
+    cmd = "CodeiumEnable",
     config = function()
       vim.keymap.set('i', '<Tab>', function() return vim.fn['codeium#Accept']() end,
         { expr = true, silent = true })
-      -- vim.keymap.set('i', '<F34>', function() return vim.fn['codeium#CycleCompletions'](1) end,
-      --     { expr = true, silent = true })
-      -- vim.keymap.set('i', '<F33>', function() return vim.fn['codeium#CycleCompletions'](-1) end,
-      --     { expr = true, silent = true })
       vim.keymap.set('i', '<C-x>', function() return vim.fn['codeium#Clear']() end,
         { expr = true, silent = true })
     end
@@ -284,6 +270,27 @@ return {
       vim.keymap.set("n", "<leader>j", function() harpoon:list():select(2) end)
       vim.keymap.set("n", "<leader>k", function() harpoon:list():select(3) end)
       vim.keymap.set("n", "<leader>l", function() harpoon:list():select(4) end)
+
+      -- basic telescope configuration
+      local conf = require("telescope.config").values
+      local function toggle_telescope(harpoon_files)
+        local file_paths = {}
+        for _, item in ipairs(harpoon_files.items) do
+          table.insert(file_paths, item.value)
+        end
+
+        require("telescope.pickers").new({}, {
+          prompt_title = "Harpoon",
+          finder = require("telescope.finders").new_table({
+            results = file_paths,
+          }),
+          previewer = conf.file_previewer({}),
+          sorter = conf.generic_sorter({}),
+        }):find()
+      end
+
+      vim.keymap.set("n", "<leader><leader>h", function() toggle_telescope(harpoon:list()) end,
+        { desc = "Open harpoon window" })
     end
   },
   {

@@ -82,7 +82,7 @@ function Opaque()
   vim.g.transparent = false
   vim.cmd [[ colorscheme catppuccin
   " hi LocalHighlight guibg= guifg=none
-  hi MiniCursorword guibg=#2a2c37 cterm=none gui=none
+  hi MiniCursorword guibg=#313340 cterm=none gui=none
   hi MiniCursorwordCurrent guibg=none cterm=none gui=none
   " hi CursorLine guibg=#181825
   " hi SignColumn guibg=#181825
@@ -132,7 +132,15 @@ end
 -- Opaque()
 Transparent()
 
--- vim.g.buftabline_show = 1
+function CopilotToCodeium()
+  vim.cmd [[ Copilot disable ]]
+  vim.api.nvim_command("CodeiumEnable")
+  require('lualine').setup {
+    sections = {
+      lualine_y = { function() return "{.}%3{codeium#GetStatusString()}" end, 'progress' },
+    },
+  }
+end
 
 vim.opt.guicursor = {
   "n-v-c:block-Cursor",
@@ -143,7 +151,8 @@ vim.opt.guicursor = {
 
 vim.g.tailwindSortOnSave = true
 
-vim.opt.conceallevel = 1
+vim.opt.conceallevel = 2
+-- vim.opt.concealcursor = 'n'
 vim.opt.magic = false
 
 vim.opt.inccommand = 'split'

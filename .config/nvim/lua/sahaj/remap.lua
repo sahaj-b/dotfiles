@@ -18,24 +18,26 @@ keymap.set("n", "<leader>q", 'cs"`ysa`}')
 keymap.set('n', '<leader>w', ':silent! noautocmd w<CR>', { noremap = true, silent = true })
 
 keymap.set("n", "<leader>1",
-  ":3,$y<CR>:!echo 'key alt+space'|dotoolc; sleep 0.1;echo 'mouseto 0.9 0.3'| dotoolc; sleep 0.01; echo 'click left'|dotoolc ; sleep 0.01; echo 'key ctrl+a' | dotoolc; sleep 0.01; echo 'key ctrl+v' | dotoolc<CR>")
+  ":3,$y<CR>:!echo 'key super+space'|dotoolc; sleep 0.1;echo 'mouseto 0.9 0.3'| dotoolc; sleep 0.01; echo 'click left'|dotoolc ; sleep 0.01; echo 'key ctrl+a' | dotoolc; sleep 0.01; echo 'key ctrl+v' | dotoolc<CR>")
 keymap.set("n", "<leader>2",
-  ":3,$y<CR>:!echo 'key alt+space'|dotoolc; sleep 0.1;echo 'mouseto 0.9 0.3'|dotoolc; sleep 0.01; echo 'click left'|dotoolc; sleep 0.01; echo 'key ctrl+a'|dotoolc; sleep 0.01; echo 'key ctrl+v'|dotoolc; sleep 0.01; echo 'key ctrl+apostrophe' | dotoolc<CR>")
+  ":3,$y<CR>:!echo 'key super+space'|dotoolc; sleep 0.1;echo 'mouseto 0.9 0.3'|dotoolc; sleep 0.01; echo 'click left'|dotoolc; sleep 0.01; echo 'key ctrl+a'|dotoolc; sleep 0.01; echo 'key ctrl+v'|dotoolc; sleep 0.01; echo 'key ctrl+apostrophe' | dotoolc; pkill dotoold; dotoold&<CR>")
 keymap.set("n", "<leader>3",
-  ":!echo 'key alt+space'|dotoolc; sleep 0.1;echo 'mouseto 0.95 0.3'|dotool; sleep 0.01; echo 'click left'|dotoolc; sleep 0.01; echo 'key ctrl+a'|dotoolc; sleep 0.01; echo 'key ctrl+c'|dotoolc; sleep 0.01; echo 'key alt+space'|dotoolc; sleep 0.1;  echo 'key enter'|dotoolc; sleep 0.01; echo 'key P' | dotoolc<CR>")
+  ":!echo 'key super+space'|dotoolc; sleep 0.1;echo 'mouseto 0.95 0.3'|dotool; sleep 0.01; echo 'click left'|dotoolc; sleep 0.01; echo 'key ctrl+a'|dotoolc; sleep 0.01; echo 'key ctrl+c'|dotoolc; sleep 0.01; echo 'key super+space'|dotoolc; sleep 0.1;  echo 'key enter'|dotoolc; sleep 0.01; echo 'key P' | dotoolc<CR>")
 keymap.set("n", "<leader>4",
-  ":3,$y<CR>:!echo 'key alt+space'|dotoolc; sleep 0.1;echo 'mouseto 0.9 0.3'|dotool; sleep 0.01; echo 'click left'|dotoolc; sleep 0.01; echo 'key ctrl+a'|dotoolc; sleep 0.01; echo 'key ctrl+v'|dotoolc; sleep 0.01; echo 'key ctrl+apostrophe' | dotoolc<CR>")
+  ":3,$y<CR>:!echo 'key super+space'|dotoolc; sleep 0.1;echo 'mouseto 0.9 0.3'|dotool; sleep 0.01; echo 'click left'|dotoolc; sleep 0.01; echo 'key ctrl+a'|dotoolc; sleep 0.01; echo 'key ctrl+v'|dotoolc; sleep 0.01; echo 'key ctrl+apostrophe' | dotoolc<CR>")
 
 keymap.set("x", "Q", ":norm @q<CR>")
 
 keymap.set("n", "<leader>s", ":w<CR>")
 
 keymap.set("n", "<leader>co", ":CodeiumToggle<CR>")
+keymap.set("n", "<leader>cp", ":Copilot disable<CR>")
 
 keymap.set("n", "<leader>p", '"0p')
 
 keymap.set("n", "<esc>", ":noh<CR>", { silent = true })
-keymap.set("n", "<leader>ch", ":set hlsearch<CR>", { silent = true })
+keymap.set("n", "<leader>ch", function() vim.opt.hlsearch = not vim.opt.hlsearch._value end,
+  { silent = true, desc = "Toggle Highlight search" })
 
 keymap.set("v", "K", ":m '<-2<CR>gv=gv", { desc = "Move selection down" })
 keymap.set("v", "J", ":m '>+1<CR>gv=gv", { desc = "Move selection up" })
@@ -105,29 +107,63 @@ keymap.set("n", "<leader>j", "2gt")
 keymap.set("n", "<leader>k", "3gt")
 keymap.set("n", "<leader>l", "4gt")
 
+-- Toggle Checkboxes
+function ToggleCheckbox()
+  local line = vim.api.nvim_get_current_line()
+  local uncheckedspace, _ = string.find(line, "- %[ %]")
+  local unchecked, _ = string.find(line, "- %[%]")
+  local checked, _ = string.find(line, "- %[x%]")
+  local newLine
+
+  if uncheckedspace ~= nil then
+    newLine = string.gsub(line, "%[ %]", "[x]")
+  elseif unchecked ~= nil then
+    newLine = string.gsub(line, "%[%]", "[x]")
+  elseif checked ~= nil then
+    newLine = string.gsub(line, "%[x%]", "[ ]")
+  else
+    newLine = "- [ ] " .. line
+  end
+  vim.api.nvim_set_current_line(newLine)
+end
+
+function ToggleCheckboxVisual()
+  local start_line = vim.fn.line("'<")
+  local end_line = vim.fn.line("'>")
+
+  for line_num = start_line, end_line do
+    vim.cmd("normal! " .. line_num .. "gg")
+    ToggleCheckbox()
+    -- vim.api.nvim_buf_set_line(0, line_num - 1, line_num - 1, false, ToggleLineCheckbox(vim.api.nvim_buf_get_lines(0, line_num - 1, line_num, false)[1]))
+  end
+end
+
+keymap.set("n", "<leader><leader>t", ":lua ToggleCheckbox()<CR>")
+keymap.set("v", "<leader><leader>t", ":lua ToggleCheckboxVisual()<CR>")
+
 --plugins-keymaps
 
 -- diffview
-keymap.set("n", "<leader><leader>d", ":DiffviewToggle<CR>")
+-- keymap.set("n", "<leader><leader>d", ":DiffviewToggle<CR>")
 
--- -- trouble
---
--- keymap.set("n", "<leader>xt", "<cmd>Trouble toggle<cr>", { desc = "Close Trouble window(any)" })
--- keymap.set("n", "<leader>xd", "<cmd>Trouble diagnostics toggle<cr>", { desc = "Toggle Diagnostics" })
--- keymap.set("n", "<leader>xD", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>",
---   { desc = "Buffer Diagnostics (Trouble)" })
--- keymap.set("n", "<leader>xs", "<cmd>Trouble symbols toggle<cr>", { desc = "Symbols (Trouble)" })
--- keymap.set("n", "<leader>xl", "<cmd>Trouble lsp toggle focus=false win.position=right<cr>",
---   { desc = "LSP Definitions / references / ... (Trouble)" })
--- keymap.set("n", "<leader>xL", "<cmd>Trouble loclist toggle<cr>", { desc = "Location List (Trouble)" })
--- keymap.set("n", "<leader>xq", "<cmd>Trouble qflist toggle<cr>", { desc = "Quickfix List (Trouble)" })
--- keymap.set("n", "<leader>;", function() require("trouble").next({ jump = true, skip_groups = true }) end,
---   { desc = "Next item (Trouble)" })
--- keymap.set("n", "<leader>,", function() require("trouble").prev({ jump = true, skip_groups = true }) end,
---   { desc = "Next item (Trouble)" })
+-- Oil.nvim
+-- open preview pane by default
+keymap.set('n', '-', function()
+  local oil = require('oil')
+  oil.open()
+
+  -- Wait until oil has opened, for a maximum of 1 second.
+  vim.wait(1000, function()
+    return oil.get_cursor_entry() ~= nil
+  end)
+  if oil.get_cursor_entry() then
+    oil.open_preview()
+  end
+end)
 
 -- tailwind
 keymap.set("n", "<leader>tc", ":TailwindConcealToggle<CR>")
+
 --ccc
 keymap.set("n", "<leader>cc", ":CccPick<CR>")
 
@@ -146,25 +182,6 @@ keymap.set("n", "<leader>lrf", ":lua vim.lsp.buf.references()<CR>")
 keymap.set("n", "<leader>lrn", ":lua vim.lsp.buf.rename()<CR>")
 keymap.set("n", "<leader>cmd", ":lua require('cmp').setup.buffer { enabled = false }<CR>")
 keymap.set("n", "<leader>cme", ":lua require('cmp').setup.buffer { enabled = true }<CR>")
-
-local show_only_errors = false
-function ToggleDiagnostics()
-  if show_only_errors then
-    vim.diagnostic.config({
-      virtual_text = { severity = { min = vim.diagnostic.severity.WARN }, prefix = '•' }
-    })
-    show_only_errors = false
-    print("Showing warnings and errors")
-  else
-    vim.diagnostic.config({
-      virtual_text = { severity = { min = vim.diagnostic.severity.ERROR }, prefix = '•' }
-    })
-    show_only_errors = true
-    print("Showing only errors")
-  end
-end
-
-vim.keymap.set("n", "<leader>tw", ToggleDiagnostics, { desc = "Toggle warnings+errors/errors" })
 
 -- telescope
 keymap.set("n", "<leader>fh", "<cmd>Telescope help_tags<cr>", { desc = "File Browser" })
@@ -221,3 +238,38 @@ autocmd filetype cpp nnoremap <leader>8  :!(footclient -a float -w1200x700-e sh 
 autocmd filetype qml nnoremap <leader>9  :!qmlscene %<CR>
 autocmd filetype qml nnoremap <leader>8  :!(footclient -a float -w1200x700-e sh -c 'qmlscene %'&)<CR>
 ]]
+
+local show_only_errors = false
+function ToggleDiagnostics()
+  if show_only_errors then
+    vim.diagnostic.config({
+      virtual_text = { severity = { min = vim.diagnostic.severity.WARN }, prefix = '•' }
+    })
+    show_only_errors = false
+    print("Showing warnings and errors")
+  else
+    vim.diagnostic.config({
+      virtual_text = { severity = { min = vim.diagnostic.severity.ERROR }, prefix = '•' }
+    })
+    show_only_errors = true
+    print("Showing only errors")
+  end
+end
+
+vim.keymap.set("n", "<leader>tw", ToggleDiagnostics, { desc = "Toggle warnings+errors/errors" })
+
+-- -- trouble
+--
+-- keymap.set("n", "<leader>xt", "<cmd>Trouble toggle<cr>", { desc = "Close Trouble window(any)" })
+-- keymap.set("n", "<leader>xd", "<cmd>Trouble diagnostics toggle<cr>", { desc = "Toggle Diagnostics" })
+-- keymap.set("n", "<leader>xD", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>",
+--   { desc = "Buffer Diagnostics (Trouble)" })
+-- keymap.set("n", "<leader>xs", "<cmd>Trouble symbols toggle<cr>", { desc = "Symbols (Trouble)" })
+-- keymap.set("n", "<leader>xl", "<cmd>Trouble lsp toggle focus=false win.position=right<cr>",
+--   { desc = "LSP Definitions / references / ... (Trouble)" })
+-- keymap.set("n", "<leader>xL", "<cmd>Trouble loclist toggle<cr>", { desc = "Location List (Trouble)" })
+-- keymap.set("n", "<leader>xq", "<cmd>Trouble qflist toggle<cr>", { desc = "Quickfix List (Trouble)" })
+-- keymap.set("n", "<leader>;", function() require("trouble").next({ jump = true, skip_groups = true }) end,
+--   { desc = "Next item (Trouble)" })
+-- keymap.set("n", "<leader>,", function() require("trouble").prev({ jump = true, skip_groups = true }) end,
+--   { desc = "Next item (Trouble)" })

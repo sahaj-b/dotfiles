@@ -5,7 +5,9 @@ return {
       'nvim-telescope/telescope-fzf-native.nvim',
       build =
       'cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build',
-    }, },
+    },
+    -- { 'nvim-telescope/telescope-media-files.nvim' },
+  },
   module = 'telescope',
 
   config = function()
@@ -31,37 +33,24 @@ return {
     telescope.setup {
       pickers = {
         live_grep = {
-          file_ignore_patterns = { 'node_modules', '.git', '.venv', '.*history', '.*cache', 'package-lock*' },
+          file_ignore_patterns = { 'node_modules', '.git/', '.venv', '.*history', '.*cache', 'package-lock*' },
           additional_args = {
             "--hidden", -- search hidden files
             -- "--fixed-strings" -- disable regex
           }
         },
         grep_string = {
-          file_ignore_patterns = { 'node_modules', '.git', '.venv', '.*history', '.*cache' },
+          file_ignore_patterns = { 'node_modules', '.git/', '.venv', '.*history', '.*cache' },
           additional_args = { "--hidden" } -- regex already disabled
         },
         find_files = {
-          file_ignore_patterns = { 'node_modules', '.git', '.venv' },
+          file_ignore_patterns = { 'node_modules', '.git/', '.venv' },
           hidden = true
         }
       },
       extensions = {
         ['ui-select'] = {
           require('telescope.themes').get_dropdown(),
-        },
-        file_browser = {
-          -- theme = "ivy",
-          -- -- disables netrw and use telescope-file-browser in its place
-          -- hijack_netrw = true,
-          -- mappings = {
-          --     ["i"] = {
-          --         -- your custom insert mode mappings
-          --     },
-          --     ["n"] = {
-          --         -- your custom normal mode mappings
-          --     },
-          -- },
         },
         fzf = {
           fuzzy = true,                   -- false will only do exact matching
@@ -108,5 +97,6 @@ return {
       },
     }
     telescope.load_extension('fzf')
+    -- telescope.load_extension('media_files')
   end,
 }
