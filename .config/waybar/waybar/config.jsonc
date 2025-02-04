@@ -35,8 +35,8 @@
       "format": "{icon}{0}",
       "format-icons": {
               // "Playing": " ", // Uncomment if not using the dynamic script
-              "Paused": " ",
-              "Stopped": "&#x202d;ﭥ " // This stop symbol is RTL. So &#x202d; is left-to-right override.
+              "Paused": " "
+              //"Stopped": "&#x202d;ﭥ " // This stop symbol is RTL. So &#x202d; is left-to-right override.
       },
       "escape": true,
       "tooltip": true,
@@ -46,6 +46,7 @@
       "on-scroll-up": "playerctl next -p spotify",
       "on-scroll-down": "playerctl previous -p spotify",
       "on-click-right": "spotify",
+      "on-click-middle": "pkill spotify; pkill waybar; waybar",
       "max-length": 15
     },
     "pulseaudio/slider": {

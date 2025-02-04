@@ -22,8 +22,13 @@ if len(locktimes) > 0:
     latest_locktime = locktimes[0].split(" - ")
     if today == latest_locktime[0]:
         print("Old locktime: " + latest_locktime[1])
-        latest_locktime_obj = timedelta(hours=int(latest_locktime[1].split(':')[0]), minutes=int(latest_locktime[1].split(':')[1]))
-        latest_locktime[1] = " " + ':'.join(str(latest_locktime_obj + current_locktime).split(':')[0:2])
+        latest_locktime_obj = timedelta(
+            hours=int(latest_locktime[1].split(":")[0]),
+            minutes=int(latest_locktime[1].split(":")[1]),
+        )
+        latest_locktime[1] = " " + ":".join(
+            str(latest_locktime_obj + current_locktime).split(":")[0:2]
+        )
         print("New locktime: " + latest_locktime[1])
         with open("/home/sahaj/locktimes", "r+") as f:
             content = f.readlines()
@@ -34,7 +39,7 @@ if len(locktimes) > 0:
         exit(0)
 
 print("Creating new locktime for today")
-new_locktime = today + " - " + ':'.join(str(current_locktime).split(':')[0:2])
+new_locktime = today + " - " + ":".join(str(current_locktime).split(":")[0:2])
 print("New locktime: " + new_locktime)
 with open("/home/sahaj/locktimes", "r+") as f:
     content = f.read()

@@ -58,7 +58,7 @@ return {
 
     },
   },
-  { 'echasnovski/mini.cursorword', opts = {} },
+  -- { 'echasnovski/mini.cursorword', opts = {} },
 
   -- inconsistent
   -- {
@@ -120,7 +120,7 @@ return {
     cmd = "Oil",
     opts = {},
   },
-  { "nvim-pack/nvim-spectre",      cmd = "Spectre" },
+  { "nvim-pack/nvim-spectre",                 cmd = "Spectre" },
   {
     "uga-rosa/ccc.nvim",
     config = function()

@@ -20,7 +20,7 @@ keymap.set('n', '<leader>w', ':silent! noautocmd w<CR>', { noremap = true, silen
 keymap.set("n", "<leader>1",
   ":3,$y<CR>:!echo 'key super+space'|dotoolc; sleep 0.1;echo 'mouseto 0.9 0.3'| dotoolc; sleep 0.01; echo 'click left'|dotoolc ; sleep 0.01; echo 'key ctrl+a' | dotoolc; sleep 0.01; echo 'key ctrl+v' | dotoolc<CR>")
 keymap.set("n", "<leader>2",
-  ":3,$y<CR>:!echo 'key super+space'|dotoolc; sleep 0.1;echo 'mouseto 0.9 0.3'|dotoolc; sleep 0.01; echo 'click left'|dotoolc; sleep 0.01; echo 'key ctrl+a'|dotoolc; sleep 0.01; echo 'key ctrl+v'|dotoolc; sleep 0.01; echo 'key ctrl+apostrophe' | dotoolc<CR>")
+  ":3,$y<CR>:!echo 'key super+space'|dotoolc; sleep 0.1;echo 'mouseto 0.9 0.3'|dotoolc; sleep 0.01; echo 'click left'|dotoolc; sleep 0.01; echo 'key ctrl+a'|dotoolc; sleep 0.01; echo 'key ctrl+v'|dotoolc; sleep 0.01; echo 'key ctrl+apostrophe' | dotoolc; pkill dotoold; dotoold&<CR>")
 keymap.set("n", "<leader>3",
   ":!echo 'key super+space'|dotoolc; sleep 0.1;echo 'mouseto 0.95 0.3'|dotool; sleep 0.01; echo 'click left'|dotoolc; sleep 0.01; echo 'key ctrl+a'|dotoolc; sleep 0.01; echo 'key ctrl+c'|dotoolc; sleep 0.01; echo 'key super+space'|dotoolc; sleep 0.1;  echo 'key enter'|dotoolc; sleep 0.01; echo 'key P' | dotoolc<CR>")
 keymap.set("n", "<leader>4",

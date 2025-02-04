@@ -81,6 +81,7 @@ function cht() {
   fi
 }
 
+alias h="harsh"
 alias neofetch="fastfetch"
 alias tp="trash-put"
 # alias rm="echo hell naw bro"
@@ -89,7 +90,7 @@ alias refl="reflector -c India >> /etc/pacman.d/mirrorlist && reflector >> /etc/
 alias dk='line=$(sed -n "3p" /etc/keyd/default.conf); if [[ $line == \#* ]]; then sudo sed -i "3s/^#//" /etc/keyd/default.conf; else sudo sed -i "3s/^/#/" /etc/keyd/default.conf; fi; sudo keyd reload'
 alias scratch="hyprctl dispatch exec '[workspace special:term silent] foot -a scratch -e tmux new-session -A -s scratch'"
 alias oscratch="hyprctl dispatch exec '[workspace special:term silent] foot -o colors.alpha=1 -a scratch -e tmux new-session -A -s scratch' & disown; exit"
-alias nvl='nvim ~/Leetcode/leet.cpp +"lua vim.diagnostic.disable(0)" +"lua Opaque()" +":,%d _" +"norm i#include <bits/stdc++.h>" +"norm ousing namespace std;" +"norm o"'
+alias nvl='nvim ~/Leetcode/leet.cpp +"lua vim.diagnostic.disable(0)" +"lua Opaque()" +"Copilot disable" +":,%d _" +"norm i#include <bits/stdc++.h>" +"norm ousing namespace std;" +"norm o"'
 alias dsaq='nvim ~/notes/tech/dsaq.md +"set nowrap"'
 alias lnsync='LBsync.sh && notesync'
 alias nvn='cd ~/notes && nv -c "Telescope find_files"'
@@ -102,7 +103,7 @@ alias nvsu='sudo -E -s nvim'
 alias pymath='python3 -ic "from math import *"'
 alias cpcmd='fc -nl -1 | wl-copy'
 alias todo="glow ~/notes/todo.md"
-alias todon="nvim ~/notes/todo.md"
+alias f="nvim ~/notes/todo.md"
 alias tk="tmux kill-session"
 alias pc="sudo pacman -Syu"
 alias pcn="sudo pacman -Syu --noconfirm"
@@ -139,7 +140,7 @@ ycs() {
             echo -ne "yay -S $packname \nExecute?(Y/n)"
             read yn;
             if [[ "$yn" == "y" ]] || [[ "$yn" == "" ]];then
-                yay -Syu "$packname"
+                yay -S "$packname"
             fi
         fi
     fi
