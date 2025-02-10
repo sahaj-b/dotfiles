@@ -31,7 +31,8 @@ keymap.set("x", "Q", ":norm @q<CR>")
 keymap.set("n", "<leader>s", ":w<CR>")
 
 keymap.set("n", "<leader>co", ":CodeiumToggle<CR>")
-keymap.set("n", "<leader>cp", ":Copilot disable<CR>")
+keymap.set("n", "<leader>cpd", ":Copilot disable<CR>")
+keymap.set("n", "<leader>cpe", ":Copilot enable<CR>")
 
 keymap.set("n", "<leader>p", '"0p')
 

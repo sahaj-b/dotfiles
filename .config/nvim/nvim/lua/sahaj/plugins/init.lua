@@ -1,4 +1,21 @@
 return {
+  -- { "OXY2DEV/markview.nvim",     lazy = false },
+  {
+    "toppair/peek.nvim",
+    event = { "VeryLazy" },
+    build = "deno task --quiet build:fast",
+    config = function()
+      require("peek").setup()
+      vim.api.nvim_create_user_command("PeekOpen", require("peek").open, {})
+      vim.api.nvim_create_user_command("PeekClose", require("peek").close, {})
+    end,
+  },
+  {
+    "iamcco/markdown-preview.nvim",
+    cmd = { "MarkdownPreviewToggle", "MarkdownPreview", "MarkdownPreviewStop" },
+    ft = { "markdown" },
+    build = function() vim.fn["mkdp#util#install"]() end,
+  },
   {
     "3rd/image.nvim",
     build = false,
@@ -305,7 +322,8 @@ return {
             scope = {
               enabled = true,
               highlight = { "IblScope" },
-              show_start = false
+              show_start = false,
+              show_end = false
             },
           }
         end,

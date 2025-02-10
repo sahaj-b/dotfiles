@@ -152,7 +152,7 @@ vim.opt.guicursor = {
 vim.g.tailwindSortOnSave = true
 
 vim.opt.conceallevel = 2
--- vim.opt.concealcursor = 'n'
+-- vim.opt.concealcursor = 'nc'
 vim.opt.magic = false
 
 vim.opt.inccommand = 'split'

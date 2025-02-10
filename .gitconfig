@@ -8,8 +8,8 @@
   defaultBranch = main
 [color]
   ui = auto
-[credential]
-  helper = store
+# [credential]
+#   helper = store
 
 # nvim stuff
 [difftool]
