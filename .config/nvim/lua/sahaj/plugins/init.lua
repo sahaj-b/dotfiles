@@ -396,12 +396,12 @@ return {
 
   },
   { 'kylechui/nvim-surround', event = "VeryLazy", opts = { keymaps = { visual = "Y" }, }, },
-  -- {
-  --   "aserowy/tmux.nvim",
-  --   opts = {
-  --     copy_sync = {
-  --       enable = false
-  --     },
-  --   }
-  -- }
+  {
+    "aserowy/tmux.nvim",
+    opts = {
+      copy_sync = {
+        enable = false
+      },
+    }
+  }
 }

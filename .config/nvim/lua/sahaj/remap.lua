@@ -33,6 +33,12 @@ keymap.set("x", "Q", ":norm @q<CR>")
 
 keymap.set("n", "<leader>s", ":w<CR>")
 
+--windows
+-- keymap.set("n", "<M-h>", "<C-w>h")
+-- keymap.set("n", "<M-j>", "<C-w>j")
+-- keymap.set("n", "<M-k>", "<C-w>k")
+-- keymap.set("n", "<M-l>", "<C-w>l")
+
 keymap.set("n", "<leader>co", ":CodeiumToggle<CR>")
 keymap.set("n", "<leader>cpd", ":Copilot disable<CR>")
 keymap.set("n", "<leader>cpe", ":Copilot enable<CR>")
