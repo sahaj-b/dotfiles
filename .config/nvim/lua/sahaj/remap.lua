@@ -3,12 +3,15 @@ vim.g.mapleader = " "
 local keymap = vim.keymap
 -- keymap.set("x", "p", function() return 'pgv"' .. vim.v.register .. "y" end, { remap = false, expr = true })
 keymap.set("n", "ZA", ":qa<CR>")
+keymap.set("n", "<leader>#", "/\\m^\\s*[^#]<CR>")
 
 keymap.set("n", "<leader>/", "gcc", { remap = true })
 keymap.set("v", "<leader>/", "gc", { remap = true })
 keymap.set("x", "p", "P")
+
 keymap.set("n", "zM", "<cmd>%foldc<CR>", { silent = true })
 keymap.set("n", "<leader>zm", "<cmd>%foldc!<CR>", { silent = true })
+
 keymap.set("n", "<leader>lt", ":!xdg-open https://leetcode.com/problems/<cword><CR>")
 keymap.set("n", "<leader>tr", ":lua Transparent()<CR>", { silent = true })
 keymap.set("n", "<leader>to", ":lua Opaque()<CR>", { silent = true })
@@ -31,7 +34,8 @@ keymap.set("x", "Q", ":norm @q<CR>")
 keymap.set("n", "<leader>s", ":w<CR>")
 
 keymap.set("n", "<leader>co", ":CodeiumToggle<CR>")
-keymap.set("n", "<leader>cp", ":Copilot disable<CR>")
+keymap.set("n", "<leader>cpd", ":Copilot disable<CR>")
+keymap.set("n", "<leader>cpe", ":Copilot enable<CR>")
 
 keymap.set("n", "<leader>p", '"0p')
 
@@ -99,13 +103,17 @@ keymap.set("n", "<leader><leader>x", function() vim.diagnostic.setqflist() end)
 keymap.set("n", "<leader><leader>c", "<cmd>cclose<CR>")
 
 -- tabs
-keymap.set("n", "H", ":tabprev<CR>", { silent = true })
-keymap.set("n", "L", ":tabnext<CR>", { silent = true })
+keymap.set("n", "<leader>]", ":tabnext<CR>")
+keymap.set("n", "<leader>[", ":tabprev<CR>")
 
 keymap.set("n", "<leader>h", ":tabn 1<CR>")
 keymap.set("n", "<leader>j", "2gt")
 keymap.set("n", "<leader>k", "3gt")
 keymap.set("n", "<leader>l", "4gt")
+
+-- buffers
+keymap.set("n", "H", ":bprev<CR>", { silent = true })
+keymap.set("n", "L", ":bnext<CR>", { silent = true })
 
 -- Toggle Checkboxes
 function ToggleCheckbox()
@@ -158,6 +166,9 @@ keymap.set('n', '-', function()
   end)
   if oil.get_cursor_entry() then
     oil.open_preview()
+    vim.defer_fn(function()
+      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("20<C-w><", true, false, true), "n", true)
+    end, 50)
   end
 end)
 
@@ -200,7 +211,7 @@ keymap.set("n", "<leader>gb", "<cmd>Telescope git_branches<cr>", { desc = "Show 
 keymap.set("n", "<leader>gs", "<cmd>Telescope git_status<cr>", { desc = "Show current git changes per file" })
 keymap.set("n", "<leader>ft", "<cmd>Telescope<cr>", { desc = "Open Telescope options" })
 keymap.set("n", "<leader>fr", "<cmd>Telescope lsp_references<cr>", { desc = "Find lsp references" })
-keymap.set("n", "<leader><leader>s", "<cmd>Telescope lsp_workspace_symbols<cr>", { desc = "Find workspace symbols" })
+keymap.set("n", "<leader>fw", "<cmd>Telescope lsp_workspace_symbols<cr>", { desc = "Find workspace symbols" })
 
 keymap.set('n', '<leader>fps', function()
     require("telescope.builtin").grep_string({ search = vim.fn.input("Grep > ") });
@@ -210,7 +221,12 @@ keymap.set('n', '<leader>fps', function()
 keymap.set('n', '<leader>fc', function()
     require("telescope.builtin").find_files({ cwd = require("telescope.utils").buffer_dir() });
   end,
-  { desc = "Find files in cwd" })
+  { desc = "Find files in buffer cwd" })
+
+keymap.set('n', '<leader>fn', function()
+    require("telescope.builtin").find_files({ cwd = "~/.config/nvim/" });
+  end,
+  { desc = "Find files in neovim config" })
 
 
 -- Conform
@@ -229,6 +245,10 @@ keymap.set("n", "<leader>ts",
 
 --runners
 vim.cmd [[
+autocmd filetype javascript nnoremap <leader>9 :!node %<CR>
+autocmd filetype javascript nnoremap <leader>8 :!(footclient -a float -w1200x700 -e sh -c 'node %;read e'&)<CR>
+autocmd filetype typescript nnoremap <leader>9 :!npx tsx %<CR>
+autocmd filetype typescript nnoremap <leader>8 :!(footclient -a float -w1200x700 -e sh -c 'npx tsx %;read e'&)<CR>
 autocmd filetype python nnoremap <leader>9 :!python3 %<CR>
 autocmd filetype python nnoremap <leader>8 :!(footclient -a float -w1200x700 -e sh -c 'python3 %;read e'&)<CR>
 autocmd filetype c nnoremap <leader>9  :!gcc % -o %:r && ./%:r<CR>
@@ -273,3 +293,9 @@ vim.keymap.set("n", "<leader>tw", ToggleDiagnostics, { desc = "Toggle warnings+e
 --   { desc = "Next item (Trouble)" })
 -- keymap.set("n", "<leader>,", function() require("trouble").prev({ jump = true, skip_groups = true }) end,
 --   { desc = "Next item (Trouble)" })
+
+-- markview
+keymap.set("n", "<leader>mv", "<cmd>Markview<CR>", { desc = "Toggle Markview" })
+
+-- rest
+keymap.set("n", "<leader><leader>r", ":Rest run<CR>")

@@ -27,11 +27,6 @@ require("lazy").setup({
 vim.cmd [[colorscheme catppuccin
 ]]
 
--- vim.g.codeium_enabled = false
-vim.opt.showmode = false
-vim.opt.breakindent = true
-vim.opt.signcolumn = 'auto'
-
 -- Transparent 󰈸󰈸
 function Transparent()
   vim.g.transparent = true
@@ -64,33 +59,34 @@ function Transparent()
   hi DiagnosticVirtualTextHint none
   " hi LocalHighlight guibg=none gui=underline
   " hi MiniCursorword guibg=none cterm=none guibg=none
-  hi MiniCursorwordCurrent guibg=none cterm=none gui=none
-  " hi FoldIcon guibg=#cba6f7 guifg=#1e1e2e gui=bold
-  hi FoldIcon guibg=#f9e2af guifg=#1e1e2e gui=bold
+  " hi MiniCursorwordCurrent guibg=none cterm=none gui=none
   hi IblScope guifg=#585b70
   hi TabLineSel guibg=#a6e3a1 guifg=#11111b
   hi TabLine  guifg=#cdd6f4
+  hi FoldIcon guifg=#181825 guibg=#cba6f7 gui=bold
   ]]
-  vim.g.minicursorword_disable = true
+
+  -- reload indent-blankline highlight
+  require("ibl").setup { scope = { highlight = { "IblScope" }, }, }
+  -- vim.g.minicursorword_disable = true
   -- enabled bordered completion menu
   -- local cmp = require("cmp")
   -- cmp.setup({ window = { completion = cmp.config.window.bordered({}) } })
 end
 
 function Opaque()
-  vim.g.minicursorword_disable = false
+  -- vim.g.minicursorword_disable = false
   vim.g.transparent = false
   vim.cmd [[ colorscheme catppuccin
   " hi LocalHighlight guibg= guifg=none
-  hi MiniCursorword guibg=#313340 cterm=none gui=none
-  hi MiniCursorwordCurrent guibg=none cterm=none gui=none
+  " hi MiniCursorword guibg=#313340 cterm=none gui=none
+  " hi MiniCursorwordCurrent guibg=none cterm=none gui=none
   " hi CursorLine guibg=#181825
   " hi SignColumn guibg=#181825
   " hi CursorLineNr guibg=#181825
   " hi LineNr guibg=#181825
-  hi Folded guibg=#313244
-  hi FoldIcon guibg=#3d382a guifg=#f9e2af gui=bold
-  " hi FoldIcon guibg=#cba6f7 guifg=#1e1e2e gui=bold
+  hi Folded guibg=none
+  hi FoldIcon guifg=#cba6f7 guibg=#432d5d gui=bold
   hi IblScope guifg=#585b70
   hi TabLineSel guibg=#a6e3a1 guifg=#11111b
   hi TabLine  guifg=#cdd6f4
@@ -117,6 +113,9 @@ function Opaque()
     vim.api.nvim_set_hl(0, hl, col)
   end
 
+  -- reload indent-blankline highlight
+  require("ibl").setup { scope = { highlight = { "IblScope" }, }, }
+
   -- disable bordered completion menu
   -- local cmp = require("cmp")
   -- cmp.setup({
@@ -131,6 +130,7 @@ end
 
 -- Opaque()
 Transparent()
+-- vim.api.nvim_set_hl(0, 'FoldIcon', { fg = "#afb4f9", bg = "#2a2b3d", bold = true })
 
 function CopilotToCodeium()
   vim.cmd [[ Copilot disable ]]
@@ -142,6 +142,11 @@ function CopilotToCodeium()
   }
 end
 
+-- vim.g.codeium_enabled = false
+vim.opt.showmode = false
+vim.opt.breakindent = true
+vim.opt.signcolumn = 'auto'
+vim.g.tailwindSortOnSave = true
 vim.opt.guicursor = {
   "n-v-c:block-Cursor",
   "i-ci-ve:ver25-Cursor",
@@ -152,7 +157,7 @@ vim.opt.guicursor = {
 vim.g.tailwindSortOnSave = true
 
 vim.opt.conceallevel = 2
--- vim.opt.concealcursor = 'n'
+-- vim.opt.concealcursor = 'nc'
 vim.opt.magic = false
 
 vim.opt.inccommand = 'split'
@@ -198,7 +203,7 @@ vim.opt.smartcase = true
 vim.opt.cursorline = true
 
 vim.opt.clipboard:append("unnamedplus")
-vim.opt.iskeyword:append("-")
+-- vim.opt.iskeyword:append("-")
 
 vim.opt.nrformats:append("unsigned")
 
@@ -212,51 +217,16 @@ vim.opt.foldnestmax = 4
 vim.opt.foldminlines = 1
 vim.opt.foldcolumn = "0"
 vim.opt.fillchars = "fold: ,foldopen:,foldsep:│,foldclose:"
-
-
-function HighlightedFoldtext()
+function foldtext()
   local pos = vim.v.foldstart
   local line = vim.api.nvim_buf_get_lines(0, pos - 1, pos, false)[1]
-  local lang = vim.treesitter.language.get_lang(vim.bo.filetype)
-  local parser = vim.treesitter.get_parser(0, lang)
-  local query = vim.treesitter.query.get(parser:lang(), "highlights")
-
-  if query == nil then
-    return vim.fn.foldtext()
-  end
-
-  local tree = parser:parse({ pos - 1, pos })[1]
-  local result = {}
-
-  local line_pos = 0
-
-  local prev_range = nil
-
-  for id, node, _ in query:iter_captures(tree:root(), 0, pos - 1, pos) do
-    local name = query.captures[id]
-    local start_row, start_col, end_row, end_col = node:range()
-    if start_row == pos - 1 and end_row == pos - 1 then
-      local range = { start_col, end_col }
-      if start_col > line_pos then
-        table.insert(result, { line:sub(line_pos + 1, start_col), "Folded" })
-      end
-      line_pos = end_col
-      local text = vim.treesitter.get_node_text(node, 0)
-      if prev_range ~= nil and range[1] == prev_range[1] and range[2] == prev_range[2] then
-        result[#result] = { text, "@" .. name }
-      else
-        table.insert(result, { text, "@" .. name })
-      end
-      prev_range = range
-    end
-  end
-  local fold_lines = vim.v.foldend - pos + 1
-  table.insert(result, { " 󰁂 " .. fold_lines .. " ", "FoldIcon" })
-  return result
+  return {
+    { line .. " " },
+    { " ⋯ ", "FoldIcon" }
+  }
 end
 
-vim.opt.foldtext = "v:lua.HighlightedFoldtext()"
-
+vim.opt.foldtext = "v:lua.foldtext()"
 
 local cmp_enabled = true
 vim.api.nvim_create_user_command("ToggleAutoComplete", function()
@@ -269,6 +239,17 @@ vim.api.nvim_create_user_command("ToggleAutoComplete", function()
   end
 end, {})
 
+vim.filetype.add({
+  extension = {
+    env = "dotenv",
+  },
+  filename = {
+    [".env"] = "dotenv",
+  },
+  pattern = {
+    ["%.env%.[%w_.-]+"] = "dotenv",
+  },
+})
 -- -- Status Column for folding
 -- local fcs = vim.opt.fillchars:get()
 -- local function get_fold(lnum)
@@ -291,7 +272,7 @@ vim.api.nvim_create_autocmd("BufEnter", {
   callback = function()
     vim.opt.formatoptions:remove { "c", "r", "o" }
   end,
-  desc = "Disable New Line Comment",
+  desc = "Disable Commenting on New Line",
 })
 vim.api.nvim_create_autocmd("TextYankPost", {
   group = vim.api.nvim_create_augroup("highlight_yank", { clear = true }),
@@ -309,6 +290,28 @@ vim.api.nvim_create_autocmd("BufWritePre", {
   end,
 })
 
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = { "json" },
+  callback = function()
+    vim.api.nvim_set_option_value("formatprg", "jq", { scope = 'local' })
+  end,
+})
+
+-- Check and create .rgignore if it doesn't exist
+-- so that Telescope also indexes .env files
+local home = os.getenv "HOME"
+local rgignore_path = home .. "/.rgignore"
+local rgignore_file = io.open(rgignore_path, "r")
+
+if not rgignore_file then
+  rgignore_file = io.open(rgignore_path, "w")
+  if rgignore_file then
+    rgignore_file:write "!.env*\n"
+    rgignore_file:close()
+  end
+else
+  rgignore_file:close()
+end
 -- local codeiumString = " {.}%3{codeium#GetStatusString()}"
 -- vim.o.statusline = " "
 --     .. "  "
@@ -326,3 +329,129 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 --     .. " %#StatusPercent#"
 --     .. " %p%%  "
 --     .. codeiumString
+vim.cmd [[Copilot disable]]
+
+
+-- foldtext with treesitter syntax highlighting, slows down neovim
+-- function foldtext()
+--   local pos = vim.v.foldstart
+--   local line = vim.api.nvim_buf_get_lines(0, pos - 1, pos, false)[1]
+--   local lang = vim.treesitter.language.get_lang(vim.bo.filetype)
+--   local parser = vim.treesitter.get_parser(0, lang)
+--   local query = vim.treesitter.query.get(parser:lang(), "highlights")
+--
+--   if query == nil then
+--     return vim.fn.foldtext()
+--   end
+--
+--   local tree = parser:parse({ pos - 1, pos })[1]
+--   local result = {}
+--
+--   local line_pos = 0
+--
+--   local prev_range = nil
+--
+--   for id, node, _ in query:iter_captures(tree:root(), 0, pos - 1, pos) do
+--     local name = query.captures[id]
+--     local start_row, start_col, end_row, end_col = node:range()
+--     if start_row == pos - 1 and end_row == pos - 1 then
+--       local range = { start_col, end_col }
+--       if start_col > line_pos then
+--         table.insert(result, { line:sub(line_pos + 1, start_col), "Folded" })
+--       end
+--       line_pos = end_col
+--       local text = vim.treesitter.get_node_text(node, 0)
+--       if prev_range ~= nil and range[1] == prev_range[1] and range[2] == prev_range[2] then
+--         result[#result] = { text, "@" .. name }
+--       else
+--         table.insert(result, { text, "@" .. name })
+--       end
+--       prev_range = range
+--     end
+--   end
+--   local fold_lines = vim.v.foldend - pos + 1
+--   table.insert(result, { " 󰁂 " .. fold_lines .. " ", "FoldIcon" })
+--   return result
+-- end
+
+
+
+-- -- Overcomplicated Asynchrounous and cached folding text with treesitter syntax highlighting, but it works
+-- -- Global cache table: for each buffer, cache results per fold start line.
+-- local foldtext_cache = {}
+--
+-- -- A helper function that does the heavy work.
+-- local function compute_foldtext(bufnr, pos)
+--   local line = vim.api.nvim_buf_get_lines(bufnr, pos - 1, pos, false)[1]
+--   local ft = vim.bo.filetype
+--   local lang = vim.treesitter.language.get_lang(ft)
+--   if not lang then
+--     return vim.fn.foldtext() -- fallback: returns a plain string
+--   end
+--
+--   local parser = vim.treesitter.get_parser(bufnr, lang)
+--   local query = vim.treesitter.query.get(parser:lang(), "highlights")
+--   if not query then
+--     return vim.fn.foldtext()
+--   end
+--
+--   local tree = parser:parse({ pos - 1, pos })[1]
+--   local result_parts = {}
+--   local line_pos = 0
+--   local prev_range = nil
+--
+--   for id, node, _ in query:iter_captures(tree:root(), bufnr, pos - 1, pos) do
+--     local name = query.captures[id]
+--     local start_row, start_col, end_row, end_col = node:range()
+--     if start_row == pos - 1 and end_row == pos - 1 then
+--       local range = { start_col, end_col }
+--       if start_col > line_pos then
+--         table.insert(result_parts, { line:sub(line_pos + 1, start_col), "Folded" })
+--       end
+--       line_pos = end_col
+--       local text = vim.treesitter.get_node_text(node, bufnr)
+--       if prev_range and range[1] == prev_range[1] and range[2] == prev_range[2] then
+--         result_parts[#result_parts] = { text, "@" .. name }
+--       else
+--         table.insert(result_parts, { text, "@" .. name })
+--       end
+--       prev_range = range
+--     end
+--   end
+--
+--   local fold_lines = vim.v.foldend - pos + 1
+--   table.insert(result_parts, { " 󰁂 " .. fold_lines .. " ", "FoldIcon" })
+--   -- Return the list of chunks to preserve per-chunk highlights.
+--   return result_parts
+-- end
+--
+-- -- Async updater: when called, schedules a background computation.
+-- local function update_foldtext_async(bufnr, pos)
+--   local timer = vim.loop.new_timer()
+--   timer:start(0, 0, function()
+--     -- Schedule the computation to run on the main thread
+--     vim.schedule(function()
+--       local text = compute_foldtext(bufnr, pos)
+--       foldtext_cache[bufnr] = foldtext_cache[bufnr] or {}
+--       foldtext_cache[bufnr][pos] = text
+--       vim.cmd("redraw")
+--     end)
+--     timer:stop()
+--     timer:close()
+--   end)
+-- end
+--
+-- -- Our foldtext callback: it returns cached text if available; otherwise, kick off an async update.
+-- function foldtext()
+--   local pos = vim.v.foldstart
+--   local bufnr = vim.api.nvim_get_current_buf()
+--   foldtext_cache[bufnr] = foldtext_cache[bufnr] or {}
+--   if foldtext_cache[bufnr][pos] then
+--     return foldtext_cache[bufnr][pos]
+--   else
+--     -- Start async computation if not already in progress.
+--     update_foldtext_async(bufnr, pos)
+--     -- Return a temporary placeholder.
+--     return vim.fn.foldtext()
+--   end
+-- end

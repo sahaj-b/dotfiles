@@ -1,17 +1,25 @@
 #!/usr/bin/env bash
 
-destination_dir="/media/data/LinuxBackup/dotfiles/"
+dotfiles_dir="/media/data/LinuxBackup/dotfiles/"
 
-if [[ $1 = "nodata" ]] || ! [[ -w $destination_dir ]]; then
-  destination_dir="/home/sahaj/LinuxBackup/dotfiles/"
-  echo "Not using 'Data' partition. Defaulting to $destination_dir"
+if [[ $1 = "nodata" ]] || ! [[ -w $dotfiles_dir ]]; then
+  dotfiles_dir="/home/sahaj/LinuxBackup/dotfiles/"
+  echo "Not using 'Data' partition. Defaulting to $dotfiles_dir"
 fi
 
-cd $destination_dir
+cd "${dotfiles_dir}" || {
+  echo "Couldn't cd into ${dotfiles_dir}"
+  exit 1
+}
 git rm -rf .
 
 file_list=(
   "/etc/keyd/default.conf"
+  "/etc/tlp.conf"
+  "/etc/auto-cpufreq.conf"
+  "/etc/systemd/system/powermgmt.service"
+  "/etc/systemd/system/fix-mic.service"
+  # "/etc/udev/rules.d/90-power.rules"
   "$HOME/scripts/"
   "$HOME/.gitconfig"
   "$HOME/.zshrc"
@@ -38,13 +46,16 @@ file_list=(
 for item in "${file_list[@]}"; do
   if [ -e "$item" ]; then
     relative_path="${item#~/}"
-    destination_path="$destination_dir$relative_path"
-    sudo mkdir -p "$(dirname "$destination_path")"
-    sudo cp -r "$item" "$destination_path"
+    if [[ $item == /etc/* ]]; then
+      relative_path="${item#/}"
+    fi
+    destination_dir=$(dirname "$dotfiles_dir$relative_path")
+    mkdir -p "$destination_dir"
+    cp -r "$item" "$destination_dir"
     if [ $? -ne 0 ]; then
       echo -e "\e[31mERROR: cannot copy $item.\e[0m"
     else
-      echo -e "Copied: $item to $destination_path"
+      echo -e "Copied: $item to $destination_dir"
     fi
   else
     echo -e "\e[31mERROR: $item does not exist.\e[0m"
@@ -57,11 +68,11 @@ if [[ $1 != "cp" ]]; then
     echo -e "\e[32mUploading Dotfiles and Guides to GDrive\e[0m"
     sudo rclone --config="/home/sahaj/.config/rclone/rclone.conf" copy /media/data/Linux_Backup/ gdrive:Linux_Backup/ -P
   else
-    echo -e "\e[32mUploading $destination_dir to Github\e[0m"
+    echo -e "\e[32mUploading $dotfiles_dir to Github\e[0m"
     git add .
     git commit -m "Updated"
-    git push origin main
+    git push -u origin main
   fi
 fi
 
-cd ~
+cd - || exit

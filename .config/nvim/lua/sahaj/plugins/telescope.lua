@@ -33,7 +33,7 @@ return {
     telescope.setup {
       pickers = {
         live_grep = {
-          file_ignore_patterns = { 'node_modules', '.git/', '.venv', '.*history', '.*cache', 'package-lock*' },
+          file_ignore_patterns = { 'node_modules', '.git/', '.venv', '.*history', '.*cache', 'package-lock*', '.obsidian/', '.stfolder/', '.trash/' },
           additional_args = {
             "--hidden", -- search hidden files
             -- "--fixed-strings" -- disable regex
@@ -44,7 +44,7 @@ return {
           additional_args = { "--hidden" } -- regex already disabled
         },
         find_files = {
-          file_ignore_patterns = { 'node_modules', '.git/', '.venv' },
+          file_ignore_patterns = { 'node_modules', '.git/', '.venv', '.obsidian/', '.stfolder/', '.trash/' },
           hidden = true
         }
       },

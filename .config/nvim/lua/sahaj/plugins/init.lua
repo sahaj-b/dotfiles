@@ -1,4 +1,73 @@
 return {
+  -- { "OXY2DEV/markview.nvim",     opts = { preview = { enable = false } }, lazy = false, cmd = "Markview" },
+  -- { 'kevinhwang91/nvim-ufo',     dependencies = { 'kevinhwang91/promise-async' }, opts = {} },
+  {
+    "rest-nvim/rest.nvim",
+    dependencies = {
+      "nvim-treesitter/nvim-treesitter",
+      opts = function(_, opts)
+        opts.ensure_installed = opts.ensure_installed or {}
+        table.insert(opts.ensure_installed, "http")
+      end,
+    },
+    ft = { "http" }
+  },
+  {
+    "OXY2DEV/markview.nvim",
+    config = function()
+      require("markview").setup({
+        -- preview = {
+        --   enable_hybrid_mode = true,
+        --   hybrid_modes = { "i" },
+        --   ignore_previews = {}
+        -- },
+        markdown = {
+          list_items = {
+            shift_width = function(buffer, item)
+              local parent_indnet = math.max(1, item.indent - vim.bo[buffer].shiftwidth);
+
+              return (item.indent) * (1 / (parent_indnet * 2));
+            end,
+            marker_minus = {
+              add_padding = function(_, item)
+                return item.indent > 1;
+              end
+            }
+          }
+        },
+        lazy = false,
+        cmd = "Markview"
+      })
+    end,
+  },
+  -- {
+  --   'MeanderingProgrammer/render-markdown.nvim',
+  --   dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-tree/nvim-web-devicons' },
+  --   ft = { 'markdown' },
+  --   opts = {},
+  -- },
+  {
+    "ThePrimeagen/refactoring.nvim",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "nvim-treesitter/nvim-treesitter",
+    },
+    lazy = false,
+    config = function()
+      require("refactoring").setup()
+    end,
+  },
+  {
+    "toppair/peek.nvim",
+    event = { "VeryLazy" },
+    build = "deno task --quiet build:fast",
+    cmd = "PeekOpen",
+    config = function()
+      require("peek").setup()
+      vim.api.nvim_create_user_command("PeekOpen", require("peek").open, {})
+      vim.api.nvim_create_user_command("PeekClose", require("peek").close, {})
+    end,
+  },
   {
     "3rd/image.nvim",
     build = false,
@@ -30,23 +99,23 @@ return {
   },
   { "ofseed/copilot-status.nvim" },
   { "github/copilot.vim" },
-  {
-    "m4xshen/hardtime.nvim",
-    dependencies = { "MunifTanjim/nui.nvim" },
-    opts = {
-      disable_mouse = false,
-      disabled_keys = {
-        ["<Up>"] = {},
-        ["<Down>"] = {},
-        ["<Left>"] = {},
-        ["<Right>"] = {},
-
-      },
-      max_time = 400,
-      max_count = 6,
-
-    }
-  },
+  -- {
+  --   "m4xshen/hardtime.nvim",
+  --   dependencies = { "MunifTanjim/nui.nvim" },
+  --   opts = {
+  --     disable_mouse = false,
+  --     disabled_keys = {
+  --       ["<Up>"] = {},
+  --       ["<Down>"] = {},
+  --       ["<Left>"] = {},
+  --       ["<Right>"] = {},
+  --
+  --     },
+  --     max_time = 400,
+  --     max_count = 6,
+  --
+  --   }
+  -- },
   {
     'crispgm/nvim-tabline',
     dependencies = { 'nvim-tree/nvim-web-devicons' },
@@ -58,7 +127,7 @@ return {
 
     },
   },
-  { 'echasnovski/mini.cursorword', opts = {} },
+  -- { 'echasnovski/mini.cursorword', opts = {} },
 
   -- inconsistent
   -- {
@@ -118,9 +187,9 @@ return {
   {
     'stevearc/oil.nvim',
     cmd = "Oil",
-    opts = {},
+    opts = { skip_confirm_for_simple_edits = true },
   },
-  { "nvim-pack/nvim-spectre",      cmd = "Spectre" },
+  { "nvim-pack/nvim-spectre",                 cmd = "Spectre" },
   {
     "uga-rosa/ccc.nvim",
     config = function()
@@ -215,16 +284,16 @@ return {
     },
 
   },
-  {
-    "Exafunction/codeium.vim",
-    cmd = "CodeiumEnable",
-    config = function()
-      vim.keymap.set('i', '<Tab>', function() return vim.fn['codeium#Accept']() end,
-        { expr = true, silent = true })
-      vim.keymap.set('i', '<C-x>', function() return vim.fn['codeium#Clear']() end,
-        { expr = true, silent = true })
-    end
-  },
+  -- {
+  --   "Exafunction/codeium.vim",
+  --   cmd = "CodeiumEnable",
+  --   config = function()
+  --     vim.keymap.set('i', '<Tab>', function() return vim.fn['codeium#Accept']() end,
+  --       { expr = true, silent = true })
+  --     vim.keymap.set('i', '<C-x>', function() return vim.fn['codeium#Clear']() end,
+  --       { expr = true, silent = true })
+  --   end
+  -- },
   {
     "nvim-neo-tree/neo-tree.nvim",
     cmd = "NeoTree",
@@ -305,7 +374,8 @@ return {
             scope = {
               enabled = true,
               highlight = { "IblScope" },
-              show_start = false
+              show_start = false,
+              show_end = false
             },
           }
         end,
@@ -326,12 +396,12 @@ return {
 
   },
   { 'kylechui/nvim-surround', event = "VeryLazy", opts = { keymaps = { visual = "Y" }, }, },
-  {
-    "aserowy/tmux.nvim",
-    opts = {
-      copy_sync = {
-        enable = false
-      },
-    }
-  }
+  -- {
+  --   "aserowy/tmux.nvim",
+  --   opts = {
+  --     copy_sync = {
+  --       enable = false
+  --     },
+  --   }
+  -- }
 }

@@ -39,6 +39,44 @@ bindkey '^x^e' edit-command-line
 
 # alias vibes='~/wayvibes/main ~/Downloads/creamy -v 5 > /dev/null 2>&1 &'
 
+# journal script (j, j -1, j w 2, etc.)
+function j() {
+    local offset=0
+    local type=d
+
+    if [[ $1 =~ ^[dwmy]$ ]]; then
+        type=$1
+        shift
+    fi
+
+    if [[ $1 =~ ^[+-]?[0-9]+$ ]]; then
+        offset=$1
+    fi
+
+    local desired_date
+    local subpath
+
+    case "$type" in
+        d) desired_date=$(date -d "$offset days" +"%F")
+           subpath="daily" ;;
+        w) desired_date=$(date -d "$offset weeks" +"%Y-W%V")
+           subpath="weekly" ;;
+        m) desired_date=$(date -d "$offset months" +"%Y-%m")
+           subpath="monthly" ;;
+        y) desired_date=$(date -d "$offset years" +"%Y")
+           subpath="yearly" ;;
+    esac
+
+    local file_path="~/notes/journal/$subpath/$desired_date.md"
+    local template_path="~/notes/journal/template/$subpath.md" 
+
+    if [ ! -f "$file_path" ]; then
+        cat $template_path > $file_path
+    fi
+        nvim "$file_path"
+}
+
+# yazi file browser
 function y() {
 	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
 	yazi "$@" --cwd-file="$tmp"
@@ -81,6 +119,9 @@ function cht() {
   fi
 }
 
+alias ts="~/scripts/tmux-sessionizer"
+alias dblur="hyprctl keyword decoration:blur:enabled false, decoration:shadow:enabled false"
+alias h="harsh"
 alias neofetch="fastfetch"
 alias tp="trash-put"
 # alias rm="echo hell naw bro"
@@ -92,7 +133,7 @@ alias oscratch="hyprctl dispatch exec '[workspace special:term silent] foot -o c
 alias nvl='nvim ~/Leetcode/leet.cpp +"lua vim.diagnostic.disable(0)" +"lua Opaque()" +"Copilot disable" +":,%d _" +"norm i#include <bits/stdc++.h>" +"norm ousing namespace std;" +"norm o"'
 alias dsaq='nvim ~/notes/tech/dsaq.md +"set nowrap"'
 alias lnsync='LBsync.sh && notesync'
-alias nvn='cd ~/notes && nv -c "Telescope find_files"'
+alias nvn='cd ~/notes && nv -c "norm -"; cd -'
 alias notesync='cd ~/notes && git add . && git commit -m "notes backup" && git push'
 alias unimatrix='unimatrix -n -s 96 -l o'
 alias ls='eza -a --icons --group-directories-first'
@@ -139,7 +180,7 @@ ycs() {
             echo -ne "yay -S $packname \nExecute?(Y/n)"
             read yn;
             if [[ "$yn" == "y" ]] || [[ "$yn" == "" ]];then
-                yay -Syu "$packname"
+                yay -S "$packname"
             fi
         fi
     fi
@@ -212,3 +253,5 @@ export STARSHIP_CONFIG="$HOME/.config/starship/starship.toml"
 # export DRI_PRIME=0 (default)TO USE INTEGRATED GPU(iris xe)
 
 export PATH=$PATH:/home/sahaj/.spicetify
+
+. "$HOME/.local/share/../bin/env"

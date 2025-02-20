@@ -1,0 +1,10 @@
+[Unit]
+Description=Fix microphone mute LED
+
+[Service]
+Type=oneshot
+ExecStartPre=sleep 5
+ExecStart=/usr/bin/pamixer --mute
+
+[Install]
+WantedBy=multi-user.target

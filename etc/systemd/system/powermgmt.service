@@ -1,0 +1,13 @@
+[Unit]
+Description=Custom Power Management Monitoring Script
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/home/sahaj/scripts/powermgmt.sh
+Restart=always
+# Optional: set working directory if your script relies on it
+WorkingDirectory=/home/sahaj/scripts/
+
+[Install]
+WantedBy=multi-user.target

@@ -19,6 +19,8 @@
 - `LBSync.sh` to backup to another partition and upload dotfiles to github
 - `mouseSim`/`mouse.cpp` to simulate mouse with keyboard shortcuts
 - `startScratch.sh` and ~`getScratchOutput.sh`~(moved to `.config/wayvibes/scripts/`) to toggle scratchpad terminal and get its content(`nscratch.sh is for i3`)
-- `lock` to lock the screen and save/update the locked time for the day
-- `scrntime <num>` to display the screen time for past `<num>` days (corrected with lock times)
 
+- ~`lock` to lock the screen and save/update the locked time for the day~
+- ~`scrntime <num>` to display the screen time for past `<num>` days (corrected with lock times)~ (moved to [scrntime](https://github.com/sahaj-b/scrntime))
+
+- `powermgmt.sh` daemon to run commands and start/stop services based on charging or discharging

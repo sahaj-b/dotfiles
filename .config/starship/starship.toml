@@ -31,7 +31,7 @@ behind	= ' ⇣(yellow)'
 diverged	= ' ⇕(red)'
 up_to_date	= ''
 untracked	= ' ?(red)'
-stashed	= ' $(red)'
+stashed	= ' \$(red)'
 deleted	= ' ✘(red)'
 
 [palettes.catppuccin_mocha]

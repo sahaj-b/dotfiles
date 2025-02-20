@@ -154,13 +154,11 @@ return {
 
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
-        -- 'stylua', -- Used to format Lua code
         'lua_ls',
         'bashls',
         'clangd',
-        -- 'pylsp',
         'pyright',
-        -- 'tsserver',
+        'ts_ls',
         'tailwindcss',
       })
 
@@ -219,7 +217,7 @@ return {
   {
     'stevearc/conform.nvim',
     opts = {
-      notify_on_error = false,
+      notify_on_error = true,
       format_on_save = function(bufnr)
         -- Disable with a global or buffer-local variable
         if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then
@@ -241,9 +239,10 @@ return {
       }),
       formatters_by_ft = {
         sh = { 'shfmt' },
-        -- javascript = { 'prettier' },
+        javascript = { 'prettierd' },
+        typescript = { 'prettierd' },
         html = { 'prettierd' },
-        javascriptreact = { 'prettierd', 'prettier' },
+        javascriptreact = { 'prettierd' },
         -- css = { 'prettierd' },
         python = { 'blackd', 'black' },
       }
@@ -331,6 +330,7 @@ return {
           ['<C-u>'] = cmp.mapping.scroll_docs(-4),
           ['<C-d>'] = cmp.mapping.scroll_docs(4),
           ['<C-Space>'] = cmp.mapping.confirm { select = true },
+          ['<C-E>'] = cmp.mapping.complete(),
           ["<C-e>"] = cmp.mapping({
             i = function()
               if cmp.visible() then

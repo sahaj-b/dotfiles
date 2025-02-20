@@ -2,12 +2,15 @@
 import subprocess
 from datetime import datetime, timedelta
 import time
+import argparse
 
 start_time = time.time()
 subprocess.run("swaylock -c 000000 -F", shell=True)
 current_locktime = timedelta(seconds=time.time() - start_time)
-# current_locktime = timedelta(seconds=0.5*60*60)
-print(f"Screen was locked for {':'.join(str(current_locktime).split(':')[0:2])}")
+currLocktime_split = str(current_locktime).split(":")
+currLocktimeStr = currLocktime_split[0].zfill(2) + ":" + currLocktime_split[1]
+print(f"Screen was locked for {currLocktimeStr}")
+
 if str(current_locktime).startswith("0:00"):
     exit(0)
 

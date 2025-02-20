@@ -9,6 +9,7 @@ export XDG_PICTURES_DIR="$HOME/Pictures/"
 # XDG System Directories
 export XDG_DATA_DIRS="/usr/local/share:/usr/share"
 export XDG_CONFIG_DIRS="/etc/xdg"
+export ELECTRON_OZONE_PLATFORM_HINT=auto
 
 # Bluetooth off when on battery
 # if [[ $(cat /sys/class/power_supply/BAT0/status) == "Discharging" ]]; then 
