@@ -58,17 +58,6 @@ return {
     end,
   },
   {
-    "toppair/peek.nvim",
-    event = { "VeryLazy" },
-    build = "deno task --quiet build:fast",
-    cmd = "PeekOpen",
-    config = function()
-      require("peek").setup()
-      vim.api.nvim_create_user_command("PeekOpen", require("peek").open, {})
-      vim.api.nvim_create_user_command("PeekClose", require("peek").close, {})
-    end,
-  },
-  {
     "3rd/image.nvim",
     build = false,
     config = function()
@@ -366,21 +355,21 @@ return {
     "lukas-reineke/indent-blankline.nvim",
     main = "ibl",
     opts = {},
-    config = function()
-      -- create autocmd when buffenter
-      vim.api.nvim_create_autocmd("VimEnter", {
-        callback = function()
-          require("ibl").setup {
-            scope = {
-              enabled = true,
-              highlight = { "IblScope" },
-              show_start = false,
-              show_end = false
-            },
-          }
-        end,
-      })
-    end,
+    -- config = function()
+    --   -- create autocmd when buffenter
+    --   vim.api.nvim_create_autocmd("VimEnter", {
+    --     callback = function()
+    --       require("ibl").setup {
+    --         scope = {
+    --           enabled = true,
+    --           highlight = { "IblScope" },
+    --           show_start = false,
+    --           show_end = false
+    --         },
+    --       }
+    --     end,
+    --   })
+    -- end,
   },
   { "mbbill/undotree" },
   { "catppuccin/nvim", name = "catppuccin", priority = 1000, },
@@ -396,12 +385,12 @@ return {
 
   },
   { 'kylechui/nvim-surround', event = "VeryLazy", opts = { keymaps = { visual = "Y" }, }, },
-  {
-    "aserowy/tmux.nvim",
-    opts = {
-      copy_sync = {
-        enable = false
-      },
-    }
-  }
+  -- {
+  --   "aserowy/tmux.nvim",
+  --   opts = {
+  --     copy_sync = {
+  --       enable = false
+  --     },
+  --   }
+  -- }
 }

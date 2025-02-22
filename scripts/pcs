@@ -1,0 +1,13 @@
+#!/bin/env bash
+package_list=$(pacman -Ss | awk -F '/' '{print $2}' | awk '{print $1}' | sort);
+packages=$(echo "$package_list" | fzf --multi --preview 'pacman -Si {}' --layout=reverse --query="'");
+packages=$(echo "$packages" | tr '\n' ' ' | sed 's/[[:space:]]*$//')
+if [ "$packages" != "" ];then
+    echo -ne "sudo pacman -Syu $packages\nExecute?(Y/n/no(c)onfirm)"
+    read yn;
+    if [[ "$yn" == "y" ]] || [[ "$yn" == "" ]];then
+        sudo pacman -Syu $(echo $packages)
+    elif [[ "$yn" == "c" ]];then
+        sudo pacman -Syu --noconfirm $(echo $packages)
+    fi
+fi
