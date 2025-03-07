@@ -2,7 +2,7 @@
 x-scheme-handler/mailto=zen.desktop
 image/png=org.xfce.ristretto.desktop
 image/jpeg=org.xfce.ristretto.desktop
-image/webp=org.xfce.ristretto.desktop
+image/webp=zen.desktop
 text/html=zen.desktop
 x-scheme-handler/http=zen.desktop
 x-scheme-handler/https=zen.desktop
