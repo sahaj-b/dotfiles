@@ -21,46 +21,46 @@ window#waybar {
 }
 
 #workspaces {
-    /* background: @crust; */
-    /* background: @mantle; */
-    /* margin: 1px 1px 0px 1px; */
-    /* padding: 0px 0px; */
-    border-radius: 15px;
-    background-color: @mantle;
-    color: @text;
+  /* background: @crust; */
+  /* background: @mantle; */
+  /* margin: 1px 1px 0px 1px; */
+  /* padding: 0px 0px; */
+  border-radius: 15px;
+  background-color: @mantle;
+  color: @text;
 }
 
 #workspaces button {
-    padding: 0px 5px;
-    margin: 1px 4px;
-    border-radius: 15px;
-    color: @text;
-    /* background-color: @mantle; */
-    /* background-color: transparent; */
-    /* background-color: @surface1; */
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  padding: 0px 5px;
+  margin: 1px 4px;
+  border-radius: 15px;
+  color: @text;
+  /* background-color: @mantle; */
+  /* background-color: transparent; */
+  /* background-color: @surface1; */
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 #workspaces button.active {
-    color: @crust;
-    /* background: linear-gradient(45deg, @mauve, @sapphire); */
-    background: @lavender;
-    min-width: 40px;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    /* margin: 0px */
+  color: @crust;
+  /* background: linear-gradient(45deg, @mauve, @sapphire); */
+  background: @lavender;
+  min-width: 40px;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  /* margin: 0px */
 }
 #workspaces button.urgent {
-    color: @crust;
-    /* background: linear-gradient(45deg, @mauve, @sapphire); */
-    background: @red;
-    /* min-width: 40px; */
-    transition: all 0.3s;
+  color: @crust;
+  /* background: linear-gradient(45deg, @mauve, @sapphire); */
+  background: @red;
+  /* min-width: 40px; */
+  transition: all 0.3s;
 }
 
 #workspaces button:hover {
-    color: @crust;
-    /* background: linear-gradient(45deg, @mauve, @sapphire); */
-    background: @lavender;
+  color: @crust;
+  /* background: linear-gradient(45deg, @mauve, @sapphire); */
+  background: @lavender;
 }
 
 #bluetooth,
@@ -70,12 +70,12 @@ window#waybar {
 #custom-audio,
 #custom-dunst,
 #custom-easyeffects,
-#memory{
+#memory {
   padding: 0px 12px;
   margin: 2px 0px 0px 0px;
   border-radius: 10px;
   color: @crust;
-  background: @blue;  
+  background: @blue;
 }
 
 #custom-scratchOutput,
@@ -84,17 +84,18 @@ window#waybar {
 /* #custom-audio.microphone, */
 #clock.2,
 #custom-cal,
-#submap{
+#submap {
   padding: 0px 12px;
   margin: 2px 0px 0px 0px;
   border-radius: 10px;
   color: @blue;
   /* background: @mantle; */
 
-    background-color: @mantle;
+  background-color: @mantle;
 }
 
-#clock.3, #clock.1 {
+#clock.3,
+#clock.1 {
   background: @blue;
 }
 
@@ -102,7 +103,7 @@ window#waybar {
 /*   background-color: @lavender; */
 /* } */
 
-#custom-audio{
+#custom-audio {
   background-color: @lavender;
 }
 #custom-audio.muted {
@@ -120,45 +121,45 @@ window#waybar {
 /**/
 
 @keyframes rgb {
-0%{
-  color: @flamingo;
-}
-8%{
-  color: @pink;
-}
-16%{
-  color: @mauve;
-}
-2%{
-  color: @teal;
-}
-32%{
-  color: @sky;
-}
-40%{
-  color: @sapphire;
-}
-48%{
-  color: @blue;
-}
-56%{
-  color: @sapphire;
-}
-64%{
-  color: @sky;
-}
-72%{
-  color: @teal;
-}
-80%{
-  color: @mauve;
-}
-88%{
-  color: @pink;
-}
-100%{
-  color: @flamingo;
-}
+  0% {
+    color: @flamingo;
+  }
+  8% {
+    color: @pink;
+  }
+  16% {
+    color: @mauve;
+  }
+  2% {
+    color: @teal;
+  }
+  32% {
+    color: @sky;
+  }
+  40% {
+    color: @sapphire;
+  }
+  48% {
+    color: @blue;
+  }
+  56% {
+    color: @sapphire;
+  }
+  64% {
+    color: @sky;
+  }
+  72% {
+    color: @teal;
+  }
+  80% {
+    color: @mauve;
+  }
+  88% {
+    color: @pink;
+  }
+  100% {
+    color: @flamingo;
+  }
 }
 
 @keyframes blinker {
@@ -169,70 +170,70 @@ window#waybar {
   }
 }
 #custom-scratchOutput.urgent {
-    animation: blinker 1s ease-in-out infinite;
+  animation: blinker 1s ease-in-out infinite;
 }
 
-#battery.discharging{
-    background: @blue;
+#battery.discharging {
+  background: @blue;
 }
 #battery.warning {
-    background: @maroon;
+  background: @maroon;
 }
 #battery.critical {
-    background: @red;
+  background: @red;
 }
 #battery.plugged {
-    background: @teal;
+  background: @teal;
 }
 #battery.charging {
-    background: @green;
+  background: @green;
 }
 #battery.full {
-    background: @green;
+  background: @green;
 }
 
 #bluetooth.off,
 #bluetooth.disabled {
-    background: @mantle;
-    color: @blue;
+  background: @mantle;
+  color: @blue;
 }
 
-#pulseaudio-slider{
+#pulseaudio-slider {
   /* margin-right: 10px; */
-  padding:0;
+  padding: 0;
 }
 #pulseaudio-slider slider {
   min-height: 0px;
   min-width: 0px;
-  margin:0;
+  margin: 0;
 }
 #pulseaudio-slider trough {
-    min-height: 7px;
-    min-width: 80px;
-    border-radius: 5px;
-    background-color: @surface1;
-  transition:0.1s;
+  min-height: 7px;
+  min-width: 80px;
+  border-radius: 5px;
+  background-color: @surface1;
+  transition: 0.1s;
 }
 #pulseaudio-slider:hover trough {
-    min-height: 11px;
-  transition:0.1s;
+  min-height: 11px;
+  transition: 0.1s;
 }
-#pulseaudio-slider highlight{
-  border-radius: 5px
+#pulseaudio-slider highlight {
+  border-radius: 5px;
 }
 
-#custom-dunst{
+#custom-dunst {
   padding-right: 15px;
 }
-#custom-dunst.enabled{
+#custom-dunst.enabled {
   background-color: @lavender;
 }
-#custom-dunst.disabled{
+#custom-dunst.disabled {
   background-color: @red;
   /* color: @blue; */
 }
 
-#custom-easyeffects.disabled{
+#custom-easyeffects.disabled {
   background-color: @mantle;
   color: @blue;
 }

@@ -243,7 +243,10 @@ return {
         typescript = { 'prettierd' },
         html = { 'prettierd' },
         javascriptreact = { 'prettierd' },
-        -- css = { 'prettierd' },
+        typescriptreact = { 'prettierd' },
+        -- javascriptreact = { 'prettier' },
+        -- typescriptreact = { 'prettier' },
+        css = { 'prettierd' },
         python = { 'blackd', 'black' },
       }
       -- Conform can also run multiple formatters sequentially
@@ -260,27 +263,27 @@ return {
     'hrsh7th/nvim-cmp',
     event = 'InsertEnter',
     dependencies = {
-      {
-        'L3MON4D3/LuaSnip',
-        build = (function()
-          -- Build Step is needed for regex support in snippets.
-          -- This step is not supported in many windows environments.
-          -- Remove the below condition to re-enable on windows.
-          if vim.fn.has 'win32' == 1 or vim.fn.executable 'make' == 0 then
-            return
-          end
-          return 'make install_jsregexp'
-        end)(),
-        dependencies = {
-          {
-            'rafamadriz/friendly-snippets',
-            config = function()
-              require('luasnip.loaders.from_vscode').lazy_load()
-            end,
-          },
-        },
-      },
-      'saadparwaiz1/cmp_luasnip',
+      -- {
+      --   'L3MON4D3/LuaSnip',
+      --   build = (function()
+      --     -- Build Step is needed for regex support in snippets.
+      --     -- This step is not supported in many windows environments.
+      --     -- Remove the below condition to re-enable on windows.
+      --     if vim.fn.has 'win32' == 1 or vim.fn.executable 'make' == 0 then
+      --       return
+      --     end
+      --     return 'make install_jsregexp'
+      --   end)(),
+      --   dependencies = {
+      --     {
+      --       'rafamadriz/friendly-snippets',
+      --       config = function()
+      --         require('luasnip.loaders.from_vscode').lazy_load()
+      --       end,
+      --     },
+      --   },
+      -- },
+      -- 'saadparwaiz1/cmp_luasnip',
 
       'hrsh7th/cmp-nvim-lsp',
       'hrsh7th/cmp-path',
@@ -290,8 +293,8 @@ return {
     },
     config = function()
       local cmp = require 'cmp'
-      local luasnip = require 'luasnip'
-      luasnip.config.setup {}
+      -- local luasnip = require 'luasnip'
+      -- luasnip.config.setup {}
       -- local ELLIPSIS_CHAR = '…'
       -- local MAX_LABEL_WIDTH = 20
       -- local MIN_LABEL_WIDTH = 20
@@ -310,11 +313,11 @@ return {
       --       nil
       -- end
       cmp.setup {
-        snippet = {
-          expand = function(args)
-            luasnip.lsp_expand(args.body)
-          end,
-        },
+        -- snippet = {
+        -- expand = function(args)
+        -- luasnip.lsp_expand(args.body)
+        -- end,
+        -- },
         window = {
           completion = cmp.config.window.bordered({
             --   border = "none",
@@ -375,7 +378,7 @@ return {
         },
         sources = {
           { name = 'nvim_lsp' },
-          { name = 'luasnip' },
+          -- { name = 'luasnip' },
           { name = 'path' },
           { name = 'buffer' },
           { name = 'nvim_lsp_signature_help' },
@@ -405,21 +408,21 @@ return {
         }
       }
 
-      local unlink_group = vim.api.nvim_create_augroup('UnlinkSnippet', {})
-      vim.api.nvim_create_autocmd('ModeChanged', {
-        group = unlink_group,
-        -- when going from select mode to normal and when leaving insert mode
-        pattern = { 's:n', 'i:*' },
-        callback = function(event)
-          if
-              luasnip.session
-              and luasnip.session.current_nodes[event.buf]
-              and not luasnip.session.jump_active
-          then
-            luasnip.unlink_current()
-          end
-        end,
-      })
+      -- local unlink_group = vim.api.nvim_create_augroup('UnlinkSnippet', {})
+      -- vim.api.nvim_create_autocmd('ModeChanged', {
+      --   group = unlink_group,
+      --   -- when going from select mode to normal and when leaving insert mode
+      --   pattern = { 's:n', 'i:*' },
+      --   callback = function(event)
+      --     if
+      --         luasnip.session
+      --         and luasnip.session.current_nodes[event.buf]
+      --         and not luasnip.session.jump_active
+      --     then
+      --       luasnip.unlink_current()
+      --     end
+      --   end,
+      -- })
     end,
   },
 }

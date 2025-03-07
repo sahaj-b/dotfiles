@@ -1,6 +1,4 @@
 return {
-  -- { "OXY2DEV/markview.nvim",     opts = { preview = { enable = false } }, lazy = false, cmd = "Markview" },
-  -- { 'kevinhwang91/nvim-ufo',     dependencies = { 'kevinhwang91/promise-async' }, opts = {} },
   {
     "rest-nvim/rest.nvim",
     dependencies = {
@@ -40,12 +38,6 @@ return {
       })
     end,
   },
-  -- {
-  --   'MeanderingProgrammer/render-markdown.nvim',
-  --   dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-tree/nvim-web-devicons' },
-  --   ft = { 'markdown' },
-  --   opts = {},
-  -- },
   {
     "ThePrimeagen/refactoring.nvim",
     dependencies = {
@@ -57,54 +49,8 @@ return {
       require("refactoring").setup()
     end,
   },
-  {
-    "3rd/image.nvim",
-    build = false,
-    config = function()
-      require("image").setup({
-        backend = "ueberzug",
-        processor = "magick_cli",
-        max_width = 1000,
-        max_height = 1000,
-        max_width_window_percentage = nil,
-        max_height_window_percentage = 50,
-        window_overlap_clear_enabled = false,
-        window_overlap_clear_ft_ignore = { "cmp_menu", "cmp_docs", "" },
-        editor_only_render_when_focused = true,
-        tmux_show_only_in_active_window = true,
-        hijack_file_patterns = { "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp", "*.avif" }, -- render image files as images when opened
-
-        integrations = {
-          markdown = {
-            enabled = true,
-            only_render_image_at_cursor = true,
-            filetypes = { "markdown", "vimwiki" },
-            -- filetypes = {},
-          },
-        },
-      })
-    end,
-    ft = { "oil" },
-  },
   { "ofseed/copilot-status.nvim" },
   { "github/copilot.vim" },
-  -- {
-  --   "m4xshen/hardtime.nvim",
-  --   dependencies = { "MunifTanjim/nui.nvim" },
-  --   opts = {
-  --     disable_mouse = false,
-  --     disabled_keys = {
-  --       ["<Up>"] = {},
-  --       ["<Down>"] = {},
-  --       ["<Left>"] = {},
-  --       ["<Right>"] = {},
-  --
-  --     },
-  --     max_time = 400,
-  --     max_count = 6,
-  --
-  --   }
-  -- },
   {
     'crispgm/nvim-tabline',
     dependencies = { 'nvim-tree/nvim-web-devicons' },
@@ -116,32 +62,15 @@ return {
 
     },
   },
-  -- { 'echasnovski/mini.cursorword', opts = {} },
-
-  -- inconsistent
-  -- {
-  --   "zbirenbaum/neodim",
-  --   event = "LspAttach",
-  --   opts = {
-  --     alpha = 0.75,
-  --     blend_color = "#000000",
-  --     hide = { underline = true, virtual_text = false, signs = true },
-  --   }
-  -- },
   {
     "folke/ts-comments.nvim",
     opts = {},
     event = "VeryLazy",
     ft = { "javascriptreact", "typescriptreact" }
   },
-  -- {
-  --   'linrongbin16/lsp-progress.nvim',
-  --   config = function()
-  --     require("lsp-progress").setup()
-  --   end
-  -- },
   {
     'sindrets/diffview.nvim',
+    -- { "jmbuhr/otter.nvim",      ft = "markdown" },
     opts = {
       win_config = {
         position = "bottom",
@@ -149,29 +78,7 @@ return {
         -- win_opts = {},
       },
     },
-    cmd = { "DiffviewOpen", "DiffviewFileHistory", "DiffviewToggleFiles", "DiffviewFocusFiles" }
-  },
-  {
-    'nvim-lualine/lualine.nvim',
-    config = function()
-      require('lualine').setup {
-        options = {
-          theme = 'auto',
-          component_separators = { left = '', right = '' },
-          section_separators = { left = '', right = '' },
-        },
-        sections = {
-
-          lualine_a = { 'branch' },
-          lualine_b = { { 'filename', new_file = true, path = 1, shorting_target = 40 } },
-          lualine_c = { 'diagnostics' },
-          lualine_x = { 'diff', 'filetype' },
-          -- lualine_y = { function() return "{.}%3{codeium#GetStatusString()}" end, 'progress' },
-          lualine_y = { 'copilot', 'progress' },
-          lualine_z = { 'location' }
-        },
-      }
-    end
+    cmd = { "Diffviewopen", "Diffviewfilehistory", "Diffviewtogglefiles", "Diffviewfocusfiles" }
   },
   {
     'stevearc/oil.nvim',
@@ -183,19 +90,19 @@ return {
     "uga-rosa/ccc.nvim",
     config = function()
       local ccc = require("ccc")
-      ccc.setup { highlighter = { auto_enable = true, lsp = true } }
+      ccc.setup { highlighter = { auto_enable = true, lsp = false } }
     end,
   },
   { "nvim-treesitter/nvim-treesitter-context" },
   {
-    "luckasRanarison/tailwind-tools.nvim",
+    "luckasranarison/tailwind-tools.nvim",
     name = "tailwind-tools",
-    build = ":UpdateRemotePlugins",
+    build = ":updateremoteplugins",
     dependencies = {
       "nvim-treesitter/nvim-treesitter",
     },
     opts = {
-      document_color = { enabled = false },
+      -- document_color = { enabled = false },
       conceal = { symbol = "…" }
     },
     ft = { "javascript", "javascriptreact", "typescript", "typescriptreact", "html", "jsx", "tsx" }
@@ -206,7 +113,12 @@ return {
     opts = {}
   },
 
-  { "folke/zen-mode.nvim",                    opts = { plugins = { options = { ruler = true, }, tmux = { enabled = true } } }, cmd = "ZenMode" },
+  {
+    "folke/zen-mode.nvim",
+    opts = { plugins = { options = { ruler = true, }, tmux = { enabled = true } } },
+    cmd =
+    "ZenMode"
+  },
   "mg979/vim-visual-multi",
   { 'nvim-telescope/telescope-ui-select.nvim' },
   { 'wakatime/vim-wakatime',                  lazy = false },
@@ -217,25 +129,6 @@ return {
       vim.keymap.set("n", "<leader>tt", "<cmd>Tableize/|<cr>")
     end,
   },
-  -- { "jmbuhr/otter.nvim",      ft = "markdown" },
-  -- {
-  --   "epwalsh/obsidian.nvim",
-  --   version = "*",
-  --   lazy = true,
-  --   ft = "markdown",
-  --   dependencies = { "nvim-lua/plenary.nvim", },
-  --   opts = {
-  --     workspaces = { { name = "notes", path = "~/notes", }, },
-  --     disable_frontmatter = true,
-  --     -- daily_notes = {
-  --     --     folder = "journal/daily",
-  --     --     template = "daily.md",
-  --     -- },
-  --     templates = {
-  --       subdir = "templates",
-  --     },
-  --   },
-  -- },
   {
     "folke/flash.nvim",
     event = "VeryLazy",
@@ -273,16 +166,6 @@ return {
     },
 
   },
-  -- {
-  --   "Exafunction/codeium.vim",
-  --   cmd = "CodeiumEnable",
-  --   config = function()
-  --     vim.keymap.set('i', '<Tab>', function() return vim.fn['codeium#Accept']() end,
-  --       { expr = true, silent = true })
-  --     vim.keymap.set('i', '<C-x>', function() return vim.fn['codeium#Clear']() end,
-  --       { expr = true, silent = true })
-  --   end
-  -- },
   {
     "nvim-neo-tree/neo-tree.nvim",
     cmd = "NeoTree",
@@ -296,16 +179,6 @@ return {
       "MunifTanjim/nui.nvim",
     }
   },
-  -- {
-  --   'numToStr/Comment.nvim',
-  --   event = { "BufReadPre", "BufNewFile" },
-  --   config = function()
-  --     require('Comment').setup {
-  --       toggler = { line = '<leader>/', },
-  --       opleader = { line = '<leader>/', }
-  --     }
-  --   end
-  -- },
   {
     "folke/which-key.nvim",
     event = "VeryLazy",
@@ -316,41 +189,6 @@ return {
     opts = {}
   },
 
-  {
-    'theprimeagen/harpoon',
-    branch = "harpoon2",
-    config = function()
-      local harpoon = require("harpoon")
-      harpoon:setup()
-      vim.keymap.set("n", "<leader>a", function() harpoon:list():add() end)
-      vim.keymap.set("n", "<leader>e", function() harpoon.ui:toggle_quick_menu(harpoon:list()) end)
-      vim.keymap.set("n", "<leader>h", function() harpoon:list():select(1) end)
-      vim.keymap.set("n", "<leader>j", function() harpoon:list():select(2) end)
-      vim.keymap.set("n", "<leader>k", function() harpoon:list():select(3) end)
-      vim.keymap.set("n", "<leader>l", function() harpoon:list():select(4) end)
-
-      -- basic telescope configuration
-      local conf = require("telescope.config").values
-      local function toggle_telescope(harpoon_files)
-        local file_paths = {}
-        for _, item in ipairs(harpoon_files.items) do
-          table.insert(file_paths, item.value)
-        end
-
-        require("telescope.pickers").new({}, {
-          prompt_title = "Harpoon",
-          finder = require("telescope.finders").new_table({
-            results = file_paths,
-          }),
-          previewer = conf.file_previewer({}),
-          sorter = conf.generic_sorter({}),
-        }):find()
-      end
-
-      vim.keymap.set("n", "<leader><leader>h", function() toggle_telescope(harpoon:list()) end,
-        { desc = "Open harpoon window" })
-    end
-  },
   {
     "lukas-reineke/indent-blankline.nvim",
     main = "ibl",
@@ -393,4 +231,85 @@ return {
   --     },
   --   }
   -- }
+  -- { "OXY2DEV/markview.nvim",     opts = { preview = { enable = false } }, lazy = false, cmd = "Markview" },
+  -- { 'kevinhwang91/nvim-ufo',     dependencies = { 'kevinhwang91/promise-async' }, opts = {} },
+  -- {
+  --   'MeanderingProgrammer/render-markdown.nvim',
+  --   dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-tree/nvim-web-devicons' },
+  --   ft = { 'markdown' },
+  --   opts = {},
+  -- },
+  -- {
+  --   "m4xshen/hardtime.nvim",
+  --   dependencies = { "MunifTanjim/nui.nvim" },
+  --   opts = {
+  --     disable_mouse = false,
+  --     disabled_keys = {
+  --       ["<Up>"] = {},
+  --       ["<Down>"] = {},
+  --       ["<Left>"] = {},
+  --       ["<Right>"] = {},
+  --
+  --     },
+  --     max_time = 400,
+  --     max_count = 6,
+  --
+  --   }
+  -- },
+  -- { 'echasnovski/mini.cursorword', opts = {} },
+
+  -- inconsistent
+  -- {
+  --   "zbirenbaum/neodim",
+  --   event = "LspAttach",
+  --   opts = {
+  --     alpha = 0.75,
+  --     blend_color = "#000000",
+  --     hide = { underline = true, virtual_text = false, signs = true },
+  --   }
+  -- },
+  -- {
+  --   'linrongbin16/lsp-progress.nvim',
+  --   config = function()
+  --     require("lsp-progress").setup()
+  --   end
+  -- },
+  -- {
+  --   "epwalsh/obsidian.nvim",
+  --   version = "*",
+  --   lazy = true,
+  --   ft = "markdown",
+  --   dependencies = { "nvim-lua/plenary.nvim", },
+  --   opts = {
+  --     workspaces = { { name = "notes", path = "~/notes", }, },
+  --     disable_frontmatter = true,
+  --     -- daily_notes = {
+  --     --     folder = "journal/daily",
+  --     --     template = "daily.md",
+  --     -- },
+  --     templates = {
+  --       subdir = "templates",
+  --     },
+  --   },
+  -- },
+  -- {
+  --   "Exafunction/codeium.vim",
+  --   cmd = "CodeiumEnable",
+  --   config = function()
+  --     vim.keymap.set('i', '<Tab>', function() return vim.fn['codeium#Accept']() end,
+  --       { expr = true, silent = true })
+  --     vim.keymap.set('i', '<C-x>', function() return vim.fn['codeium#Clear']() end,
+  --       { expr = true, silent = true })
+  --   end
+  -- },
+  -- {
+  --   'numToStr/Comment.nvim',
+  --   event = { "BufReadPre", "BufNewFile" },
+  --   config = function()
+  --     require('Comment').setup {
+  --       toggler = { line = '<leader>/', },
+  --       opleader = { line = '<leader>/', }
+  --     }
+  --   end
+  -- },
 }

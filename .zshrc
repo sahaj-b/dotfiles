@@ -10,6 +10,7 @@ export TERM='xterm-256color'
 export EDITOR='nvim'
 export VISUAL='nvim'
 export GOBIN=~/.local/bin/
+export ANDROID_HOME=/opt/android-sdk
 
 plug "zsh-users/zsh-autosuggestions"
 plug "zsh-users/zsh-syntax-highlighting"
@@ -85,8 +86,13 @@ alias cmdbrowse="ls $(echo $PATH | tr ':' ' ') | grep -v '/' | grep . | fzf --pr
 alias packbrowse="pacman -Qq | fzf --preview 'pacman -Qil {}' --layout=reverse --bind 'enter:execute(pacman -Qil {} | less)'" 
 alias orphanrm="sudo pacman -Qtdq | sudo pacman -Rns -"
 alias shToHttp="node ~/projects/multiple-curl-to-postman/index.js --file"
+alias randgen="tr -dc a-z1-4 </dev/urandom | tr 1-2 ' \n' | awk 'length==0 || length>50' | tr 3-4 ' ' | sed 's/^ *//' | cat -s | fmt | head"
+alias gs="git status"
+alias gce="gh copilot explain"
+alias gcs="gh copilot suggest"
+alias fm="source fm"
 
-
+function lorem () {shuf -n ${1:-100} /usr/share/dict/cracklib-small | tr '\n' ' ' | fmt }
 function ggl () { links www.google.com/search\?q="$*"; }
 function postmanToHttp() { node ~/projects/postman-collection-gen/node.js --names --short -c "$1" | ~/scripts/curlToHttp }
 

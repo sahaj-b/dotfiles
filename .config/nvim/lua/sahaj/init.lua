@@ -67,7 +67,7 @@ function Transparent()
   ]]
 
   -- reload indent-blankline highlight
-  require("ibl").setup { scope = { highlight = { "IblScope" }, show_start = false }, }
+  require("ibl").setup { scope = { highlight = { "IblScope" }, show_start = false, show_end = false }, }
   -- vim.g.minicursorword_disable = true
   -- enabled bordered completion menu
   -- local cmp = require("cmp")
@@ -114,7 +114,7 @@ function Opaque()
   end
 
   -- reload indent-blankline highlight
-  require("ibl").setup { scope = { highlight = { "IblScope" }, show_start = false }, }
+  require("ibl").setup { scope = { highlight = { "IblScope" }, show_start = false, show_end = false }, }
 
   -- disable bordered completion menu
   -- local cmp = require("cmp")
@@ -143,6 +143,7 @@ function CopilotToCodeium()
 end
 
 -- vim.g.codeium_enabled = false
+-- vim.opt.cmdheight = 0
 vim.opt.showmode = false
 vim.opt.breakindent = true
 vim.opt.signcolumn = 'auto'
@@ -178,7 +179,7 @@ vim.opt.splitbelow = true
 vim.opt.smartindent = true
 
 -- vim.opt.wrap = false
--- vim.opt.hlsearch = false
+vim.opt.hlsearch = false
 
 vim.opt.swapfile = false
 vim.opt.backup = false
@@ -270,6 +271,17 @@ vim.filetype.add({
 --   end,
 -- })
 
+-- vim.api.nvim_create_autocmd("RecordingEnter", {
+--   callback = function()
+--     vim.opt.cmdheight = 1
+--   end,
+-- })
+-- vim.api.nvim_create_autocmd("RecordingLeave", {
+--   allback = function()
+--     vim.opt.cmdheight = 0
+--   end,
+-- })
+
 vim.api.nvim_create_autocmd("BufEnter", {
   callback = function()
     vim.opt.formatoptions:remove { "c", "r", "o" }
@@ -332,5 +344,25 @@ end
 --     .. " %p%%  "
 --     .. codeiumString
 -- vim.cmd [[Copilot disable]]
+
+function HLsearch()
+  local blinktime = 1
+  local ns = vim.api.nvim_create_namespace("search")
+  vim.api.nvim_buf_clear_namespace(0, ns, 0, -1)
+
+  local search_pat = "\\c\\%#" .. vim.fn.getreg("/")
+  local ring = vim.fn.matchadd("IncSearch", search_pat)
+  vim.cmd("redraw")
+  vim.cmd("sleep " .. blinktime * 1000 .. "m")
+
+  local sc = vim.fn.searchcount()
+  vim.api.nvim_buf_set_extmark(0, ns, vim.api.nvim_win_get_cursor(0)[1] - 1, 0, {
+    virt_text = { { "[" .. sc.current .. "/" .. sc.total .. "]", "Comment" } },
+    virt_text_pos = "eol",
+  })
+
+  vim.fn.matchdelete(ring)
+  vim.cmd("redraw")
+end
 
 require("sahaj.rest-nvim-extract")

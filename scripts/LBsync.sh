@@ -40,6 +40,7 @@ file_list=(
   "$HOME/.config/foot/"
   "$HOME/.config/starship/"
   "$HOME/.config/btop/"
+  "$HOME/.config/mimeapps.list"
   "$HOME/wallpapers/"
 )
 
