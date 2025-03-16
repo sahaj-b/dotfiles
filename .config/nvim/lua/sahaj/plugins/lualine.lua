@@ -20,7 +20,7 @@ return {
         sections = {
 
           lualine_a = { 'branch' },
-          lualine_b = { { "filename", new_file = true, path = 1, shorting_target = 40 },
+          lualine_b = { { "filename", new_file = true, path = 4, shorting_target = 40 },
             -- {
             -- "macro-recording",
             -- fmt = show_macro_recording,

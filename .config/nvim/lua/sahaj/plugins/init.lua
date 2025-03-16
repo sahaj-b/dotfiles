@@ -85,7 +85,7 @@ return {
     cmd = "Oil",
     opts = { skip_confirm_for_simple_edits = true },
   },
-  { "nvim-pack/nvim-spectre",                 cmd = "Spectre" },
+  { "nvim-pack/nvim-spectre",                  cmd = "Spectre" },
   {
     "uga-rosa/ccc.nvim",
     config = function()
@@ -93,7 +93,7 @@ return {
       ccc.setup { highlighter = { auto_enable = true, lsp = false } }
     end,
   },
-  { "nvim-treesitter/nvim-treesitter-context" },
+  { "nvim-treesitter/nvim-treesitter-context", opts = { max_lines = 5 } },
   {
     "luckasranarison/tailwind-tools.nvim",
     name = "tailwind-tools",
@@ -113,12 +113,6 @@ return {
     opts = {}
   },
 
-  {
-    "folke/zen-mode.nvim",
-    opts = { plugins = { options = { ruler = true, }, tmux = { enabled = true } } },
-    cmd =
-    "ZenMode"
-  },
   "mg979/vim-visual-multi",
   { 'nvim-telescope/telescope-ui-select.nvim' },
   { 'wakatime/vim-wakatime',                  lazy = false },
