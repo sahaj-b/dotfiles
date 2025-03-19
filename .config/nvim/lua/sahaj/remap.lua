@@ -22,14 +22,9 @@ keymap.set("n", "<leader>q", 'cs"`ysa`}')
 
 keymap.set('n', '<leader>w', ':silent! noautocmd w<CR>', { noremap = true, silent = true })
 
-keymap.set("n", "<leader>1",
-  "<cmd>3,$y<CR>:!echo 'key super+space'|dotoolc; sleep 0.1;echo 'mouseto 0.9 0.2'| dotoolc; sleep 0.01; echo 'click left'|dotoolc ; sleep 0.01; echo 'key ctrl+a' | dotoolc; sleep 0.01; echo 'key ctrl+v' | dotoolc<CR>")
-keymap.set("n", "<leader>2",
-  "<cmd>3,$y<CR>:!echo 'key super+space'|dotoolc; sleep 0.1;echo 'mouseto 0.9 0.2'|dotoolc; sleep 0.01; echo 'click left'|dotoolc; sleep 0.01; echo 'key ctrl+a'|dotoolc; sleep 0.01; echo 'key ctrl+v'|dotoolc; sleep 0.01; echo 'key ctrl+apostrophe' | dotoolc; pkill dotoold; dotoold&<CR>")
-keymap.set("n", "<leader>3",
-  "<cmd>!echo 'key super+space'|dotoolc; sleep 0.1;echo 'mouseto 0.95 0.2'|dotool; sleep 0.01; echo 'click left'|dotoolc; sleep 0.01; echo 'key ctrl+a'|dotoolc; sleep 0.01; echo 'key ctrl+c'|dotoolc; sleep 0.01; echo 'key super+space'|dotoolc; sleep 0.1;  echo 'key enter'|dotoolc; sleep 0.01; echo 'key P' | dotoolc<CR>")
-keymap.set("n", "<leader>4",
-  "<cmd>3,$y<CR>:!echo 'key super+space'|dotoolc; sleep 0.1;echo 'mouseto 0.9 0.2'|dotool; sleep 0.01; echo 'click left'|dotoolc; sleep 0.01; echo 'key ctrl+a'|dotoolc; sleep 0.01; echo 'key ctrl+v'|dotoolc; sleep 0.01; echo 'key ctrl+apostrophe' | dotoolc<CR>")
+keymap.set("n", "<leader>1", "<cmd>3,$y<CR>:!~/scripts/autoLC paste<CR>")
+keymap.set("n", "<leader>2", "<cmd>3,$y<CR>:!~/scripts/autoLC run<CR>")
+keymap.set("n", "<leader>3", "<cmd>!~/scripts/autoLC copy<CR>")
 
 keymap.set("x", "Q", "<cmd>norm @q<CR>")
 

@@ -19,6 +19,7 @@
 | `powermgmt`                   | Daemon to run commands and manage services based on charging state |
 | `changeWall <rand/prev/next>` | Changes wallpaper using `swww`                                     |
 | `curlToHttp`                  | Converts curl command to HTTP request using `curlconverter`        |
+| `autoLC <copy/paste/run>`     | automate copy/paste/running code from neovim to Leetcode           |
 | `jour <d/w/m/y> <offset>`     | Quick journal                                                      |
 | `nscratch <number/output>`    | Scratchpad terminal for i3 with dynamic output support             |
 | `bmon`                        | Battery monitor with pango markup output and notifications         |
