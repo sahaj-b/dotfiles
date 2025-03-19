@@ -1,6 +1,6 @@
 #!/bin/env bash
 
-# usage: (j, j -1, j w 2, etc.)
+# usage: (jour, jour -1, jour w 2, etc.)
 offset=0
 type=d
 

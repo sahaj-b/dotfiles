@@ -1,0 +1,24 @@
+#!/bin/bash
+wallDir=~/wallpapers/
+if [[ $1 == rand ]]; then
+  wall=$(ls $wallDir | shuf -n 1)
+  echo "$wall" >~/.currentWall
+  swww img $wallDir"$wall" --transition-type grow --transition-pos top --transition-fps 60 --transition-duration 0.7
+  exit
+fi
+
+cacheFile=~/.currentWall
+curr=$(cat $cacheFile 2>/dev/null || echo "")
+if [[ $1 == prev ]]; then
+  next=$(ls $wallDir | grep -B 1 "$curr" | head -1)
+  cycleTo=$(ls $wallDir | tail -1)
+  angle=210
+else
+  next=$(ls $wallDir | grep -A 1 "$curr" | tail -1)
+  cycleTo=$(ls $wallDir | head -1)
+  angle=30
+fi
+
+[[ "$next" == "$curr" || -z "$next" ]] && next=$cycleTo
+echo "$next" >$cacheFile
+swww img $wallDir"$next" --transition-type wipe --transition-angle $angle --transition-fps 60 --transition-duration 0.7

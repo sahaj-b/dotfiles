@@ -128,8 +128,8 @@ function Opaque()
   -- })
 end
 
-Opaque()
--- Transparent()
+-- Opaque()
+Transparent()
 -- vim.api.nvim_set_hl(0, 'FoldIcon', { fg = "#afb4f9", bg = "#2a2b3d", bold = true })
 
 function CopilotToCodeium()
