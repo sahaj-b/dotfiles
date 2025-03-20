@@ -25,8 +25,11 @@ keymap.set('n', '<leader>w', ':silent! noautocmd w<CR>', { noremap = true, silen
 keymap.set("n", "<leader>1", "<cmd>3,$y<CR>:!~/scripts/autoLC paste<CR>")
 keymap.set("n", "<leader>2", "<cmd>3,$y<CR>:!~/scripts/autoLC run<CR>")
 keymap.set("n", "<leader>3", "<cmd>!~/scripts/autoLC copy<CR>")
+keymap.set("n", "<leader>4", "<cmd>3,$y<CR>:!~/scripts/autoLC run switch<CR>")
+keymap.set("n", "<leader>5", "<cmd>!~/scripts/autoLC copy switch<CR>")
 
 keymap.set("x", "Q", "<cmd>norm @q<CR>")
+keymap.set("n", "Q", "@q")
 
 keymap.set("n", "<leader>s", "<cmd>w<CR>")
 -- keymap.set("n", "<leader>s", function() vim.api.nvim_command('write') end)
@@ -76,7 +79,6 @@ keymap.set({ "n", "x" }, "c", '"_c')
 keymap.set({ "n", "x" }, "C", '"_C')
 
 keymap.set("v", "y", "y`>")
-keymap.set("n", "Q", "<nop>")
 keymap.set("v", "/", "<esc>/\\%V")
 keymap.set("n", "<C-L>", "<cmd>vertical resize -5<CR>")
 keymap.set("n", "<C-H>", "<cmd>vertical resize +5<CR>")

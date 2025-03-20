@@ -52,7 +52,7 @@ autoload edit-command-line; zle -N edit-command-line
 bindkey '^x^e' edit-command-line
 
 
-
+alias dark="echo 'key super+space'|dotoolc; sleep 0.1;echo 'key ctrl+r'|dotoolc; sleep 2.5; echo 'key space'|dotoolc;sleep 0.3; echo 'key ctrl+shift+k'|dotoolc; sleep 1.5; echo 'key up' | dotoolc; sleep 0.1; echo 'key enter' | dotoolc; sleep 0.1; echo 'key f12'|dotoolc; pkill dotoold; dotoold&disown"
 alias neofetch="fastfetch"
 alias ls='eza -a --icons --group-directories-first'
 alias nv='nvim'
@@ -65,7 +65,7 @@ alias tk="tmux kill-session"
 alias pc="sudo pacman -Syu"
 alias pcn="sudo pacman -Syu --noconfirm"
 alias ycn="yay -Syu --noconfirm"
-alias nvl='nvim ~/Leetcode/leet.cpp +"lua vim.diagnostic.disable(0)" +"lua Opaque()" +"Copilot disable" +":,%d _" +"norm i#include <bits/stdc++.h>" +"norm ousing namespace std;" +"norm o"'
+alias nvl='nvim ~/Leetcode/leet.cpp +"lua vim.diagnostic.disable(0)" +"Copilot disable" +":,%d _" +"norm i#include <bits/stdc++.h>" +"norm ousing namespace std;" +"norm o"'
 alias dsaq='nvim ~/notes/tech/dsaq.md +"set nowrap"'
 alias nvn='cd ~/notes && nv -c "norm -"; cd -'
 alias notesync='cd ~/notes && git add . && git commit -m "notes backup" && git push && cd -'
