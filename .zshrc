@@ -21,7 +21,7 @@ stty stop undef
 # Enable colors and change prompt:
 autoload -U colors && colors
 PS1="%F{cyan}%1~ %F{magenta}%B❯ %f%b"
-PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:~/scripts:/sbin/:~/.local/bin:~/.cargo/bin
+PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:~/scripts:~/scripts/pen:/sbin/:~/.local/bin:~/.cargo/bin
 
 # History
 HISTSIZE=10000
@@ -51,10 +51,10 @@ bindkey '^e' end-of-line
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^x^e' edit-command-line
 
-
+alias bp="sudo l2ping -s 200"
 alias dark="echo 'key super+space'|dotoolc; sleep 0.1;echo 'key ctrl+r'|dotoolc; sleep 2.5; echo 'key space'|dotoolc;sleep 0.3; echo 'key ctrl+shift+k'|dotoolc; sleep 1.5; echo 'key up' | dotoolc; sleep 0.1; echo 'key enter' | dotoolc; sleep 0.1; echo 'key f12'|dotoolc; pkill dotoold; dotoold&disown"
 alias neofetch="fastfetch"
-alias ls='eza -a --icons --group-directories-first'
+alias ls='eza --no-quotes -a --icons --group-directories-first'
 alias nv='nvim'
 alias v='vim'
 alias nvsu='sudo -E -s nvim'
