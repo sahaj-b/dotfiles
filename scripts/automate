@@ -1,0 +1,61 @@
+#!/bin/env bash
+
+if [[ $1 = db ]]; then
+  # for dbdiagram.io
+  textBoxPos="0.2 0.2"
+  echo "key super+space" | dotoolc
+  sleep 0.1
+  echo "key ctrl+backslash" | dotoolc
+  sleep 0.3
+  echo "mouseto $textBoxPos" | dotoolc
+  sleep 0.1
+  echo "click left" | dotoolc
+  sleep 0.1
+  echo "key ctrl+a" | dotoolc
+  sleep 0.1
+  echo "key ctrl+v" | dotoolc
+  sleep 0.1
+  echo "key ctrl+backslash" | dotoolc
+
+else
+  # for leetcode
+  textBoxPos="0.9 0.2"
+  if [[ $2 = switch ]]; then
+    # switch workspace
+    echo "key super+1" | dotoolc
+    sleep 0.1
+  else
+    echo "key super+space" | dotoolc
+    sleep 0.1
+  fi
+
+  echo "mouseto $textBoxPos" | dotoolc
+  sleep 0.1
+  echo "click left" | dotoolc
+  sleep 0.1
+  echo "key ctrl+a" | dotoolc
+  sleep 0.01
+
+  if [[ $1 == paste ]]; then
+    echo "key ctrl+v" | dotoolc
+  elif [[ $1 == copy ]]; then
+    echo 'key ctrl+c' | dotoolc
+    sleep 0.01
+    if [[ $2 = switch ]]; then
+      echo 'key super+tab' | dotoolc
+    else
+      echo 'key super+space' | dotoolc
+    fi
+    sleep 0.1
+    echo 'key enter' | dotoolc
+    sleep 0.01
+    echo 'key P' | dotoolc
+  elif [[ $1 == run ]]; then
+    echo "key ctrl+v" | dotoolc
+    sleep 0.01
+    echo "key ctrl+apostrophe" | dotoolc
+  fi
+fi
+
+pkill dotoold
+dotoold &

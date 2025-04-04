@@ -129,29 +129,15 @@ return {
     opts = { modes = { search = { enabled = false }, char = { enabled = false } } },
     keys = {
       { "s", mode = { "n", "x", "o" }, function() require("flash").jump() end, desc = "Flash" },
-      -- {
-      --   "S",
-      --   mode = { "n", "x", "o" },
-      --   function() require("flash").treesitter() end,
-      --   desc =
-      --   "Flash Treesitter"
-      -- },
       {
-        "r",
-        mode = "o",
-        function() require("flash").remote() end,
+        "S",
+        mode = { "x", "o" },
+        function() require("flash").treesitter() end,
         desc =
-        "Remote Flash"
+        "Flash Treesitter"
       },
       {
-        "R",
-        mode = { "o", "x" },
-        function() require("flash").treesitter_search() end,
-        desc =
-        "Treesitter Search"
-      },
-      {
-        "<c-s>",
+        "<c-g>",
         mode = { "c" },
         function() require("flash").toggle() end,
         desc =
@@ -204,7 +190,7 @@ return {
     -- end,
   },
   { "mbbill/undotree" },
-  { "catppuccin/nvim", name = "catppuccin", priority = 1000, },
+  { "catppuccin/nvim", name = "catppuccin", priority = 1000, opts = { integrations = { blink_cmp = true } } },
   {
     'nvim-telescope/telescope-fzf-native.nvim',
     build =

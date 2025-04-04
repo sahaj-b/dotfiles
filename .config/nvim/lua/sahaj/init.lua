@@ -25,6 +25,7 @@ require("lazy").setup({
 })
 
 vim.cmd [[colorscheme catppuccin
+hi! link BlinkCmpDoc BlinkCmpMenu
 ]]
 
 -- Transparent 󰈸󰈸
@@ -144,6 +145,7 @@ end
 
 -- vim.g.codeium_enabled = false
 -- vim.opt.cmdheight = 0
+vim.g.blink_cmp = true
 vim.opt.showmode = false
 vim.opt.breakindent = true
 vim.opt.signcolumn = 'auto'
@@ -365,4 +367,28 @@ function HLsearch()
   vim.cmd("redraw")
 end
 
+-- local view_group = augroup("auto_view", { clear = true })
+-- autocmd({ "BufWinLeave", "BufWritePost", "WinLeave" }, {
+--   desc = "Save view with mkview for real files",
+--   group = view_group,
+--   callback = function(args)
+--     if vim.b[args.buf].view_activated then vim.cmd.mkview { mods = { emsg_silent = true } } end
+--   end,
+-- })
+-- autocmd("BufWinEnter", {
+--   desc = "Try to load file view if available and enable view saving for real files",
+--   group = view_group,
+--   callback = function(args)
+--     if not vim.b[args.buf].view_activated then
+--       local filetype = vim.api.nvim_get_option_value("filetype", { buf = args.buf })
+--       local buftype = vim.api.nvim_get_option_value("buftype", { buf = args.buf })
+--       local ignore_filetypes = { "gitcommit", "gitrebase", "svg", "hgcommit" }
+--       if buftype == "" and filetype and filetype ~= "" and not vim.tbl_contains(ignore_filetypes, filetype) then
+--         vim.b[args.buf].view_activated = true
+--         vim.cmd.loadview { mods = { emsg_silent = true } }
+--       end
+--     end
+--   end,
+-- })
+--
 require("sahaj.rest-nvim-extract")

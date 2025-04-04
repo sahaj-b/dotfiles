@@ -22,12 +22,6 @@ keymap.set("n", "<leader>q", 'cs"`ysa`}')
 
 keymap.set('n', '<leader>w', ':silent! noautocmd w<CR>', { noremap = true, silent = true })
 
-keymap.set("n", "<leader>1", "<cmd>3,$y<CR>:!~/scripts/autoLC paste<CR>")
-keymap.set("n", "<leader>2", "<cmd>3,$y<CR>:!~/scripts/autoLC run<CR>")
-keymap.set("n", "<leader>3", "<cmd>!~/scripts/autoLC copy<CR>")
-keymap.set("n", "<leader>4", "<cmd>3,$y<CR>:!~/scripts/autoLC run switch<CR>")
-keymap.set("n", "<leader>5", "<cmd>!~/scripts/autoLC copy switch<CR>")
-
 keymap.set("x", "Q", "<cmd>norm @q<CR>")
 keymap.set("n", "Q", "@q")
 
@@ -75,6 +69,8 @@ keymap.set("n", "<C-E>", "<C-O>", { noremap = true })
 -- search and replace on recently c insert if forgot to search
 keymap.set("n", "g.", '/\\V\\C<C-r>"<CR>cgn<C-a><Esc>')
 keymap.set({ "n", "x" }, "<leader>d", '"_d')
+keymap.set({ "n", "x" }, "<leader>D", '"_D')
+keymap.set({ "n" }, "S", '"_S')
 keymap.set({ "n", "x" }, "c", '"_c')
 keymap.set({ "n", "x" }, "C", '"_C')
 
@@ -174,6 +170,9 @@ keymap.set('n', '-', function()
   end
 end)
 
+-- blink
+keymap.set("n", "<leader>bt", function() vim.g.blink_cmp = not vim.g.blink_cmp end, { desc = "Toggle Blink" })
+
 -- tailwind
 keymap.set("n", "<leader>tc", "<cmd>TailwindConcealToggle<CR>")
 
@@ -184,11 +183,20 @@ keymap.set("n", "<leader>cc", "<cmd>CccPick<CR>")
 keymap.set("n", "<leader>u", "<cmd>UndotreeToggle<CR>")
 
 -- lsp
+
+keymap.set("n", "gd", "<cmd>Telescope lsp_definitions<cr>", { desc = "[G]oto [D]efinition" })
+keymap.set("n", "gr", "<cmd>Telescope lsp_references<cr>", { desc = "[G]oto [R]eferences" })
+keymap.set("n", "gI", "<cmd>Telescope lsp_implementations<cr>", { desc = "[G]oto [I]mplementation" })
+keymap.set("n", "gt", "<cmd>Telescope lsp_type_definitions<cr>", { desc = "Type [D]efinition" })
+keymap.set("n", "gs", "<cmd>Telescope lsp_document_symbols<cr>", { desc = "[D]ocument [S]ymbols" })
+keymap.set("n", "gS", "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", { desc = '[W]orkspace [S]ymbols' })
+keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, { desc = "[C]ode [A]ction" })
+keymap.set("n", "K", vim.lsp.buf.hover, { desc = "Hover Documentation" })
+keymap.set("n", 'gD', vim.lsp.buf.declaration, { desc = '[G]oto [D]eclaration' })
 keymap.set("n", "gd", "<cmd>lua vim.lsp.buf.definition()<CR>")
 keymap.set("i", "<C-t>", "<Cmd>lua vim.lsp.buf.signature_help()<CR>")
 keymap.set("n", "]d", "<cmd>lua vim.diagnostic.goto_next()<CR>")
 keymap.set("n", "[d", "<cmd>lua vim.diagnostic.goto_prev()<CR>")
-keymap.set("n", "<leader>vws", "<cmd>lua vim.lsp.buf.workspace_symbol()<CR>")
 keymap.set("n", "<leader>o", "<cmd>lua vim.diagnostic.open_float()<CR>")
 keymap.set("n", "<leader>ca", "<cmd>lua vim.lsp.buf.code_action()<CR>")
 keymap.set("n", "<leader>lrf", "<cmd>lua vim.lsp.buf.references()<CR>")
@@ -245,21 +253,45 @@ keymap.set("n", "<leader>ts",
   { desc = "sorts Tailwind classes (prettier plugin)" }
 )
 
+-- automate
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "cpp",
+  callback = function()
+    keymap.set("n", "<leader>1", "<cmd>3,$y<CR>:!~/scripts/automate paste<CR>")
+    keymap.set("n", "<leader>2", "<cmd>3,$y<CR>:!~/scripts/automate run<CR>")
+    keymap.set("n", "<leader>3", "<cmd>!~/scripts/automate copy<CR>")
+    keymap.set("n", "<leader>4", "<cmd>3,$y<CR>:!~/scripts/automate run switch<CR>")
+    keymap.set("n", "<leader>5", "<cmd>!~/scripts/automate copy switch<CR>")
+  end
+})
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "sql",
+  callback = function()
+    keymap.set("n", "<leader>2", "<cmd>%y<CR>:!~/scripts/automate db<CR>")
+  end
+})
+
+
 --runners
-vim.cmd [[
-autocmd filetype javascript nnoremap <leader>9 :!node %<CR>
-autocmd filetype javascript nnoremap <leader>8 :!(footclient -a float -w1200x700 -e sh -c 'node %;read e'&)<CR>
-autocmd filetype typescript nnoremap <leader>9 :!npx tsx %<CR>
-autocmd filetype typescript nnoremap <leader>8 :!(footclient -a float -w1200x700 -e sh -c 'npx tsx %;read e'&)<CR>
-autocmd filetype python nnoremap <leader>9 :!python3 %<CR>
-autocmd filetype python nnoremap <leader>8 :!(footclient -a float -w1200x700 -e sh -c 'python3 %;read e'&)<CR>
-autocmd filetype c nnoremap <leader>9  :!gcc % -o %:r && ./%:r<CR>
-autocmd filetype c nnoremap <leader>8  :!(footclient -a float -w1200x700-e sh -c 'gcc % -o %:r && ./%:r;read e'&)<CR>
-autocmd filetype cpp nnoremap <leader>9  :!g++ % -o %:r && ./%:r<CR>
-autocmd filetype cpp nnoremap <leader>8  :!(footclient -a float -w1200x700-e sh -c 'g++ % -o %:r && ./%:r;read e'&)<CR>
-autocmd filetype qml nnoremap <leader>9  :!qmlscene %<CR>
-autocmd filetype qml nnoremap <leader>8  :!(footclient -a float -w1200x700-e sh -c 'qmlscene %'&)<CR>
-]]
+local filetypes = {
+  javascript = "node %",
+  typescript = "npx tsx %",
+  python = "python3 %",
+  c = "gcc % -o %:r && ./%:r",
+  cpp = "g++ % -o %:r && ./%:r",
+  qml = "qmlscene %"
+}
+
+for ft, cmd in pairs(filetypes) do
+  vim.api.nvim_create_autocmd("FileType", {
+    pattern = ft,
+    callback = function()
+      vim.keymap.set("n", "<leader>9", "<cmd>!" .. cmd .. "<CR>", { buffer = true })
+      vim.keymap.set("n", "<leader>8", "<cmd>!(footclient -a float -w1200x700 -e sh -c '" .. cmd .. ";read e'&)<CR>",
+        { buffer = true })
+    end
+  })
+end
 
 local show_only_errors = false
 function ToggleDiagnostics()
