@@ -1,0 +1,32 @@
+#!/bin/env bash
+
+while IFS= read -r -d '' block; do
+  [[ -z "$block" ]] && continue
+
+  requestName=$(echo "$block" | head -n1 | sed 's/^# //')
+  curlCommand=$(echo "$block" | tail -n +2)
+
+  echo "### $requestName"
+
+  # pass to curlconverter and remove unwanted headers and "HTTP/1.1"
+  converted=$(
+    echo "$curlCommand" | curlconverter --language http - |
+      sed '/^Accept:/d;
+      /^User-Agent:/d;
+      /^Content-Length:/d;
+      /^Content-Type: application\/json/d;
+      s/HTTP\/1.1//'
+  )
+
+  # extract the first (request) line and the Host header
+  request_line=$(echo "$converted" | head -n1)
+  host=$(echo "$converted" | grep "^Host:" | head -n1 | sed 's/Host: //')
+
+  # rebuild the request line to include the host in the URL.
+  new_request_line=$(echo "$request_line" | awk -v host="$host" '{print $1, host $2}')
+
+  # skipping the Host header.
+  echo "$new_request_line"
+  echo "$converted" | tail -n +2 | grep -v "^Host:"
+  echo ""
+done < <(awk -v RS="" '{printf "%s\0", $0}' "${1:-/dev/stdin}")

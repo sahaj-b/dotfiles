@@ -4,27 +4,27 @@ current_dir="."
 
 while true; do
   selection=$( (
-    \ls -a -N --color=always --group-directories-first "$current_dir"
+    eza --no-quotes -a --color=always --group-directories-first "$current_dir"
     echo -e "\e[1;33mSEARCH-ALL\e[0m"
   ) |
     fzf --ansi --preview "\
-        if [ -f '""$current_dir"/{}"' ]; then
+        if [ -f '$current_dir'/{} ]; then
             bat --theme="Dracula" --color=always --decorations=never '$current_dir'/{};
         else
-            \ls -a -N --color=always --group-directories-first '$current_dir'/{};
+            eza --no-quotes -a --color=always --group-directories-first '$current_dir'/{};
             fi" \
       --layout=reverse \
-      --bind="left:pos(2)+accept,right:accept,ctrl-d:execute-silent(mv {} ~/Trash),ctrl-alt-d:execute(sudo mv {} ~/Trash)" \
+      --bind="left:pos(2)+accept,right:accept,ctrl-d:execute-silent(mv {} ~/Trash),ctrl-alt-d:execute(sudo mv {} ~/Trash)"" \
       --query "'")
 
   if [[ "$selection" == "." ]]; then
-    cd "$current_dir"
+    cd "$current_dir" || exit
     break
   fi
 
   if [[ "$selection" == "" ]]; then
-    echo $current_dir
-    echo $selected_path
+    echo "$current_dir"
+    echo "$selected_path"
     break
   fi
 
@@ -45,7 +45,7 @@ while true; do
                         if [ -f \'{}\' ]; then
                             bat --theme=Dracula --color=always --decorations=never {};
                         else
-                            \ls -a -N --color=always --group-directories-first {};
+                            eza --no-quotes -a --color=always --group-directories-first {};
                             fi" \
         --layout=reverse \
         --query "'")

@@ -1,8 +1,8 @@
 #!/bin/env bash
 
-# usage: (j, j -1, j w 2, etc.)
-local offset=0
-local type=d
+# usage: (jour, jour -1, jour w 2, etc.)
+offset=0
+type=d
 
 if [[ $1 =~ ^[dwmy]$ ]]; then
   type=$1
@@ -13,8 +13,8 @@ if [[ $1 =~ ^[+-]?[0-9]+$ ]]; then
   offset=$1
 fi
 
-local desired_date
-local subpath
+desired_date
+subpath
 
 case "$type" in
 d)
@@ -35,10 +35,10 @@ y)
   ;;
 esac
 
-local file_path=~/notes/journal/"$subpath"/"$desired_date".md
+file_path="$HOME/notes/journal/$subpath/$desired_date.md"
+template_path="$HOME/notes/journal/template/$subpath.md"
 
 if [ ! -f "$file_path" ]; then
-  nvim -c "e $file_path" -c "ObsidianTemplate $subpath.md" -c "norm \"_dd"
-else
-  nvim "$file_path"
+  cat "$template_path" >"$file_path"
 fi
+nvim "$file_path"

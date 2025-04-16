@@ -1,0 +1,16 @@
+#!/bin/env bash
+
+blacklistFile="/home/sahaj/bblacklist.log"
+devicesFile="/home/sahaj/bdevices.log"
+
+function delete() {
+  sed -i "/$1/d" /home/sahaj/bdevices.log
+  echo "$1 $2 $(date +'%d/%m %I:%M:%S %p')" >>$blacklistFile
+  echo "Deleted $1"
+}
+
+while read -r mac name; do
+  trap "kill 0" SIGINT
+  echo "Pinging $name ($mac):"
+  (l2ping -s 200 -c 2 "$mac" || delete "$mac" "$name")
+done <$devicesFile
