@@ -102,40 +102,41 @@ return {
       -- DIAGNOSTICS
 
       vim.diagnostic.config({
-        -- underline = {
-        -- severity = { min = vim.diagnostic.severity.ERROR }
-        -- },
+
+        underline = {
+          severity = { min = vim.diagnostic.severity.ERROR }
+        },
+
         virtual_text = {
           severity = { min = vim.diagnostic.severity.WARN },
-          -- severity = { min = vim.diagnostic.severity.ERROR },
           -- prefix = '●'
           prefix = '•'
         },
-        float = { border = "rounded" },
+
+        signs = {
+          text = {
+            [vim.diagnostic.severity.INFO] = '▍',
+            [vim.diagnostic.severity.ERROR] = '▍',
+            [vim.diagnostic.severity.WARN] = '▍',
+            [vim.diagnostic.severity.HINT] = '▍',
+          },
+          linehl = {
+            [vim.diagnostic.severity.INFO] = 'DiagnosticSignInfo',
+            [vim.diagnostic.severity.ERROR] = 'DiagnosticSignError',
+            [vim.diagnostic.severity.WARN] = 'DiagnosticSignWarn',
+            [vim.diagnostic.severity.HINT] = 'DiagnosticSignHint',
+          },
+          numhl = {
+            [vim.diagnostic.severity.INFO] = 'DiagnosticSignInfo',
+            [vim.diagnostic.severity.ERROR] = 'DiagnosticSignError',
+            [vim.diagnostic.severity.WARN] = 'DiagnosticSignWarn',
+            [vim.diagnostic.severity.HINT] = 'DiagnosticSignHint',
+          },
+        },
+        float = {
+          border = 'rounded',
+        }
       })
-      vim.cmd [[
-            " sign define DiagnosticSignError text= texthl=DiagnosticError
-            " sign define DiagnosticSignWarning text= texthl=DiagnosticWarning
-            " sign define DiagnosticSignInfo text= texthl=DiagnosticInfo
-            " sign define DiagnosticSignHint text= texthl=DiagnosticHint
-            "
-            " sign define DiagnosticSignError text= texthl=DiagnosticError
-            " sign define DiagnosticSignWarning text= texthl=DiagnosticWarning
-            " sign define DiagnosticSignInfo text= texthl=DiagnosticInfo
-            " sign define DiagnosticSignHint text= texthl=DiagnosticHint
-
-            sign define DiagnosticSignError text=▍ texthl=DiagnosticError
-            sign define DiagnosticSignWarn text=▍ texthl=DiagnosticWarn
-            sign define DiagnosticSignInfo text=▍ texthl=DiagnosticInfo
-            sign define DiagnosticSignHint text=▍ texthl=DiagnosticHint
-
-            ]]
-
-      vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(vim.lsp.handlers.hover, {
-        border = "rounded",
-      })
-      vim.lsp.handlers['textDocument/signatureHelp'] = vim.lsp.with(vim.lsp.handlers['signature_help'],
-        { border = 'rounded' })
     end,
   },
 }

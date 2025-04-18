@@ -1,8 +1,17 @@
 return {
   {
+    "folke/lazydev.nvim",
+    ft = "lua",
+    opts = {},
+  },
+  {
     'vyfor/cord.nvim',
     build = ':Cord update',
-    -- opts = {}
+    opts = {
+      text = {
+        workspace = "",
+      }
+    }
   },
   {
     "rest-nvim/rest.nvim",
@@ -27,7 +36,8 @@ return {
         markdown = {
           list_items = {
             shift_width = function(buffer, item)
-              local parent_indnet = math.max(1, item.indent - vim.bo[buffer].shiftwidth);
+              local parent_indnet = math.max(1,
+                item.indent - vim.bo[buffer].shiftwidth);
 
               return (item.indent) * (1 / (parent_indnet * 2));
             end,
