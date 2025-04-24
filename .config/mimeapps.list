@@ -17,6 +17,9 @@ application/x-extension-xhtml=zen.desktop
 application/x-extension-xht=zen.desktop
 application/pdf=zen.desktop
 x-scheme-handler/postman=Postman.desktop
+x-scheme-handler/fdm=freedownloadmanager_fdm_up.desktop
+x-scheme-handler/magnet=freedownloadmanager_magnet_up.desktop
+application/x-bittorrent=freedownloadmanager_torrent.desktop
 
 [Added Associations]
 x-scheme-handler/http=zen-alpha.desktop;zen-beta.desktop;zen.desktop;

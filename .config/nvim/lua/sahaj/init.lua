@@ -129,9 +129,35 @@ function Opaque()
   -- })
 end
 
--- Opaque()
-Transparent()
 -- vim.api.nvim_set_hl(0, 'FoldIcon', { fg = "#afb4f9", bg = "#2a2b3d", bold = true })
+
+-- firenvim
+if vim.g.started_by_firenvim == true then
+  Opaque()
+else
+  Transparent()
+end
+
+vim.api.nvim_create_autocmd({ 'UIEnter' }, {
+  callback = function()
+    local client = vim.api.nvim_get_chan_info(vim.v.event.chan).client
+    if client ~= nil and client.name == "Firenvim" then
+      vim.o.laststatus = 0
+      vim.o.cmdheight = 0
+      if vim.o.lines < 5 then
+        vim.o.lines = 5
+      end
+    end
+  end
+})
+
+vim.g.firenvim_config = {
+  localSettings = {
+    [".*"] = {
+      takeover = "never"
+    }
+  }
+}
 
 function CopilotToCodeium()
   vim.cmd [[ Copilot disable ]]
@@ -391,4 +417,4 @@ end
 --   end,
 -- })
 --
-require("sahaj.rest-nvim-extract")
+-- require("sahaj.rest-nvim-extract")

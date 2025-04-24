@@ -1,4 +1,6 @@
 return {
+  { "williamboman/mason.nvim", opts = {},                          cmd = "Mason" },
+  { 'glacambre/firenvim',      build = ":call firenvim#install(0)" },
   {
     "folke/lazydev.nvim",
     ft = "lua",
@@ -61,7 +63,7 @@ return {
     },
     lazy = false,
     config = function()
-      require("refactoring").setup()
+      require("refactoring").setup({})
     end,
   },
   { "ofseed/copilot-status.nvim" },
@@ -69,6 +71,7 @@ return {
   {
     'crispgm/nvim-tabline',
     dependencies = { 'nvim-tree/nvim-web-devicons' },
+    lazy = true,
     opts = {
       show_icon = true,         -- show file extension icon
       modify_indicator = '[+]', -- modify indicator
@@ -76,12 +79,6 @@ return {
       brackets = { '', '' },    -- file name brackets surrounding
 
     },
-  },
-  {
-    "folke/ts-comments.nvim",
-    opts = {},
-    event = "VeryLazy",
-    ft = { "javascriptreact", "typescriptreact" }
   },
   {
     'sindrets/diffview.nvim',
@@ -162,19 +159,6 @@ return {
 
   },
   {
-    "nvim-neo-tree/neo-tree.nvim",
-    cmd = "NeoTree",
-    keys = {
-      { "<leader>tn", "<cmd>Neotree toggle<cr>", desc = "NeoTree" },
-    },
-    opts = {},
-    dependencies = {
-      "nvim-lua/plenary.nvim",
-      "nvim-tree/nvim-web-devicons",
-      "MunifTanjim/nui.nvim",
-    }
-  },
-  {
     "folke/which-key.nvim",
     event = "VeryLazy",
     init = function()
@@ -215,7 +199,7 @@ return {
     'windwp/nvim-autopairs',
     event = "InsertEnter",
     opts = {},
-
+  
   },
   { 'kylechui/nvim-surround', event = "VeryLazy", opts = { keymaps = { visual = "Y" }, }, },
   -- {

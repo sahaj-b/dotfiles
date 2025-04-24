@@ -15,3 +15,4 @@ export ELECTRON_OZONE_PLATFORM_HINT=auto
 # if [[ $(cat /sys/class/power_supply/BAT0/status) == "Discharging" ]]; then 
 #     bluetoothctl power off
 # fi
+

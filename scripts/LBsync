@@ -11,6 +11,7 @@ cd "${dotfiles_dir}" || {
   echo "Couldn't cd into ${dotfiles_dir}"
   exit 1
 }
+git pull origin main || exit
 git rm -rf .
 
 file_list=(
