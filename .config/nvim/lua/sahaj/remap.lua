@@ -150,6 +150,12 @@ map("v", "<leader><leader>t", "<cmd>lua ToggleCheckboxVisual()<CR>")
 
 --plugins-keymaps
 
+-- CodeCompanion
+map({ 'n', 'v' }, "<leader>aa", "<cmd>CodeCompanionActions<cr>")
+map('n', "<leader><leader>a", "<cmd>CodeCompanionChat Toggle<cr>")
+map('ca', "cc", "CodeCompanion")
+
+
 -- diffview
 -- map("n", "<leader><leader>d", "<cmd>DiffviewToggle<CR>")
 

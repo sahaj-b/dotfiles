@@ -184,7 +184,9 @@ vim.opt.guicursor = {
 }
 
 vim.g.tailwindSortOnSave = true
+vim.g.codecompanion_auto_tool_mode = true
 
+vim.o.laststatus = 3
 vim.opt.conceallevel = 2
 -- vim.opt.concealcursor = 'nc'
 vim.opt.magic = false

@@ -25,6 +25,7 @@ return {
       }),
       formatters_by_ft = {
         sh = { 'shfmt' },
+        json = { 'prettierd' },
         javascript = { 'prettierd' },
         typescript = { 'prettierd' },
         html = { 'prettierd' },

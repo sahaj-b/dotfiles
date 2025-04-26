@@ -11,7 +11,7 @@ cd "${dotfiles_dir}" || {
   echo "Couldn't cd into ${dotfiles_dir}"
   exit 1
 }
-git pull origin main || exit
+git pull origin main --rebase || exit
 git rm -rf .
 
 file_list=(
@@ -43,6 +43,7 @@ file_list=(
   "$HOME/.config/btop/"
   "$HOME/.config/mimeapps.list"
   "$HOME/wallpapers/"
+  "$HOME/.config/mods/"
 )
 
 for item in "${file_list[@]}"; do

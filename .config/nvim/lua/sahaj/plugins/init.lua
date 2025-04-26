@@ -1,4 +1,11 @@
 return {
+  -- {
+  --   "Davidyz/VectorCode",
+  --   version = "*",                        -- optional, depending on whether you're on nightly or release
+  --   build = "uv tool upgrade vectorcode", -- optional but recommended if you set `version = "*"`
+  --   dependencies = { "nvim-lua/plenary.nvim" },
+  --   opts = {}
+  -- },
   { "williamboman/mason.nvim", opts = {},                          cmd = "Mason" },
   { 'glacambre/firenvim',      build = ":call firenvim#install(0)" },
   {
@@ -8,6 +15,7 @@ return {
   },
   {
     'vyfor/cord.nvim',
+    event = "VeryLazy",
     build = ':Cord update',
     opts = {
       text = {
@@ -17,24 +25,23 @@ return {
   },
   {
     "rest-nvim/rest.nvim",
-    dependencies = {
-      "nvim-treesitter/nvim-treesitter",
-      opts = function(_, opts)
-        opts.ensure_installed = opts.ensure_installed or {}
-        table.insert(opts.ensure_installed, "http")
-      end,
-    },
-    ft = { "http" }
+    ft = { "http" },
+    config = function()
+      require("sahaj.rest-nvim-extract")
+    end
   },
   {
     "OXY2DEV/markview.nvim",
     config = function()
       require("markview").setup({
-        -- preview = {
-        --   enable_hybrid_mode = true,
-        --   hybrid_modes = { "i" },
-        --   ignore_previews = {}
-        -- },
+
+        preview = {
+          filetypes = { "markdown", "codecompanion", "Avante" },
+          ignore_buftypes = {},
+          --   enable_hybrid_mode = true,
+          --   hybrid_modes = { "i" },
+          --   ignore_previews = {}
+        },
         markdown = {
           list_items = {
             shift_width = function(buffer, item)
@@ -50,7 +57,7 @@ return {
             }
           }
         },
-        lazy = false,
+        ft = { "markdown", "codecompanion", "avante" },
         cmd = "Markview"
       })
     end,
@@ -66,8 +73,26 @@ return {
       require("refactoring").setup({})
     end,
   },
-  { "ofseed/copilot-status.nvim" },
-  { "github/copilot.vim" },
+  -- { "ofseed/copilot-status.nvim" },
+  -- { "github/copilot.vim" },
+  {
+    "zbirenbaum/copilot.lua",
+    cmd = "Copilot",
+    event = "InsertEnter",
+    opts = {
+      filetypes = {
+        ["*"] = true
+      },
+      suggestion = {
+        auto_trigger = true,
+        debounce = 50,
+        keymap = {
+          accept = "<Tab>",
+        }
+      },
+    }
+  },
+  { 'AndreM222/copilot-lualine' },
   {
     'crispgm/nvim-tabline',
     dependencies = { 'nvim-tree/nvim-web-devicons' },
@@ -97,7 +122,7 @@ return {
     cmd = "Oil",
     opts = { skip_confirm_for_simple_edits = true },
   },
-  { "nvim-pack/nvim-spectre",                  cmd = "Spectre" },
+  { "nvim-pack/nvim-spectre",   cmd = "Spectre" },
   {
     "uga-rosa/ccc.nvim",
     config = function()
@@ -127,7 +152,7 @@ return {
 
   "mg979/vim-visual-multi",
   { 'nvim-telescope/telescope-ui-select.nvim' },
-  { 'wakatime/vim-wakatime',                  lazy = false },
+  { 'wakatime/vim-wakatime',                   lazy = false },
   {
     "dhruvasagar/vim-table-mode",
     keys = { "<leader>tt", },
@@ -199,7 +224,7 @@ return {
     'windwp/nvim-autopairs',
     event = "InsertEnter",
     opts = {},
-  
+
   },
   { 'kylechui/nvim-surround', event = "VeryLazy", opts = { keymaps = { visual = "Y" }, }, },
   -- {
@@ -210,7 +235,6 @@ return {
   --     },
   --   }
   -- }
-  -- { "OXY2DEV/markview.nvim",     opts = { preview = { enable = false } }, lazy = false, cmd = "Markview" },
   -- { 'kevinhwang91/nvim-ufo',     dependencies = { 'kevinhwang91/promise-async' }, opts = {} },
   -- {
   --   'MeanderingProgrammer/render-markdown.nvim',
