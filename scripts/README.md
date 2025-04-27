@@ -3,6 +3,7 @@
 | Script                         | Description                                                                     |
 | ---------------                | -------------                                                                   |
 | `pcs`, `ycs <query>`           | Search for packages on `pacman`, `yay`                                          |
+| `picker <type>`                | Emoji/Unicode/NerdFonts/ANSI codes picker using `fzf` inside floating terminal  |
 | `tmux-sessionizer`             | Edited version of tmux-sessionizer by primeagen
 | `bat-notif`                    | Daemon for battery notifications                                                |
 | `blu-notif`                    | Sends notifications for Bluetooth events                                        |

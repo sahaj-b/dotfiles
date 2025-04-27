@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 
-# Script to launch different pickers (emoji, nerdfont, unicode, ansi)
+# script to launch different pickers (emoji, nerdfont, unicode, ansi)
+# uses foot(terminal), hyprctl, wl-copy (wayland stuff), fzf
 
+TERMINAL="foot"
 EMOJI_FILE="$HOME/emojis.txt"
 NERDFONT_FILE="$HOME/nerdfonts.txt"
 UNICODE_FILE="$HOME/unicode.txt"
-ANSI_CODES_FILE="$HOME/ansi_codes.txt"
+ANSI_STYLES_FILE="$HOME/ansi_styles.txt"
+ANSI_CONTROLS_FILE="$HOME/ansi_controls.txt"
 FLOAT_CONFIG_WIDE="[float; size 60% 70%; center]"
 FLOAT_CONFIG_SMALL="[float; size 30% 20%; center]"
 FLOAT_CONFIG_TALL="[float; size 40% 80%; center]"
@@ -21,8 +24,8 @@ checkFile() {
 }
 
 if [[ -z "$1" ]]; then
-  hyprctl dispatch exec "$FLOAT_CONFIG_SMALL foot -e sh -c \"
-        printf 'emoji\\nnerdfont\\nunicode\\nansi' |
+  hyprctl dispatch exec "$FLOAT_CONFIG_SMALL $TERMINAL -e sh -c \"
+        printf 'emoji\\nnerdfont\\nunicode\\nansi_styles\\nansi_controls\\n' |
         fzf --layout=reverse \
             --prompt='Select Picker: ' \
             --bind 'enter:execute($0 {})+accept' \
@@ -33,9 +36,9 @@ fi
 case "$1" in
 emoji)
   checkFile "$EMOJI_FILE"
-  hyprctl dispatch exec "$FLOAT_CONFIG_WIDE foot -e sh -c \"
+  hyprctl dispatch exec "$FLOAT_CONFIG_WIDE $TERMINAL -e sh -c \"
       cat '$EMOJI_FILE' |
-      fzf --layout=reverse --prompt='Emoji: ' |
+      fzf --layout=reverse --prompt='Emoji: ' --bind='ctrl-d:half-page-down,ctrl-u:half-page-up' |
       cut -d' ' -f1 |
       tr -d '\\n' |
       wl-copy\""
@@ -43,9 +46,9 @@ emoji)
 
 nerdfont)
   checkFile "$NERDFONT_FILE"
-  hyprctl dispatch exec "$FLOAT_CONFIG_WIDE foot -e sh -c \"
+  hyprctl dispatch exec "$FLOAT_CONFIG_WIDE $TERMINAL -e sh -c \"
       cat '$NERDFONT_FILE' | 
-      fzf --layout=reverse --prompt='NerdFont: ' | 
+      fzf --layout=reverse --prompt='NerdFont: ' --bind='ctrl-d:half-page-down,ctrl-u:half-page-up' | 
       cut -d' ' -f1 | 
       tr -d '\\n' | 
       wl-copy\""
@@ -53,29 +56,40 @@ nerdfont)
 
 unicode)
   checkFile "$UNICODE_FILE"
-  hyprctl dispatch exec "$FLOAT_CONFIG_WIDE foot -e sh -c \"
+  hyprctl dispatch exec "$FLOAT_CONFIG_WIDE $TERMINAL -e sh -c \"
       cat '$UNICODE_FILE' | 
-      fzf --layout=reverse --prompt='Unicode: ' | 
+      fzf --layout=reverse --prompt='Unicode: ' --bind='ctrl-d:half-page-down,ctrl-u:half-page-up' | 
       cut -d' ' -f1 | 
       tr -d '\\n' | 
       wl-copy\""
   ;;
 
-ansi)
-  checkFile "$ANSI_CODES_FILE"
-  hyprctl dispatch exec "$FLOAT_CONFIG_TALL foot -e sh -c '
-    grep -v \"^#\" \"$ANSI_CODES_FILE\" | 
+ansi_styles)
+  checkFile "$ANSI_STYLES_FILE"
+  hyprctl dispatch exec "$FLOAT_CONFIG_TALL $TERMINAL -e sh -c '
+    grep -v \"^#\" \"$ANSI_STYLES_FILE\" | 
     while IFS= read -r line || [ -n \"\$line\" ]; do
         [ -z \"\$line\" ] && continue
         code=\${line%% *}
         desc=\${line#* }
         printf \"%s\\t%b %s\\e[0m\\n\" \"\$code\" \"\$code\" \"\$desc\"
     done | 
-    fzf --ansi --layout=reverse --delimiter=\"\\t\" --with-nth=2 --nth=1 --prompt=\"ANSI Code: \" | 
+    fzf --ansi --layout=reverse --delimiter=\"\\t\" --with-nth=2 --nth=1 \
+    --prompt=\"ANSI: \" --color=hl:-1,hl+:-1 --bind='ctrl-d:half-page-down,ctrl-u:half-page-up' | 
     cut -f1 |
     tr -d \"\\n\" | 
     wl-copy
     '"
+  ;;
+
+ansi_controls)
+  checkFile "$ANSI_CONTROLS_FILE"
+  hyprctl dispatch exec "$FLOAT_CONFIG_WIDE $TERMINAL -e sh -c \"
+      grep -v '^#' '$ANSI_CONTROLS_FILE' | 
+      fzf --layout=reverse --prompt='Unicode: ' --bind='ctrl-d:half-page-down,ctrl-u:half-page-up' | 
+      cut -d' ' -f1 | 
+      tr -d '\\n' | 
+      wl-copy\""
   ;;
 
 *)
