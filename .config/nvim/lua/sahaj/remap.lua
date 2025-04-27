@@ -237,7 +237,7 @@ map("n", "<leader>gb", "<cmd>Telescope git_branches<cr>", { desc = "Show git bra
 map("n", "<leader>gs", "<cmd>Telescope git_status<cr>", { desc = "Show current git changes per file" })
 map("n", "<leader>ft", "<cmd>Telescope<cr>", { desc = "Open Telescope options" })
 map("n", "<leader>fr", "<cmd>Telescope lsp_references<cr>", { desc = "Find lsp references" })
-map("n", "<leader>fw", "<cmd>Telescope lsp_workspace_symbols<cr>", { desc = "Find workspace symbols" })
+map("n", "<leader>fw", "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", { desc = "Find workspace symbols" })
 
 map('n', '<leader>fps', function()
     require("telescope.builtin").grep_string({ search = vim.fn.input("Grep > ") });

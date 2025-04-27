@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+
+# Script to launch different pickers (emoji, nerdfont, unicode, ansi)
+
+EMOJI_FILE="$HOME/emojis.txt"
+NERDFONT_FILE="$HOME/nerdfonts.txt"
+UNICODE_FILE="$HOME/unicode.txt"
+ANSI_CODES_FILE="$HOME/ansi_codes.txt"
+FLOAT_CONFIG_WIDE="[float; size 60% 70%; center]"
+FLOAT_CONFIG_SMALL="[float; size 30% 20%; center]"
+FLOAT_CONFIG_TALL="[float; size 40% 80%; center]"
+
+errorExit() {
+  notify-send "Picker Script Error" "$1"
+  echo "Error: $1" >&2
+  exit 1
+}
+
+checkFile() {
+  [[ -f "$1" ]] || errorExit "File not found: $1"
+}
+
+if [[ -z "$1" ]]; then
+  hyprctl dispatch exec "$FLOAT_CONFIG_SMALL foot -e sh -c \"
+        printf 'emoji\\nnerdfont\\nunicode\\nansi' |
+        fzf --layout=reverse \
+            --prompt='Select Picker: ' \
+            --bind 'enter:execute($0 {})+accept' \
+            --bind 'ctrl-c:abort'\""
+  exit 0
+fi
+
+case "$1" in
+emoji)
+  checkFile "$EMOJI_FILE"
+  hyprctl dispatch exec "$FLOAT_CONFIG_WIDE foot -e sh -c \"
+      cat '$EMOJI_FILE' |
+      fzf --layout=reverse --prompt='Emoji: ' |
+      cut -d' ' -f1 |
+      tr -d '\\n' |
+      wl-copy\""
+  ;;
+
+nerdfont)
+  checkFile "$NERDFONT_FILE"
+  hyprctl dispatch exec "$FLOAT_CONFIG_WIDE foot -e sh -c \"
+      cat '$NERDFONT_FILE' | 
+      fzf --layout=reverse --prompt='NerdFont: ' | 
+      cut -d' ' -f1 | 
+      tr -d '\\n' | 
+      wl-copy\""
+  ;;
+
+unicode)
+  checkFile "$UNICODE_FILE"
+  hyprctl dispatch exec "$FLOAT_CONFIG_WIDE foot -e sh -c \"
+      cat '$UNICODE_FILE' | 
+      fzf --layout=reverse --prompt='Unicode: ' | 
+      cut -d' ' -f1 | 
+      tr -d '\\n' | 
+      wl-copy\""
+  ;;
+
+ansi)
+  checkFile "$ANSI_CODES_FILE"
+  hyprctl dispatch exec "$FLOAT_CONFIG_TALL foot -e sh -c '
+    grep -v \"^#\" \"$ANSI_CODES_FILE\" | 
+    while IFS= read -r line || [ -n \"\$line\" ]; do
+        [ -z \"\$line\" ] && continue
+        code=\${line%% *}
+        desc=\${line#* }
+        printf \"%s\\t%b %s\\e[0m\\n\" \"\$code\" \"\$code\" \"\$desc\"
+    done | 
+    fzf --ansi --layout=reverse --delimiter=\"\\t\" --with-nth=2 --nth=1 --prompt=\"ANSI Code: \" | 
+    cut -f1 |
+    tr -d \"\\n\" | 
+    wl-copy
+    '"
+  ;;
+
+*)
+  errorExit "Invalid picker choice: '$1'. Use emoji, nerdfont, unicode, or ansi."
+  ;;
+esac
+
+exit 0

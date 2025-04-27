@@ -29,58 +29,68 @@ return {
         end,
       },
     },
-    -- cmd = { "CodeCompanion", "CodeCompanionChat", "CodeCompanionActions", "CodeCompanionCmd" },
-    opts = {
-      strategies = {
-        chat = {
-          keymaps = {
-            send = {
-              modes = { i = "<C-Enter>" },
-            }
-          },
-          tools = {
-            opts = {
-              auto_submit_success = true,
-              auto_submit_errors = true,
+    cmd = { "CodeCompanion", "CodeCompanionChat", "CodeCompanionActions", "CodeCompanionCmd" },
+    config = function()
+      -- require("sahaj.plugins.codecompanion.history").setup()
+      require("codecompanion").setup {
+        -- history = {
+        --   auto_generate_title = true,                                       -- Generate titles using Groq LLM
+        --   file_path = vim.fn.stdpath("data") .. "/codecompanion_chats.json" -- History storage location
+        -- },
+        strategies = {
+          chat = {
+            keymaps = {
+              send = {
+                modes = { i = "<C-Enter>" },
+              }
             },
-            ["mcp"] = {
-              -- calling it in a function would prevent mcphub from being loaded before it's needed
-              callback = function() return require("mcphub.extensions.codecompanion") end,
-              description =
-              "Call tools and resources from the MCP Servers",
-            }
-          }
-          -- adapter = "vc",
-          -- tools = {
-          --   vectorcode = {
-          --     description = "Run VectorCode to retrieve the project context.",
-          --     callback = require("vectorcode.integrations").codecompanion.chat.make_tool({
-          --       -- your options goes here
-          --     }),
-          --   }
-          -- },
-        },
-      },
-      display = {
-        diff = {
-          provider = "mini_diff",
-        },
-      },
-      adapters = {
-        copilot = function()
-          return require("codecompanion.adapters").extend("copilot", {
-            schema = {
-              model = {
-                default = "gemini-2.5-pro-preview-03-25"
+            tools = {
+              ["mcp"] = {
+                -- calling it in a function would prevent mcphub from being loaded before it's needed
+                callback = function() return require("mcphub.extensions.codecompanion") end,
+                description =
+                "Call tools and resources from the MCP Servers. Only use when necessary",
+
+                opts = {
+                  auto_submit_success = true,
+                  auto_submit_errors = false,
+                },
               }
             }
-          })
-        end,
-      },
-      opts = {
-        system_prompt = function()
-          return
-          [[ Yo bro 🦍 You're my AI coding wingman, CodeCompanion, hooked into Neovim. We’re keeping it real—straight-up answers, no bullshit. You’re here to boost my coding skills, so let’s smash it together. 💪
+            -- adapter = "vc",
+            -- tools = {
+            --   vectorcode = {
+            --     description = "Run VectorCode to retrieve the project context.",
+            --     callback = require("vectorcode.integrations").codecompanion.chat.make_tool({
+            --       -- your options goes here
+            --     }),
+            --   }
+            -- },
+          },
+        },
+        display = {
+          chat = {
+            auto_scroll = false,
+          },
+          diff = {
+            provider = "mini_diff",
+          },
+        },
+        adapters = {
+          copilot = function()
+            return require("codecompanion.adapters").extend("copilot", {
+              schema = {
+                model = {
+                  default = "gemini-2.5-pro"
+                }
+              }
+            })
+          end,
+        },
+        opts = {
+          system_prompt = function()
+            return
+            [[ Yo bro 🦍 You're my AI coding wingman, CodeCompanion, hooked into Neovim. We’re keeping it real—straight-up answers, no bullshit. You’re here to boost my coding skills, so let’s smash it together. 💪
 
 Vibe Check:
 - Ditch the polite crap. Be real and raw.
@@ -161,11 +171,12 @@ When I Toss You a Task:
 - End with a quick “next move” tip to keep the flow, only if needed.
 Provide multiple replies only if they’re all relevant or I ask multiple questions.
 Lets do this champ! 💪🔥🦍]]
-        end
+          end
+        }
       }
-    },
+    end,
     init = function()
-      require("sahaj.plugins.codecompanion.fidget-spinner"):init()
+      require("sahaj.plugins.codecompanion.spinner"):init()
     end,
   },
 }
