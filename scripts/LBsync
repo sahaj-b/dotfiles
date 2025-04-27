@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
 
-dotfiles_dir="/media/data/LinuxBackup/dotfiles/"
-
-if [[ $1 = "nodata" ]] || ! [[ -w $dotfiles_dir ]]; then
-  dotfiles_dir="/home/sahaj/LinuxBackup/dotfiles/"
-  echo "Not using 'Data' partition. Defaulting to $dotfiles_dir"
-fi
+dotfiles_dir="/home/sahaj/LinuxBackup/dotfiles/"
+data_dir="/media/data/Linux_Backup/dotfiles/"
 
 cd "${dotfiles_dir}" || {
   echo "Couldn't cd into ${dotfiles_dir}"
@@ -47,26 +43,34 @@ file_list=(
   "$HOME/.config/mcphub/"
 )
 
-for item in "${file_list[@]}"; do
-  if [ -e "$item" ]; then
-    relative_path="${item#~/}"
-    if [[ $item == /etc/* ]]; then
-      relative_path="${item#/}"
-    fi
-    destination_dir=$(dirname "$dotfiles_dir$relative_path")
-    mkdir -p "$destination_dir"
-    cp -r "$item" "$destination_dir"
-    if [ $? -ne 0 ]; then
-      echo -e "\e[31mERROR: cannot copy $item.\e[0m"
+function copy() {
+  for item in "${file_list[@]}"; do
+    if [ -e "$item" ]; then
+      relative_path="${item#~/}"
+      if [[ $item == /etc/* ]]; then
+        relative_path="${item#/}"
+      fi
+      destination_dir=$(dirname "$1$relative_path")
+      mkdir -p "$destination_dir"
+      cp -r "$item" "$destination_dir"
+      if [ $? -ne 0 ]; then
+        echo -e "\e[31mERROR: cannot copy $item.\e[0m"
+      else
+        echo -e "Copied: $item to $destination_dir"
+      fi
     else
-      echo -e "Copied: $item to $destination_dir"
+      echo -e "\e[31mERROR: $item does not exist.\e[0m"
     fi
-  else
-    echo -e "\e[31mERROR: $item does not exist.\e[0m"
-  fi
-done
+  done
+  echo -e "\e[32mCopying completed.\n\e[0m"
+}
 
-echo -e "\e[32mCopying completed.\n\e[0m"
+copy "$dotfiles_dir"
+
+if [ -d "$data_dir" ]; then
+  copy "$data_dir"
+fi
+
 if [[ $1 != "cp" ]]; then
   if [[ $1 == "gdrive" ]]; then
     echo -e "\e[32mUploading Dotfiles and Guides to GDrive\e[0m"

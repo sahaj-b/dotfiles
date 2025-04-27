@@ -1,20 +1,50 @@
-#!/bin/env bash
-file="$1"
-size=$(stat -c %s "$file" | numfmt --to=iec --suffix=B)
-access_time=$(stat -c %x "$file" | awk '{print $1, $2}' | xargs -I{} date -d "{}" "+%d-%m-%Y %H:%M:%S")
-modify_time=$(stat -c %y "$file" | awk '{print $1, $2}' | xargs -I{} date -d "{}" "+%d-%m-%Y %H:%M:%S")
-creation_time=$(stat -c %w "$file" | awk '{if ($1 == "-") print "-"; else print $1, $2}' | xargs -I{} date -d "{}" "+%d-%m-%Y %H:%M:%S" 2>/dev/null || echo "-")
+#!/usr/bin/env bash
 
-purple="\033[34m"
+if [[ -z "$1" ]]; then
+  echo "Usage: $0 <file_path>" >&2
+  exit 1
+fi
+
+file="$1"
+
+if [[ ! -e "$file" ]]; then
+  echo "Error: File '$file' not found." >&2
+  exit 1
+fi
+
+size=$(stat -c %s "$file" 2>/dev/null | numfmt --to=iec --suffix=B) || size="N/A"
+
+access_time_raw=$(stat -c %x "$file" 2>/dev/null)
+access_time=$(echo "$access_time_raw" | awk '{print $1, $2}' | xargs -I{} date -d "{}" "+%Y-%m-%d %H:%M:%S" 2>/dev/null) || access_time="$access_time_raw (raw)"
+
+modify_time_raw=$(stat -c %y "$file" 2>/dev/null)
+modify_time=$(echo "$modify_time_raw" | awk '{print $1, $2}' | xargs -I{} date -d "{}" "+%Y-%m-%d %H:%M:%S" 2>/dev/null) || modify_time="$modify_time_raw (raw)"
+
+creation_time_raw=$(stat -c %w "$file" 2>/dev/null)
+if [[ "$creation_time_raw" == "-" ]]; then
+  creation_time="-"
+else
+  creation_time=$(echo "$creation_time_raw" | awk '{print $1, $2}' | xargs -I{} date -d "{}" "+%Y-%m-%d %H:%M:%S" 2>/dev/null) || creation_time="$creation_time_raw (raw)"
+fi
+
+color="\033[35m"
 reset="\033[0m"
 
-stat --printf "${purple}File:${reset} %n\n" "$file"
-echo -e "${purple}Size:${reset} $size"
-echo -e "${purple}Permissions:${reset} %A"
-echo -e "${purple}Last Access:${reset} $access_time"
-echo -e "${purple}Last Modify:${reset} $modify_time"
-echo -e "${purple}Creation:${reset} $creation_time"
-echo -e "${purple}Owner:${reset} %U"
-echo -e "${purple}Group:${reset} %G"
-echo -e "${purple}Type:${reset} %F"
-echo -e "${purple}Links:${reset} %h"
+stat --printf "\
+${color}File:${reset}        %n
+${color}Size:${reset}        $size
+${color}Permissions:${reset} %A (%a)
+${color}Owner:${reset}       %U (%u)
+${color}Group:${reset}       %G (%g)
+${color}Type:${reset}        %F
+${color}Links:${reset}       %h
+${color}Device:${reset}      %d (%t:%T)
+${color}Inode:${reset}       %i
+${color}Context:${reset}     %C
+" "$file" 2>/dev/null
+
+echo -e "${color}Last Access:${reset}  $access_time"
+echo -e "${color}Last Modify:${reset}  $modify_time"
+echo -e "${color}Creation:${reset}     $creation_time"
+
+exit 0
