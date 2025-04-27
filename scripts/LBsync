@@ -70,10 +70,8 @@ function copy() {
 
 copy "$dotfiles_dir"
 
-if [ -d "$data_dir" ]; then
-  rm -rf "$data_dir"
-  copy "$data_dir"
-fi
+rm -rf "$data_dir"
+copy "$data_dir"
 
 if [[ $1 != "cp" ]]; then
   if [[ $1 == "gdrive" ]]; then
