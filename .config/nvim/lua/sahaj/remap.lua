@@ -296,7 +296,7 @@ local filetypes = {
   c = "gcc % -o %:r && ./%:r",
   cpp = "g++ % -o %:r && ./%:r",
   qml = "qmlscene %",
-  go = "go run %",
+  go = "go run .",
   markdown = "go-grip %"
 }
 

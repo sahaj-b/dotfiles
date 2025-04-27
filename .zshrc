@@ -57,7 +57,7 @@ alias neofetch="fastfetch"
 alias ls='eza --no-quotes -a --icons --group-directories-first'
 alias nv='nvim'
 alias v='vim'
-alias nvsu='sudo -E -s nvim'
+alias nvsu='sudoedit'
 alias cpcmd='fc -nl -1 | wl-copy'
 alias todo="glow ~/notes/todo.md"
 alias f="nvim ~/notes/todo.md"
@@ -90,9 +90,9 @@ alias randgen="tr -dc a-z1-4 </dev/urandom | tr 1-2 ' \n' | awk 'length==0 || le
 alias gs="git status"
 alias fm="source fm"
 alias gpt="mods -m gpt-4o"
-alias flash="mods"
+alias flas="mods -m 2.0-flash"
 alias lite="mods -m 2.0-flash-lite"
-alias flashy="mods -m 2.5-flash"
+alias flash="mods -m 2.5-flash"
 alias pro="mods -m 2.5-pro"
 
 function gcs() {

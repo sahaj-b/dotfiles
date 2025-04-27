@@ -1,4 +1,22 @@
 return {
+  {
+    "zbirenbaum/copilot.lua",
+    cmd = "Copilot",
+    event = "InsertEnter",
+    opts = {
+      filetypes = {
+        ["*"] = true
+      },
+      suggestion = {
+        auto_trigger = true,
+        debounce = 50,
+        keymap = {
+          accept = "<Tab>",
+        }
+      },
+    }
+  },
+  { 'AndreM222/copilot-lualine' },
   -- {
   --   "Davidyz/VectorCode",
   --   version = "*",                        -- optional, depending on whether you're on nightly or release
@@ -6,8 +24,8 @@ return {
   --   dependencies = { "nvim-lua/plenary.nvim" },
   --   opts = {}
   -- },
-  { "williamboman/mason.nvim", opts = {},                          cmd = "Mason" },
-  { 'glacambre/firenvim',      build = ":call firenvim#install(0)" },
+  { "williamboman/mason.nvim",  opts = {},                          cmd = "Mason" },
+  { 'glacambre/firenvim',       build = ":call firenvim#install(0)" },
   {
     "folke/lazydev.nvim",
     ft = "lua",
@@ -73,26 +91,6 @@ return {
       require("refactoring").setup({})
     end,
   },
-  -- { "ofseed/copilot-status.nvim" },
-  -- { "github/copilot.vim" },
-  {
-    "zbirenbaum/copilot.lua",
-    cmd = "Copilot",
-    event = "InsertEnter",
-    opts = {
-      filetypes = {
-        ["*"] = true
-      },
-      suggestion = {
-        auto_trigger = true,
-        debounce = 50,
-        keymap = {
-          accept = "<Tab>",
-        }
-      },
-    }
-  },
-  { 'AndreM222/copilot-lualine' },
   {
     'crispgm/nvim-tabline',
     dependencies = { 'nvim-tree/nvim-web-devicons' },
@@ -122,7 +120,7 @@ return {
     cmd = "Oil",
     opts = { skip_confirm_for_simple_edits = true },
   },
-  { "nvim-pack/nvim-spectre",   cmd = "Spectre" },
+  { "nvim-pack/nvim-spectre",                  cmd = "Spectre" },
   {
     "uga-rosa/ccc.nvim",
     config = function()
@@ -152,7 +150,7 @@ return {
 
   "mg979/vim-visual-multi",
   { 'nvim-telescope/telescope-ui-select.nvim' },
-  { 'wakatime/vim-wakatime',                   lazy = false },
+  { 'wakatime/vim-wakatime',                  lazy = false },
   {
     "dhruvasagar/vim-table-mode",
     keys = { "<leader>tt", },
