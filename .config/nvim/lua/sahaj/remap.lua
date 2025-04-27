@@ -89,8 +89,8 @@ map("v", "<leader>rn", [["hy:%sno/<C-r>h/<C-r>h/gIc<left><left><left><Left>]])
 map("n", "<leader>vpp", "<cmd>e ~/.config/nlua/sahaj/lazy.lua")
 map("n", "x", '"_x')
 
-map("n", "<leader>gd", "<cmd>lua vim.diagnostic.disable(0)<CR>")
-map("n", "<leader>ge", "<cmd>lua vim.diagnostic.enable(0)<CR>")
+map("n", "<leader>gd", "<cmd>lua vim.diagnostic.enable(false)<CR>")
+map("n", "<leader>ge", "<cmd>lua vim.diagnostic.enable()<CR>")
 
 map("t", "<esc>", "<C-\\><C-n>")
 
@@ -113,6 +113,7 @@ map("n", "<leader>[", "<cmd>tabprev<CR>")
 -- buffers
 map("n", "H", "<cmd>bprev<CR>", { silent = true })
 map("n", "L", "<cmd>bnext<CR>", { silent = true })
+map("n", "M", "<C-^>")
 
 -- Toggle Checkboxes
 function ToggleCheckbox()

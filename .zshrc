@@ -65,7 +65,7 @@ alias tk="tmux kill-session"
 alias pc="sudo pacman -Syu"
 alias pcn="sudo pacman -Syu --noconfirm"
 alias ycn="yay -Syu --noconfirm"
-alias nvl='nvim -Vdebug.log ~/Leetcode/leet.cpp +"lua vim.diagnostic.disable(0)" +"Copilot disable" +":,%d _" +"norm i#include <bits/stdc++.h>" +"norm ousing namespace std;" +"norm o"'
+alias nvl='nvim -Vdebug.log ~/Leetcode/leet.cpp +"lua vim.diagnostic.enable(false)" +"Copilot disable" +":,%d _" +"norm i#include <bits/stdc++.h>" +"norm ousing namespace std;" +"norm o"'
 alias dsaq='nvim ~/notes/tech/dsaq.md +"set nowrap"'
 alias nvn='cd ~/notes && nv -c "norm -"; cd -'
 alias notesync='cd ~/notes && git add . && git commit -m "notes backup" && git push && cd -'
@@ -94,16 +94,10 @@ alias flas="mods -m 2.0-flash"
 alias lite="mods -m 2.0-flash-lite"
 alias flash="mods -m 2.5-flash"
 alias pro="mods -m 2.5-pro"
-
-function gcs() {
-  gh copilot suggest -t shell "$@"
-}
-function gce() {
-  gh copilot explain "$@"
-}
-function gits() {
-  gh copilot suggest -t git "$@"
-}
+alias gpt="mods -m 4.1"
+alias gcs="gh copilot suggest -t shell"
+alias gce="gh copilot explain"
+alias gits="gh copilot suggest -t git"
 
 function lorem () {shuf -n ${1:-100} /usr/share/dict/cracklib-small | tr '\n' ' ' | fmt }
 function ggl () { links www.google.com/search\?q="$*"; }
@@ -155,9 +149,6 @@ export STARSHIP_CONFIG="$HOME/.config/starship/starship.toml"
 # export DRI_PRIME=0 (default) TO USE INTEGRATED GPU (iris xe)
 
 export PATH=$PATH:/home/sahaj/.spicetify
-
-. "$HOME/.local/share/../bin/env"
-
 # pnpm
 export PNPM_HOME="/home/sahaj/.local/share/pnpm"
 case ":$PATH:" in

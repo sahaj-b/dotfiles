@@ -1,5 +1,21 @@
 return {
   {
+    "folke/todo-comments.nvim",
+    dependencies = { "nvim-lua/plenary.nvim" },
+    event = "VeryLazy",
+    opts = {}
+  },
+  {
+    "kevinhwang91/nvim-bqf",
+    ft = "qf",
+    opts = {
+      auto_resize_height = true,
+      preview = {
+        win_height = 12,
+      }
+    }
+  },
+  {
     "zbirenbaum/copilot.lua",
     cmd = "Copilot",
     event = "InsertEnter",

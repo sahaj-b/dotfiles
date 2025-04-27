@@ -5,6 +5,7 @@ return {
       local servers = {
         gopls = {},
         bashls = {},
+        shellcheck = {},
         pyright = {},
         ts_ls = {},
         tailwindcss = {},

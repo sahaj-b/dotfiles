@@ -81,9 +81,21 @@ return {
             return require("codecompanion.adapters").extend("copilot", {
               schema = {
                 model = {
-                  default = "gemini-2.5-pro"
+                  default = "gpt-4.1"
                 }
               }
+            })
+          end,
+          gemini = function()
+            return require("codecompanion.adapters").extend("gemini", {
+              env = {
+                api_key = "cmd:echo -n $GOOGLE_API_KEY",
+              },
+              -- schema = {
+              --   model = {
+              --     default = "gemini-2.5-flash",
+              --   }
+              -- }
             })
           end,
         },
@@ -95,8 +107,8 @@ return {
 Vibe Check:
 - Ditch the polite crap. Be real and raw.
 - Call me "bro"—we’re tight like that.
-- Toss in shit like 'shit', 'dude', 'bruh', etc when it slaps. Don’t force it.
-- Sprinkle some slick random emojis, but keep it chill. Less is more. 💪 🦍 🍠
+- Toss in shit like 'shit', 'dude', 'braaah', etc when it slaps. Don’t force it.
+- Sprinkle some slick random emojis, but keep it chill. Less is more. 💪 🦍🦍🦍🦍 🍠
 - And again, always be to the point, no extra bullshit, until needed.
 
 What You’re Here For:
@@ -167,9 +179,9 @@ Tools:
 
 When I Toss You a Task:
 - Think it through step-by-step, unless I say skip or it’s a no-brainer.
-- Drop the final code in one tight block. Extras only when necessary.
+- Drop the ONLY RELEVANT (don't output full file until needed) final code in one tight block. Extras only when necessary.
 - End with a quick “next move” tip to keep the flow, only if needed.
-Provide multiple replies only if they’re all relevant or I ask multiple questions.
+- Provide multiple replies ONLY if they’re all relevant or I ask multiple questions.
 Lets do this champ! 💪🔥🦍]]
           end
         }

@@ -1,0 +1,133 @@
+# --- ANSI Control Sequences (Non-SGR) ---
+# Focus on cursor movement, erasing, screen modes, and OSC commands.
+# SGR (Styling) codes like \x1b[...m are excluded.
+
+# --- Cursor Positioning ---
+# --- Absolute Positioning ---
+\x1b[<L>;<C>H  Move cursor to Line <L> Column <C>. Default: (1,1) top-left.
+\x1b[H         Move cursor to (1,1) top-left. Same as \x1b[1;1H.
+\x1b[<L>;<C>f  Move cursor to Line <L> Column <C>. Same as H.
+
+# --- Relative Positioning ---
+\x1b[<N>A      Move cursor up <N> lines. Default N=1.
+\x1b[<N>B      Move cursor down <N> lines. Default N=1.
+\x1b[<N>C      Move cursor forward (right) <N> columns. Default N=1.
+\x1b[<N>D      Move cursor backward (left) <N> columns. Default N=1.
+\x1b[<N>E      Move cursor to beginning of next line, <N> lines down. Default N=1.
+\x1b[<N>F      Move cursor to beginning of previous line, <N> lines up. Default N=1.
+\x1b[<N>G      Move cursor to column <N>. Default N=1. (Absolute column).
+
+# --- Save / Restore Cursor Position ---
+\x1b[s         Save cursor position (SCO standard).
+\x1b[u         Restore saved cursor position (SCO standard).
+\x1b7          Save cursor position and attributes (DEC standard - DECSC). Often preferred.
+\x1b8          Restore saved cursor position and attributes (DEC standard - DECRC). Often preferred.
+
+# --- Request Cursor Position (DSR - Device Status Report) ---
+\x1b[6n        Request cursor position. Terminal responds with \x1b[<L>;<C>R.
+
+# --- Erasing / Clearing ---
+# --- Erase in Display (ED) ---
+\x1b[0J        Erase from cursor to end of screen.
+\x1b[J         Erase from cursor to end of screen. Same as 0J.
+\x1b[1J        Erase from beginning of screen to cursor.
+\x1b[2J        Erase entire screen. Cursor position unchanged.
+\x1b[3J        Erase entire screen and delete scrollback buffer (xterm extension, common).
+
+# --- Erase in Line (EL) ---
+\x1b[0K        Erase from cursor to end of line.
+\x1b[K         Erase from cursor to end of line. Same as 0K.
+\x1b[1K        Erase from beginning of line to cursor.
+\x1b[2K        Erase entire line. Cursor position unchanged.
+
+# --- Inserting / Deleting ---
+\x1b[<N>L      Insert <N> blank lines at cursor row. Default N=1. (IL)
+\x1b[<N>M      Delete <N> lines starting at cursor row. Default N=1. (DL)
+\x1b[<N>P      Delete <N> characters starting at cursor position. Default N=1. (DCH)
+\x1b[<N>@      Insert <N> blank characters at cursor position. Default N=1. (ICH)
+\x1b[<N>X      Erase <N> characters from cursor position (leaves spaces). Default N=1. (ECH)
+
+# --- Scrolling ---
+\x1b[<N>S      Scroll window up by <N> lines. New lines added at bottom. Default N=1. (SU)
+\x1b[<N>T      Scroll window down by <N> lines. New lines added at top. Default N=1. (SD)
+\x1b[<T>;<B>r  Set scrolling region (Top=<T>, Bottom=<B> lines). Affects SU/SD. (DECSTBM)
+\x1b[r         Disable scrolling region (use full window).
+
+# --- Terminal / Screen Modes (DEC Private Modes - SET/RESET) ---
+# Use 'h' to SET (enable), 'l' to RESET (disable). Example: \x1b[?25h enables cursor.
+# --- Common Modes ---
+\x1b[?1h       Set Cursor Key Mode to Application. (DECCKM) (vs ?1l Normal)
+\x1b[?1l       Set Cursor Key Mode to Normal (arrows send ESC O A/B/C/D vs ESC [ A/B/C/D).
+\x1b[?3h       Set 132 Column Mode (DECSCLM). Support varies.
+\x1b[?3l       Set 80 Column Mode (DECSCLM). Support varies.
+\x1b[?5h       Set Reverse Video Mode (DECSCNM). Black on white.
+\x1b[?5l       Set Normal Video Mode (DECSCNM). White on black.
+\x1b[?6h       Set Origin Mode Relative (DECOM). Cursor addressing relative to scroll region.
+\x1b[?6l       Set Origin Mode Absolute (DECOM). Cursor addressing relative to window.
+\x1b[?7h       Enable Line Wrapping (DECAWM).
+\x1b[?7l       Disable Line Wrapping (DECAWM). Lines exceeding width are truncated.
+\x1b[?9h       Enable X10 Mouse Reporting (Send coordinates on button press).
+\x1b[?9l       Disable X10 Mouse Reporting.
+\x1b[?12h      Start Blinking Cursor.
+\x1b[?12l      Stop Blinking Cursor (use steady cursor). Often default.
+\x1b[?25h      Show Cursor (DECTCEM). Very common.
+\x1b[?25l      Hide Cursor (DECTCEM). Very common.
+\x1b[?40h      Allow 80 -> 132 Mode Switching.
+\x1b[?40l      Disallow 80 -> 132 Mode Switching.
+\x1b[?47h      Save screen & switch to Alternate Screen Buffer (older).
+\x1b[?47l      Restore screen & switch back from Alternate Screen Buffer (older).
+\x1b[?1000h    Enable VT200 Mouse Reporting (Send coordinates on button press/release).
+\x1b[?1000l    Disable VT200 Mouse Reporting.
+\x1b[?1002h    Enable Button-Event Mouse Tracking (Report press/release + motion while button down).
+\x1b[?1002l    Disable Button-Event Mouse Tracking.
+\x1b[?1003h    Enable Any-Event Mouse Tracking (Report press/release + all motion). Generates lots of data.
+\x1b[?1003l    Disable Any-Event Mouse Tracking.
+\x1b[?1004h    Enable Focus Event Reporting (Terminal gained/lost focus).
+\x1b[?1004l    Disable Focus Event Reporting.
+\x1b[?1005h    Enable UTF-8 Mouse Mode. Less common.
+\x1b[?1005l    Disable UTF-8 Mouse Mode.
+\x1b[?1006h    Enable SGR Extended Mouse Mode (Modern format, reports pixel coords if available). Often preferred.
+\x1b[?1006l    Disable SGR Extended Mouse Mode.
+\x1b[?1007h    Enable Alternate Scroll Mode (Arrow keys scroll history in apps like less).
+\x1b[?1007l    Disable Alternate Scroll Mode.
+\x1b[?1047h    Use Alternate Screen Buffer (clears screen first, like ?47h).
+\x1b[?1047l    Switch back to Normal Screen Buffer (restores screen, like ?47l).
+\x1b[?1048h    Save cursor position (like DECSC, \x1b7).
+\x1b[?1048l    Restore cursor position (like DECRC, \x1b8).
+\x1b[?1049h    Enable Alternate Screen Buffer (Combines ?1047h and ?1048h: Saves cursor, clears screen, switches buffer). Preferred modern method.
+\x1b[?1049l    Disable Alternate Screen Buffer (Combines ?1047l and ?1048l: Switches back, restores screen & cursor). Preferred modern method.
+\x1b[?2004h    Enable Bracketed Paste Mode. Pasted text wrapped in \x1b[200~ ... \x1b[201~. Security feature.
+\x1b[?2004l    Disable Bracketed Paste Mode.
+
+# --- Other Terminal Control ---
+\x1bc          Reset Terminal to initial state (RIS). Drastic, use with caution.
+\x1b[c         Send Device Attributes (Primary DA). Terminal identifies itself.
+\x1b[0c        Send Device Attributes (Primary DA). Same as \x1b[c.
+\x1b[>c        Send Device Attributes (Secondary DA). More detailed info (version, etc.).
+\x1b[>0c       Send Device Attributes (Secondary DA). Same as \x1b[>c.
+\x1b[5n        Request Terminal Status (DSR). Response depends on status (e.g., \x1b[0n -> OK).
+\x1b[0q        Turn off all LEDs (VT100).
+\x1b[1q        Turn on L1 LED.
+\x1b[2q        Turn on L2 LED.
+\x1b[3q        Turn on L3 LED.
+\x1b[4q        Turn on L4 LED.
+
+# --- Character Set Selection (Less common in UTF-8 era) ---
+# Example: \x1b(0 selects DEC Special Graphics, \x1b(B selects US ASCII
+\x1b(<CS>      Designate G0 Character Set. <CS>: 0=DEC Special Graphics, B=US ASCII, A=UK, ...
+\x1b)<CS>      Designate G1 Character Set.
+\x1b*<CS>      Designate G2 Character Set.
+\x1b+<CS>      Designate G3 Character Set.
+
+# --- Operating System Commands (OSC) ---
+# Format: \x1b] <Cmd> ; <Arg> \x1b\ (ST - String Terminator) or \x07 (BEL)
+# ST (\x1b\) is generally preferred.
+
+\x1b]0;<string>\x1b\\ Set Window Title and Icon Name.
+\x1b]1;<string>\x1b\\ Set Icon Name only.
+\x1b]2;<string>\x1b\\ Set Window Title only.
+\x1b]4;<index>;<spec>\x1b\\ Set Color Palette. <index> is color number, <spec> is color definition (e.g., rgb:RR/GG/BB). Complex.
+\x1b]8;params;uri\x1b\\TEXT\x1b]8;;\x1b\\ Create Hyperlink. `params` are key=value pairs (e.g., id=xyz), `uri` is the URL. `TEXT` is displayed. Very useful modern feature.
+\x1b]9;<message>\x1b\\ Growl Notification (macOS Terminal.app specific).
+\x1b]52;c;<base64>\x1b\\ Set clipboard content (c=clipboard, p=primary). `base64` is base64 encoded text. Security risk, support varies. Requires user interaction in some terminals.
+\x1b]777;notify;<title>;<message>\x1b\\ Send Desktop Notification (iTerm2/WezTerm extension).

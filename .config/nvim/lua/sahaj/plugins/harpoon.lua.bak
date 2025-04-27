@@ -1,7 +1,7 @@
 return { {
   'theprimeagen/harpoon',
   branch = "harpoon2",
-  lazy = true,
+  -- lazy = true,
   config = function()
     local harpoon = require("harpoon")
     harpoon:setup({
