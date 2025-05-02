@@ -45,6 +45,7 @@ function Transparent()
   hi EndOfBuffer guibg=none ctermbg=none
   hi CursorLine guibg=none
   hi StatusLine none
+hi LineNr guifg=#6c7086
   hi NormalNC guibg=none ctermbg=none
   hi TelescopePreviewNormal none
   hi TelescopePreviewBorder none
@@ -85,7 +86,7 @@ function Opaque()
   " hi CursorLine guibg=#181825
   " hi SignColumn guibg=#181825
   " hi CursorLineNr guibg=#181825
-  " hi LineNr guibg=#181825
+  hi LineNr guifg=#6c7086
   hi Folded guibg=none
   hi FoldIcon guifg=#cba6f7 guibg=#432d5d gui=bold
   hi IblScope guifg=#585b70
@@ -394,6 +395,19 @@ function HLsearch()
   vim.fn.matchdelete(ring)
   vim.cmd("redraw")
 end
+
+-- setting 2 spaces indent for all filetypes
+local augroup = vim.api.nvim_create_augroup("allfilesindent", { clear = true })
+
+vim.api.nvim_create_autocmd("FileType", {
+  group = augroup,
+  pattern = "*",
+  callback = function()
+    vim.opt_local.tabstop = 2
+    vim.opt_local.shiftwidth = 2
+    vim.opt_local.softtabstop = 2
+  end,
+})
 
 -- local view_group = augroup("auto_view", { clear = true })
 -- autocmd({ "BufWinLeave", "BufWritePost", "WinLeave" }, {

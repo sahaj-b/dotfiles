@@ -51,6 +51,8 @@ bindkey '^e' end-of-line
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^x^e' edit-command-line
 
+alias grep="grep --color=always"
+alias o="nvim +'Telescope oldfiles'"
 alias bp="sudo l2ping -s 200"
 alias dark="echo 'key super+space'|dotoolc; sleep 0.1;echo 'key ctrl+r'|dotoolc; sleep 2.5; echo 'key space'|dotoolc;sleep 0.3; echo 'key ctrl+shift+k'|dotoolc; sleep 1.5; echo 'key up' | dotoolc; sleep 0.1; echo 'key enter' | dotoolc; sleep 0.1; echo 'key f12'|dotoolc; pkill dotoold; dotoold&disown"
 alias neofetch="fastfetch"
@@ -89,7 +91,7 @@ alias shToHttp="node ~/projects/multiple-curl-to-postman/index.js --file"
 alias randgen="tr -dc a-z1-4 </dev/urandom | tr 1-2 ' \n' | awk 'length==0 || length>50' | tr 3-4 ' ' | sed 's/^ *//' | cat -s | fmt | head"
 alias gs="git status"
 alias fm="source fm"
-alias gpt="mods -m gpt-4o"
+alias gpt4o="mods -m gpt-4o"
 alias flas="mods -m 2.0-flash"
 alias lite="mods -m 2.0-flash-lite"
 alias flash="mods -m 2.5-flash"
@@ -102,6 +104,7 @@ alias gits="gh copilot suggest -t git"
 function lorem () {shuf -n ${1:-100} /usr/share/dict/cracklib-small | tr '\n' ' ' | fmt }
 function ggl () { links www.google.com/search\?q="$*"; }
 function postmanToHttp() { node ~/projects/postman-collection-gen/node.js --names --short -c "$1" | ~/scripts/curlToHttp }
+bindkey -s "^o" "o\n"
 
 # yazi file browser
 function y() {

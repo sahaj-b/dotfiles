@@ -24,6 +24,8 @@ return {
         bang = true,
       }),
       formatters_by_ft = {
+        cpp = { 'clangd' },
+        c = { 'clangd' },
         sh = { 'shfmt' },
         json = { 'prettierd' },
         javascript = { 'prettierd' },

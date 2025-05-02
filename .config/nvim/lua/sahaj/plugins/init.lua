@@ -141,7 +141,8 @@ return {
     "uga-rosa/ccc.nvim",
     config = function()
       local ccc = require("ccc")
-      ccc.setup({ highlighter = { auto_enable = true, lsp = false }, pickers = { ccc.picker.ansi_escape() } })
+      -- ccc.setup({ highlighter = { auto_enable = true, lsp = false }, pickers = { ccc.picker.ansi_escape() } })
+      ccc.setup({ highlighter = { auto_enable = true, lsp = false } })
     end,
   },
   { "nvim-treesitter/nvim-treesitter-context", opts = { max_lines = 5 } },

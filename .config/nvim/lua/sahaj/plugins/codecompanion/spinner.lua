@@ -1,4 +1,3 @@
-print("loading spinner")
 local M = {
   processing = false,
   spinner_index = 1,

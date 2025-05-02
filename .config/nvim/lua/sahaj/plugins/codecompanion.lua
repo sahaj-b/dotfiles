@@ -37,6 +37,16 @@ return {
         --   auto_generate_title = true,                                       -- Generate titles using Groq LLM
         --   file_path = vim.fn.stdpath("data") .. "/codecompanion_chats.json" -- History storage location
         -- },
+        extensions = {
+          mcphub = {
+            callback = "mcphub.extensions.codecompanion",
+            opts = {
+              make_vars = true,
+              make_slash_commands = true,
+              show_result_in_chat = true,
+            },
+          },
+        },
         strategies = {
           chat = {
             keymaps = {
@@ -44,28 +54,6 @@ return {
                 modes = { i = "<C-Enter>" },
               }
             },
-            tools = {
-              ["mcp"] = {
-                -- calling it in a function would prevent mcphub from being loaded before it's needed
-                callback = function() return require("mcphub.extensions.codecompanion") end,
-                description =
-                "Call tools and resources from the MCP Servers. Only use when necessary",
-
-                opts = {
-                  auto_submit_success = true,
-                  auto_submit_errors = false,
-                },
-              }
-            }
-            -- adapter = "vc",
-            -- tools = {
-            --   vectorcode = {
-            --     description = "Run VectorCode to retrieve the project context.",
-            --     callback = require("vectorcode.integrations").codecompanion.chat.make_tool({
-            --       -- your options goes here
-            --     }),
-            --   }
-            -- },
           },
         },
         display = {
@@ -106,15 +94,15 @@ return {
 
 Vibe Check:
 - Ditch the polite crap. Be real and raw.
-- Call me "bro"—we’re tight like that.
-- Toss in shit like 'shit', 'dude', 'braaah', etc when it slaps. Don’t force it.
-- Sprinkle some slick random emojis, but keep it chill. Less is more. 💪 🦍🦍🦍🦍 🍠
+- Call me "bro/braah"—we’re tight like that.
+- Toss in shit like shit,mid,homie,cooked,tf,no cap,mfw,braaah,HELLL NAWWW,etc when it slaps. Don’t force it.
+- Sprinkle some slick random emojis, but keep it chill. Less is more. 💦💪🦍🦍🍆🦍🦍🍠
 - And again, always be to the point, no extra bullshit, until needed.
 
 What You’re Here For:
 - Hit me with answers to any coding question, big or small.
 - Break down my Neovim buffer code like I’m a rookie, but keep it cool.
-- Review the code and fix it. maybe roast it if it sucks too much.
+- Review the code and fix it. maybe roast it if it sucks.
 - Cook up unit tests for my stuff.
 - Fix my broken code when it’s acting up.
 - Kickstart new projects like a boss.
@@ -145,25 +133,7 @@ Gathering Context:
   - Variables and Slash Commands: when I write these in prompt, it will be automatically replaced with the relevant context.
   - Tools: For deeper context when needed. Variables/Slash Commands usually win coz they provide context in the prompt itself, no re-running.
 - If I skip context, smack me with some shit like: "Bro, you forgot the juice. Use [whatever] next time, dumbass.", Then nudge me to stay sharp.
-
-Variables:
-- #lsp:Share LSP information and code for the current buffer
-- #neovim://diagnostics/workspace: Diagnostics: Workspace (Get diagnostics for all open buffers)
-- #neovim://diagnostics/current: Diagnostics: Current File (Get diagnostics for the current file)
-- #neovim://workspace/info: Environment (This resource gives comprehensive information about the workspace, editor and OS. Includes directory structure, visible and loaded buffers along with the OS information.)
-- #buffer: Share the current buffer with the LLM
-- #buffer{pin}: Pins the buffer to track changes
-- #buffer{watch}: Continuously watches for buffer changes
-- #viewport: Share the code that you see in Neovim with the LLM
-- #neovim://buffer: Buffer (Get detailed information about the currently active buffer including content, cursor position, and buffer metadata)
-
-Slash commands:
-- /buffer - Insert open buffers
-- /fetch - Insert URL contents
-- /file - Insert specific files
-- /help - Insert content from help tags (neovim)
-- /now - Insert the current date and time
-- /symbols - Insert symbols from a selected file
+- But If I provide you with that @mcp juice, its your responsibility to get the context, coz its the goat for context
 
 Tools:
 - @cmd_runner - Run shell commands
@@ -179,7 +149,7 @@ Tools:
 
 When I Toss You a Task:
 - Think it through step-by-step, unless I say skip or it’s a no-brainer.
-- Drop the ONLY RELEVANT (don't output full file until needed) final code in one tight block. Extras only when necessary.
+- Drop the ONLY RELEVANT final code (don't output full file until needed) in one tight block. Extras only when necessary.
 - End with a quick “next move” tip to keep the flow, only if needed.
 - Provide multiple replies ONLY if they’re all relevant or I ask multiple questions.
 Lets do this champ! 💪🔥🦍]]

@@ -83,7 +83,7 @@ fi
 
 # --- Run Specific Picker ---
 
-FZF_OPTS_BASE="--layout=reverse --bind='ctrl-d:half-page-down,ctrl-u:half-page-up' --bind='ctrl-c:abort'"
+FZF_OPTS_BASE="--layout=reverse --bind='ctrl-d:half-page-down,ctrl-u:half-page-up,ctrl-c:abort'"
 
 WINDOW_TYPE="wide"
 [[ "$PICKER_TYPE" == "ansi_styles" ]] && WINDOW_TYPE="tall"
@@ -157,22 +157,19 @@ INNER_EOF
 
 else
   # normal mode
-  export FZF_DEFAULT_OPTS="$FZF_OPTS_BASE $fzf_extra_opts" # env var trick
 
-  # fzf --print0 | xargs -0 coz it works
-  eval "$data_cmd" | fzf --print0 | xargs -0 -I{} -- sh -c '
-        selection="$1"
-        extractor_script="$2" # Get the extractor command string
+  copy_notify_cmd=$(
+    cat <<INNER_EOF
+    code=\$($extractor_cmd <<< {})
+    printf "%s" "\$code" | wl-copy
+    notify-send -t 1000 "Picker Copied" "\$code"
+INNER_EOF
+  )
 
-        # Execute the passed extractor script on the selection
-        # Use eval carefully here, as we control the extractor_script content
-        code=$(eval "$extractor_script" <<< "$selection")
+  export FZF_DEFAULT_OPTS="$FZF_OPTS_BASE $fzf_extra_opts"
 
-        # Use printf for safer output, especially for control chars
-        printf "%s" "$code" | wl-copy
-        # Use raw $code for notify-send
-        notify-send -t 1000 "Picker Copied (Normal)" "$code"
-    ' -- {} "$extractor_cmd" # pass selection as $1, extractor_cmd as $2
+  eval "$data_cmd" | fzf --bind="enter:execute-silent($copy_notify_cmd)"
+
 fi
 
 exit 0
