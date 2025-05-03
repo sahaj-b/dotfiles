@@ -49,6 +49,24 @@ return {
         },
         strategies = {
           chat = {
+            variables = {
+              ["mkcontext"] = {
+                callback = function()
+                  local handle = io.popen("mkcontext")
+                  if handle then
+                    local result = handle:read("*a")
+                    handle:close()
+                    return result
+                  else
+                    return "Failed to run mkcontext command"
+                  end
+                end,
+                description = "Get the output of mkcontext command (gives the tree structure and all the files' content in current directory)",
+                opts = {
+                  contains_code = false,
+                },
+              },
+            },
             keymaps = {
               send = {
                 modes = { i = "<C-Enter>" },

@@ -181,6 +181,7 @@ INNER_EOF
 
   export FZF_DEFAULT_OPTS="$FZF_OPTS_BASE $fzf_extra_opts"
 
+  # if PREFIX_CODE is set
   if [[ -n "$PREFIX_CODE" ]]; then
     eval "$data_cmd" | fzf --bind="enter:execute-silent($copy_notify_cmd)" --preview="echo -e \"$PREFIX_CODE{}\""
   else
