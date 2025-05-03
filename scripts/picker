@@ -5,6 +5,7 @@
 # Supports emoji, nerdfont, unicode, ansi styles/controls/keycodes
 # Can be opened normally or floating mode
 # Floating mode exits automatically after copying, normal mode can be exited with Ctrl-C
+# you can use --prefix <ansi_code> to apply an ANSI code to items preview in ansi_styles picker
 
 # --- Configuration ---
 TERMINAL="foot"
@@ -58,6 +59,18 @@ elif [[ "$2" == "$FLOAT_ARG" ]]; then
   PICKER_TYPE="$1"
 else
   PICKER_TYPE="$1"
+fi
+
+PREFIX_ARG="--prefix"
+# prefix arg handling
+if [[ "$2" == "$PREFIX_ARG" ]]; then
+  # Get the value which is the next argument
+  if [[ -n "$3" ]]; then
+    PREFIX_CODE="$3"
+  else
+    echo "Error: --prefix requires an ANSI code argument" >&2
+    exit 1
+  fi
 fi
 
 # --- Picker for pickers ---
@@ -168,8 +181,11 @@ INNER_EOF
 
   export FZF_DEFAULT_OPTS="$FZF_OPTS_BASE $fzf_extra_opts"
 
-  eval "$data_cmd" | fzf --bind="enter:execute-silent($copy_notify_cmd)"
+  if [[ -n "$PREFIX_CODE" ]]; then
+    eval "$data_cmd" | fzf --bind="enter:execute-silent($copy_notify_cmd)" --preview="echo -e \"$PREFIX_CODE{}\""
+  else
+    eval "$data_cmd" | fzf --bind="enter:execute-silent($copy_notify_cmd)"
+  fi
 
 fi
-
 exit 0
