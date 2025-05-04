@@ -5,7 +5,6 @@ return {
     dependencies = {
       "nvim-lua/plenary.nvim",
       "nvim-treesitter/nvim-treesitter",
-      "j-hui/fidget.nvim",
       {
         "ravitemer/mcphub.nvim",
         --cmd = "MCPHub",  -- lazy load

@@ -614,3 +614,51 @@
 \x1b[48;2;128;128;128m BG RGB Mid Gray
 \x1b[48;2;255;255;255m BG RGB White
 \x1b[48;2;0;0;0m      BG RGB Black
+
+# --- Catppuccin Pallete FG ---
+\x1b[38;2;245;224;220m    Catppuccin FG Rosewater                                   
+\x1b[38;2;242;205;205m    Catppuccin FG Flamingo                                    
+\x1b[38;2;245;194;231m    Catppuccin FG Pink                                        
+\x1b[38;2;203;166;247m    Catppuccin FG Mauve                                       
+\x1b[38;2;243;139;168m    Catppuccin FG Red                                         
+\x1b[38;2;235;160;172m    Catppuccin FG Maroon                                      
+\x1b[38;2;250;179;135m    Catppuccin FG Peach                                       
+\x1b[38;2;249;226;175m    Catppuccin FG Yellow                                      
+\x1b[38;2;166;227;161m    Catppuccin FG Green                                       
+\x1b[38;2;148;226;213m    Catppuccin FG Teal                                        
+\x1b[38;2;137;220;235m    Catppuccin FG Sky                                         
+\x1b[38;2;116;199;236m    Catppuccin FG Sapphire                                    
+\x1b[38;2;137;180;250m    Catppuccin FG Blue                                        
+\x1b[38;2;180;191;254m    Catppuccin FG Lavender                                    
+\x1b[38;2;205;214;244m    Catppuccin FG Text                                        
+\x1b[38;2;186;194;222m    Catppuccin FG Subtext 1                                   
+\x1b[38;2;166;173;200m    Catppuccin FG Subtext 0                                   
+\x1b[38;2;147;153;178m    Catppuccin FG Overlay 2                                   
+\x1b[38;2;127;132;156m    Catppuccin FG Overlay 1                                   
+\x1b[38;2;108;112;134m    Catppuccin FG Overlay 0                                   
+\x1b[38;2;88;91;112m    Catppuccin FG Surface 2                                     
+\x1b[38;2;69;71;90m    Catppuccin FG Surface 1 
+
+# --- Catppuccin Pallete BG ---
+\x1b[48;2;245;224;220m    Catppuccin BG Rosewater                                   
+\x1b[48;2;242;205;205m    Catppuccin BG Flamingo                                    
+\x1b[48;2;245;194;231m    Catppuccin BG Pink                                        
+\x1b[48;2;203;166;247m    Catppuccin BG Mauve                                       
+\x1b[48;2;243;139;168m    Catppuccin BG Red                                         
+\x1b[48;2;235;160;172m    Catppuccin BG Maroon                                      
+\x1b[48;2;250;179;135m    Catppuccin BG Peach                                       
+\x1b[48;2;249;226;175m    Catppuccin BG Yellow                                      
+\x1b[48;2;166;227;161m    Catppuccin BG Green                                       
+\x1b[48;2;148;226;213m    Catppuccin BG Teal                                        
+\x1b[48;2;137;220;235m    Catppuccin BG Sky                                         
+\x1b[48;2;116;199;236m    Catppuccin BG Sapphire                                    
+\x1b[48;2;137;180;250m    Catppuccin BG Blue                                        
+\x1b[48;2;180;191;254m    Catppuccin BG Lavender                                    
+\x1b[48;2;205;214;244m    Catppuccin BG Text                                        
+\x1b[48;2;186;194;222m    Catppuccin BG Subtext 1                                   
+\x1b[48;2;166;173;200m    Catppuccin BG Subtext 0                                   
+\x1b[48;2;147;153;178m    Catppuccin BG Overlay 2                                   
+\x1b[48;2;127;132;156m    Catppuccin BG Overlay 1                                   
+\x1b[48;2;108;112;134m    Catppuccin BG Overlay 0                                   
+\x1b[48;2;88;91;112m    Catppuccin BG Surface 2                                     
+\x1b[48;2;69;71;90m    Catppuccin BG Surface 1 

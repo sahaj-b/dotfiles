@@ -5,16 +5,17 @@
 # Supports emoji, nerdfont, unicode, ansi styles/controls/keycodes
 # Can be opened normally or floating mode
 # Floating mode exits automatically after copying, normal mode can be exited with Ctrl-C
-# you can use --prefix <ansi_code> to apply an ANSI code to items preview in ansi_styles picker
+# you can use --prefix <ansi_code> to apply an ANSI code to items preview in ansi_styles
 
 # --- Configuration ---
 TERMINAL="foot"
 EMOJI_FILE="$HOME/emojis.txt"
 NERDFONT_FILE="$HOME/nerdfonts.txt"
 UNICODE_FILE="$HOME/unicode.txt"
-ANSI_STYLES_FILE="$HOME/scripts/ansiData/ansi_styles.txt"
-ANSI_KEYCODES_FILE="$HOME/scripts/ansiData/ansi_keycodes.txt"
-ANSI_CONTROLS_FILE="$HOME/scripts/ansiData/ansi_controls.txt"
+ANSI_STYLES_FILE="$HOME/scripts/pickerData/ansi_styles.txt"
+ANSI_KEYCODES_FILE="$HOME/scripts/pickerData/ansi_keycodes.txt"
+ANSI_CONTROLS_FILE="$HOME/scripts/pickerData/ansi_controls.txt"
+PALETTE_FILE="$HOME/scripts/pickerData/palette.txt"
 
 # --- Helper functions ---
 check_requirements() {
@@ -80,14 +81,14 @@ if [[ -z "$PICKER_TYPE" ]]; then
   if [[ "$FLOAT_MODE" -eq 1 ]]; then
     window_config=$(window_config "small")
     quoted_script_path=$(printf '%q' "$0")
-    fzf_cmd_float="printf 'emoji\\nnerdfont\\nunicode\\nansi_styles\\nansi_controls\\nansi_keycodes\\n' | \\
-    fzf --layout=reverse --prompt='Select Picker: ' --bind='ctrl-c:abort' \\
-        --bind='enter:execute($quoted_script_path {} \"$FLOAT_ARG\")+accept'"
+    fzf_cmd_float="printf 'emoji\\nnerdfont\\nunicode\\nansi_styles\\nansi_controls\\nansi_keycodes\\npalette\\n' | \\
+      fzf --layout=reverse --prompt='Select Picker: ' --bind='ctrl-c:abort' \\
+          --bind='enter:execute($quoted_script_path {} \"$FLOAT_ARG\")+accept'"
     hyprctl dispatch exec "$window_config $TERMINAL -e sh -c \"$fzf_cmd_float\""
 
   else
     picker_options=("emoji" "nerdfont" "unicode" "ansi_styles" "ansi_controls" "ansi_keycodes")
-    selected_picker=$(printf "%s\n" "${picker_options[@]}" | eval fzf "$fzf_base_opts")
+    picker_options=("emoji" "nerdfont" "unicode" "ansi_styles" "ansi_controls" "ansi_keycodes" "palette") # <-- ADD palette
     [[ -z "$selected_picker" ]] && exit 0
     exec "$0" "$selected_picker"
   fi
@@ -140,10 +141,22 @@ ansi_styles)
     [[ -z \"\$line\" ]] && continue; \
     code=\${line%% *}; \
     desc=\${line#* }; \
-    printf '%s\t%b %s\\033[0m\n' \"\$code\" \"\$code\" \"\$desc\"; \
+    printf '%s\t%b %s\\x1b[0m\n' \"\$code\" \"\$code\" \"\$desc\"; \
     done"
   fzf_extra_opts="--ansi --color=hl:-1,hl+:-1 --delimiter='\t' --with-nth=2 --nth=1 --prompt='ANSI Styles: '"
   extractor_cmd="awk -F'\t' '{print \$1}'" # tab delimiter
+  ;;
+palette)
+  check_file "$PALETTE_FILE"
+  data_cmd="awk -F': #' '{
+          name = \$1; hex = \$2; # hex should be just the 6 chars like f5e0dc
+          r = strtonum(\"0x\" substr(hex, 1, 2));
+          g = strtonum(\"0x\" substr(hex, 3, 2));
+          b = strtonum(\"0x\" substr(hex, 5, 2));
+          printf \"%s: #%s\\t\\x1b[38;2;%d;%d;%dm%s:\\x1b[0m \\x1b[48;2;%d;%d;%dm #%s  \\x1b[0m\\n\", name, hex, r, g, b, name, r, g, b, hex
+        }' '$PALETTE_FILE'"
+  fzf_extra_opts="--ansi --delimiter='\t' --with-nth=2 --prompt='Palette: '"
+  extractor_cmd="awk -F'\\t' '{ split(\$1, a, \": #\"); print \"#\" a[2] }'"
   ;;
 *)
   error_exit "Invalid picker type: '$PICKER_TYPE'."

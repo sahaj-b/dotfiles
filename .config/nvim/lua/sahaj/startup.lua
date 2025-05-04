@@ -1,7 +1,16 @@
 -- Shamelessly stolen from minintro (https://github.com/eoh-bse/minintro.nvim)
--- doesn't work when input is piped
+-- this breaks sometimes
 
-if vim.fn.argc() > 0 then return end
+if vim.opt.diff:get() or vim.fn.argc() > 0 then return end
+local show_intro = true
+
+vim.api.nvim_create_autocmd("StdinReadPre", {
+  callback = function()
+    show_intro = false
+  end,
+  once = true,
+})
+
 local intro_logo = {
   "                    .           ",
   "                  ...           ",
@@ -73,6 +82,7 @@ end
 
 vim.api.nvim_create_autocmd("VimEnter", {
   callback = function()
+    if not show_intro then return end
     local buf = create_intro_buffer()
     vim.api.nvim_set_current_buf(buf)
 

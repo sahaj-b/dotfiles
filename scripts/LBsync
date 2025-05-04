@@ -163,8 +163,8 @@ if [ -w "$data_dir" ]; then
   echo -n "  Copying dotfiles to $data_dir"
   spinnerRun "copyDots \"$data_dir\"" "Copying dotfiles to $data_dir" "🚚 Copied dotfiles to $data_dir" "Copying dotfiles to $data_dir failed"
 else
-  warn "\nSkipping $data_dir"
+  warn "\nSkipping copying to $data_dir"
   exit 1
 fi
 
-cd - || exit
+cd - >/dev/null || exit

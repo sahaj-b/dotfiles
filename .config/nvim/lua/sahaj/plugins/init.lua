@@ -1,4 +1,26 @@
 return {
+
+  {
+    "j-hui/fidget.nvim",
+    opts = {
+      notification = {
+        window = {
+          winblend = 0,
+          border = "rounded",
+          max_width = 150,
+          x_padding = 0,
+          align = "top",
+        }
+      },
+      progress = {
+        ignore = {
+          function(msg)
+            return string.find(msg.title, "lint:") or string.find(msg.title, "Diagnosing")
+          end,
+        }
+      }
+    },
+  },
   {
     "folke/todo-comments.nvim",
     dependencies = { "nvim-lua/plenary.nvim" },
@@ -229,7 +251,7 @@ return {
     -- end,
   },
   { "mbbill/undotree" },
-  { "catppuccin/nvim", name = "catppuccin", priority = 1000, opts = { integrations = { blink_cmp = true } } },
+  { "catppuccin/nvim", name = "catppuccin", priority = 1000, opts = { integrations = { blink_cmp = true, fidget = true, } } },
   {
     'nvim-telescope/telescope-fzf-native.nvim',
     build =
