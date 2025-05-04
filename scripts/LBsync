@@ -41,7 +41,7 @@ spinnerRun() {
   wait $spinPid 2>/dev/null
   tput cnorm
   trap - INT TERM EXIT
-  printf "\r\n"
+  printf "\r"
 }
 
 # --- main script ---
@@ -56,6 +56,7 @@ git add . && git commit -m "Updated"
 git pull origin main --rebase || exit
 echo -n "  Cleaning up $dotfiles_dir"
 spinnerRun "git rm -rf . >/dev/null"
+success "Cleaned up $dotfiles_dir\n"
 
 dotfiles=(
   "/etc/keyd/default.conf"
