@@ -46,14 +46,16 @@ spinnerRun() {
 
 # --- main script ---
 
+trap "tput cnorm; echo ${RED}TERMINATING${RESET};exit" INT TERM EXIT
+
 cd "${dotfiles_dir}" || {
   echo "Couldn't cd into ${dotfiles_dir}"
   exit 1
 }
 git add . && git commit -m "Updated"
 git pull origin main --rebase || exit
-echo "  Cleaning up $dotfiles_dir"
-spinnerRun git rm -rf . >/dev/null
+echo -n "  Cleaning up $dotfiles_dir"
+spinnerRun "git rm -rf . >/dev/null"
 
 dotfiles=(
   "/etc/keyd/default.conf"
@@ -124,7 +126,7 @@ function copyDots() {
   done
 }
 
-printf "  Copying dotfiles to $dotfiles_dir"
+echo -n "  Copying dotfiles to $dotfiles_dir"
 spinnerRun copyDots "$dotfiles_dir"
 
 if [[ $1 != "cp" ]]; then
@@ -133,7 +135,7 @@ fi
 
 if [ -w "$data_dir" ]; then
   rm -rf "$data_dir" || exit
-  printf "  Copying dotfiles to $data_dir"
+  echo -n "  Copying dotfiles to $data_dir"
   spinnerRun copyDots "$data_dir"
 else
   echo -e "${YELLOW}Skipping $data_dir $RESET"
