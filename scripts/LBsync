@@ -48,6 +48,22 @@ dotfiles=(
   "$HOME/.config/mcphub/"
 )
 
+spinner() {
+  local pid=$1
+  local delay=0.1
+  local spinstr='⣾⣽⣻⢿⡿⣟⣯⣷'
+  tput civis
+  while ps -p "$pid" >/dev/null; do
+    local temp=${spinstr#?}
+    printf " [%c]  " "$spinstr"
+    local spinstr=$temp${spinstr%"$temp"}
+    sleep $delay
+    printf "\r"
+  done
+  printf "    \r" # Clear spinner
+  tput cnorm      # Restore cursor
+}
+
 function push() {
   echo -e "${GREEN}Uploading $1 to Github$RESET"
   git add .
@@ -84,7 +100,13 @@ function copyDots() {
   echo -e "${GREEN}Copying to $1 completed.\n$RESET"
 }
 
+printf "Copying dotfiles to %s... " "$dotfiles_dir"
 copyDots "$dotfiles_dir"
+CP_PID=$!
+spinner $CP_PID
+wait $CP_PID
+printf "\r\033[K" # Clear spinner line
+
 if [[ $1 != "cp" ]]; then
   push $dotfiles_dir
 fi
