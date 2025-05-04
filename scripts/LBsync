@@ -69,8 +69,11 @@ cd "${dotfiles_dir}" || {
 }
 
 # handle previous 'copy only' runs
+success "Checking for previous changes..."
 git add .
 git diff --staged --quiet || git commit -m "Updated" &>/dev/null
+
+success "Checking for remote changes..."
 git fetch --quiet
 if git status -sb | grep -q 'behind'; then
   git pull origin main --rebase
@@ -114,14 +117,18 @@ dotfiles=(
 function push() {
   git add .
   if git diff --staged --quiet; then
-    echo "No changes to commit."
+    warn "Nothning to commit 😔"
     return 0
   fi
   git commit -m "Updated" || {
-    echo "${RED}Git commit failed!$RESET"
-    exit 1
+    error "Git commit failed!"
+    return 1
   }
-  git push -u origin main
+  success "☁️ Pushing dotfiles to github"
+  git push -u origin main || {
+    error "Git push failed!"
+    return 1
+  }
 }
 
 function copyDots() {
@@ -157,7 +164,7 @@ if [ -w "$data_dir" ]; then
   echo -n "  Copying dotfiles to $data_dir"
   spinnerRun "copyDots \"$data_dir\"" "Copying dotfiles to $data_dir" "🚚 Copied dotfiles to $data_dir" "Copying dotfiles to $data_dir failed"
 else
-  warn "Skipping $data_dir"
+  warn "\nSkipping $data_dir"
   exit 1
 fi
 
