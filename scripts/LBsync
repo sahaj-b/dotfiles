@@ -120,8 +120,9 @@ function push() {
     warn "Nothing to commit 😔"
     return 0
   fi
+  success "📝 Commiting"
   git commit -m "Updated" || {
-    error "Git commit failed!"
+    error "Commit failed! 😭"
     return 1
   }
   success "☁️ Pushing dotfiles to github"
@@ -129,6 +130,7 @@ function push() {
     error "Git push failed!"
     return 1
   }
+  success "✅ Pushed successfuly"
 }
 
 function copyDots() {
@@ -142,12 +144,10 @@ function copyDots() {
       destination_dir=$(dirname "$1$relative_path")
       mkdir -p "$destination_dir"
       if ! cp -r "$item" "$destination_dir"; then
-        echo -e "${RED}ERROR: couldn't copy $item.$RESET"
-      # else
-      #   echo "Copied: $item to $destination_dir"
+        error "Couldn't copy $item to $destination_dir"
       fi
     else
-      echo -e "${RED}ERROR: $item does not exist.$RESET"
+      warn "Couldn't find $item"
     fi
   done
 }
