@@ -49,7 +49,7 @@ spinnerRun() {
   wait $spinPid &>/dev/null
 
   tput cnorm
-  printf "\r%s\n" "${CLEAR_BOTTOM}"
+  echo -e "\r${CLEAR_BOTTOM}\n"
   if [ $status -eq 0 ]; then
     success "$success_msg"
   else
@@ -61,7 +61,7 @@ spinnerRun() {
 # --- main script ---
 
 trap 'tput cnorm;exit' INT TERM EXIT
-trap 'error TERMINATING; exit 1' HUP INT TERM
+trap 'error \\nTERMINATING; exit 1' HUP INT TERM
 
 cd "${dotfiles_dir}" || {
   echo "Couldn't cd into ${dotfiles_dir}"
