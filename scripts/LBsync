@@ -124,7 +124,7 @@ function copyDots() {
   done
 }
 
-echo "  Copying dotfiles to $dotfiles_dir"
+printf "  Copying dotfiles to $dotfiles_dir"
 spinnerRun copyDots "$dotfiles_dir"
 
 if [[ $1 != "cp" ]]; then
@@ -133,7 +133,7 @@ fi
 
 if [ -w "$data_dir" ]; then
   rm -rf "$data_dir" || exit
-  echo "  Copying dotfiles to $data_dir"
+  printf "  Copying dotfiles to $data_dir"
   spinnerRun copyDots "$data_dir"
 else
   echo -e "${YELLOW}Skipping $data_dir $RESET"
