@@ -1,0 +1,23 @@
+#!/bin/env bash
+if [[ $UID -ne 0 ]]; then
+  echo "Run as root"
+  exit 1
+fi
+if [[ $# -lt 1 ]]; then
+  echo "Usage: $0 <addr> <threads> <size>"
+  exit 1
+fi
+
+cleanup() {
+  echo "Stopping all pings..."
+  kill -9 "$(jobs -p)" 2>/dev/null
+  exit 1
+}
+
+trap cleanup SIGINT
+
+for _ in $(seq "${2:-200}"); do
+  l2ping -i hci0 -s "${3:-500}" -f "$1" &
+done
+
+wait

@@ -1,0 +1,9 @@
+#!/bin/env bash
+start=$(date +%s)
+while true; do
+    # days="$(($(( $(date +%s) - $start )) / 86400))"
+    time="$(( $(date +%s) - $start ))"
+    # printf '%s day(s) and %s\r' "$days" "$(date -u -d "@$time" +%H:%M:%S)"
+    printf '%s\r' "$(date -u -d "@$time" +%H:%M:%S)"
+    sleep 0.5
+done

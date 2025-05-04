@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+prev_connected_device=""
+previous_state="disconnected"
+while true; do
+	connected_device=$(bluetoothctl devices Connected | awk '{$1=$2=""; sub(/^ */, ""); print $0}')
+	if [[ -z $connected_device ]]; then
+		if [[ $previous_state == "connected" ]]; then
+			notify-send -t 2000 "$prev_connected_device" "Disconnected"
+			previous_state="disconnected"
+		fi
+	else
+		if [[ $previous_state == "disconnected" ]]; then
+			notify-send -t 2000 "$connected_device" "Connected"
+			prev_connected_device=$connected_device
+			previous_state="connected"
+		fi
+	fi
+
+	sleep 0.1
+done

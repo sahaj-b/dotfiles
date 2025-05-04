@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+if [[ $1 == hed ]]; then
+  printf "\e[1;32mConnecting to Gionee Headphones\n\e[0m"
+  id=FC:58:FA:44:84:CA
+elif [[ $1 == ear ]]; then
+  printf "\e[1;32mConnecting to UiNB Earphones\n\e[0m"
+  id=BD:1E:5E:40:70:CE
+elif [[ $1 == airo ]]; then
+  printf "\e[1;32mConnecting to Airpods pro\n\e[0m"
+  id=44:C0:03:C3:36:0C
+elif [[ $1 == air ]]; then
+  printf "\e[1;32mConnecting to Airpods pro\n\e[0m"
+  id=E9:0F:43:DF:7F:97
+elif [[ $1 == rl ]]; then
+  printf "\e[1;32mConnecting to Realme T300\n\e[0m"
+  id=B0:A3:F2:6A:E3:DB
+elif [[ $1 == RL ]]; then
+  printf "\e[1;32mConnecting to Realme T300\n\e[0m"
+  id=B0:A3:F2:6A:E3:DB
+  bluetoothctl connect $id
+elif [[ $1 == a ]]; then
+  printf "\e[1;32mConnecting to Airpods pro\n\e[0m"
+  id=B0:A3:F2:6A:E3:DB
+  bluetoothctl remove $id
+  bluetoothctl power off
+  bluetoothctl power on
+  bluetoothctl scan on
+  sleep 1
+  bluetoothctl connect $id
+  exit
+
+elif [[ $1 == speak ]]; then
+  printf "\e[1;32mConnecting to Speaker(Bluetooth Reciever)\n\e[0m"
+  id=5D:19:C0:38:C1:A4
+elif [[ $1 == help ]]; then
+  printf "\e[1;32m(This program uses bluetoothctl)\nhed --> Gionee Headphones\near --> UiNB Earphones\nspeak --> Speaker(Bluetooth Reciever)\ndisc --> Disconnect\nlist --> List Nearby Devices\n\e[0m"
+  exit
+elif [[ $1 == disc ]]; then
+  bluetoothctl power on &
+  disown
+  bluetoothctl disconnect
+  exit
+elif [[ $1 == list ]]; then
+  bluetoothctl power on &
+  disown
+  bluetoothctl devices
+  exit
+elif [[ $1 == f ]]; then
+  bluetoothctl disconnect && sleep 0.5 && bluetoothctl connect 44:C0:03:C3:36:0C && sleep 3 && dunstctl close && dunstctl close
+  exit
+elif [[ $1 == o ]]; then
+  bluetoothctl power off
+  exit
+elif [[ $1 == on ]]; then
+  bluetoothctl power on
+  exit
+else
+  echo Invalid argument
+  exit
+fi
+
+bluetoothctl power on
+sleep 0.2
+bluetoothctl --timeout 3 scan on
+bluetoothctl connect $id
+
+# bluetoothctl power off &
+# disown
+# sleep 0.1
+# bluetoothctl power on &
+# disown
+# sleep 0.1
+# bluetoothctl scan on &
+# disown
+# sleep 0.3
+# bluetoothctl connect $id &
+# disown
+#
+# bluetoothctl << EOF
+#   power off
+#   power on
+#   scan on
+#   connect $id
+#   EOF

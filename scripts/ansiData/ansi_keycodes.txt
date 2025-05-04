@@ -1,0 +1,194 @@
+# --- ANSI Key Input Escape Sequences ---
+# Sequences typically SENT BY the terminal TO the application.
+# These are NOT standardized across all terminals. This list shows common variations.
+
+# --- Basic Keys (Often single ASCII bytes) ---
+\x0d          Enter (Carriage Return, CR)
+\x0a          Enter (Newline, LF) - Sometimes sent depending on terminal mode (icrnl)
+\x09          Tab
+\x7f          Backspace (ASCII DEL) - Most common
+\x08          Backspace (ASCII BS) - Less common, depends on 'stty erase' setting
+\x1b          Escape key
+
+# --- Control Characters (Ctrl + Letter/Symbol) ---
+# Generally correspond to ASCII 0-31
+\x00          Ctrl+@ (Often Ctrl+Space)
+\x01          Ctrl+A
+\x02          Ctrl+B
+\x03          Ctrl+C (Often sends SIGINT signal unless in raw mode)
+\x04          Ctrl+D (Often signals EOF to shell)
+\x05          Ctrl+E
+\x06          Ctrl+F
+\x07          Ctrl+G (Bell)
+\x08          Ctrl+H (Backspace, same as \x08)
+\x09          Ctrl+I (Tab, same as \x09)
+\x0a          Ctrl+J (Newline/LF, same as \x0a)
+\x0b          Ctrl+K
+\x0c          Ctrl+L
+\x0d          Ctrl+M (Carriage Return/CR, same as \x0d)
+\x0e          Ctrl+N
+\x0f          Ctrl+O
+\x10          Ctrl+P
+\x11          Ctrl+Q (Often XON flow control)
+\x12          Ctrl+R
+\x13          Ctrl+S (Often XOFF flow control)
+\x14          Ctrl+T
+\x15          Ctrl+U
+\x16          Ctrl+V
+\x17          Ctrl+W
+\x18          Ctrl+X
+\x19          Ctrl+Y
+\x1a          Ctrl+Z (Often sends SIGTSTP signal unless in raw mode)
+\x1b          Ctrl+[ (Escape, same as \x1b)
+\x1c          Ctrl+\ (FS)
+\x1d          Ctrl+] (GS)
+\x1e          Ctrl+^ (RS) (Often Ctrl+6)
+\x1f          Ctrl+_ (US) (Often Ctrl+/ or Ctrl+-)
+# Note: Ctrl+? often sends DEL (\x7f) like Backspace
+
+# --- Arrow Keys ---
+# Normal Mode (DECCKM off, \x1b[?1l) - Common in shell prompt
+\x1b[A        Up Arrow
+\x1b[B        Down Arrow
+\x1b[C        Right Arrow
+\x1b[D        Left Arrow
+# Application Mode (DECCKM on, \x1b[?1h) - Common in full-screen apps (vim, less)
+\x1bOA        Up Arrow (Appilcation/DECCKM mode)
+\x1bOB        Down Arrow (Appilcation/DECCKM mode)
+\x1bOC        Right Arrow (Appilcation/DECCKM modew
+\x1bOD        Left Arrow (Appilcation/DECCKM mode)
+
+# --- Arrow Keys with Modifiers (xterm style, common) ---
+# Modifier codes often used: 2=Shift, 3=Alt, 4=Meta(usually Alt), 5=Ctrl, 6=Ctrl+Shift, 7=Ctrl+Alt, etc.
+# Format: \x1b[1;<modifier>CODE or \x1bO<modifier>CODE (more complex/varied)
+\x1b[1;2A     Shift+Up
+\x1b[1;2B     Shift+Down
+\x1b[1;2C     Shift+Right
+\x1b[1;2D     Shift+Left
+\x1b[1;3A     Alt+Up
+\x1b[1;3B     Alt+Down
+\x1b[1;3C     Alt+Right
+\x1b[1;3D     Alt+Left
+\x1b[1;5A     Ctrl+Up
+\x1b[1;5B     Ctrl+Down
+\x1b[1;5C     Ctrl+Right
+\x1b[1;5D     Ctrl+Left
+\x1b[1;6A     Ctrl+Shift+Up
+# ... other combinations follow the pattern ...
+
+# --- Navigation Keys (Home, End, PageUp, PageDown, Insert, Delete) ---
+# These often follow VT220 / xterm sequences. Home/End can vary more.
+\x1b[H        Home (xterm default, some others)
+\x1bOH        Home (Application Mode, less common than arrows)
+\x1b[1~       Home (VT220 style, common)
+\x1b[F        End (xterm default, some others)
+\x1bOF        End (Application Mode, less common than arrows)
+\x1b[4~       End (VT220 style, common)
+\x1b[5~       Page Up
+\x1b[6~       Page Down
+\x1b[2~       Insert
+\x1b[3~       Delete
+
+# --- Navigation Keys with Modifiers (xterm style) ---
+# Format: \x1b[<key_code>;<modifier>~
+\x1b[1;2H     Shift+Home (xterm style H/F)
+\x1b[1;2F     Shift+End (xterm style H/F)
+\x1b[1;5H     Ctrl+Home (xterm style H/F)
+\x1b[1;5F     Ctrl+End (xterm style H/F)
+# ---
+\x1b[1;2~     Shift+Home (VT220 style ~)
+\x1b[4;2~     Shift+End (VT220 style ~)
+\x1b[1;5~     Ctrl+Home (VT220 style ~)
+\x1b[4;5~     Ctrl+End (VT220 style ~)
+# ---
+\x1b[5;2~     Shift+Page Up
+\x1b[6;2~     Shift+Page Down
+\x1b[5;3~     Alt+Page Up
+\x1b[6;3~     Alt+Page Down
+\x1b[5;5~     Ctrl+Page Up
+\x1b[6;5~     Ctrl+Page Down
+# ---
+\x1b[2;2~     Shift+Insert
+\x1b[3;2~     Shift+Delete
+\x1b[2;5~     Ctrl+Insert
+\x1b[3;5~     Ctrl+Delete
+# ... other combinations follow the pattern ...
+
+# --- Function Keys (F1-F12) ---
+# This group has significant variation (VT100, VT220, SCO, xterm).
+# F1-F4 often use \x1bOP to \x1bOS in Application mode.
+\x1bOP        F1 (VT100/Application Mode)
+\x1bOQ        F2 (VT100/Application Mode)
+\x1bOR        F3 (VT100/Application Mode)
+\x1bOS        F4 (VT100/Application Mode)
+# --- OR ---
+\x1b[11~      F1 (VT220/xterm Normal Mode style)
+\x1b[12~      F2 (VT220/xterm Normal Mode style)
+\x1b[13~      F3 (VT220/xterm Normal Mode style)
+\x1b[14~      F4 (VT220/xterm Normal Mode style) - Less common than \x1bOS
+# --- Higher F keys (more consistent) ---
+\x1b[15~      F5
+\x1b[17~      F6 (Note the gap, 16 is sometimes Shift+F6)
+\x1b[18~      F7
+\x1b[19~      F8
+\x1b[20~      F9
+\x1b[21~      F10
+\x1b[23~      F11 (Gap again)
+\x1b[24~      F12
+\x1b[25~      F13 (Sometimes Shift+F1 or F1 with modifier)
+\x1b[26~      F14 (Sometimes Shift+F2 or F2 with modifier)
+\x1b[28~      F15 (Sometimes Shift+F3 or F3 with modifier)
+\x1b[29~      F16 (Sometimes Shift+F4 or F4 with modifier)
+\x1b[31~      F17 (Sometimes Shift+F5 or F5 with modifier)
+\x1b[32~      F18 (Sometimes Shift+F6 or F6 with modifier)
+\x1b[33~      F19 (Sometimes Shift+F7 or F7 with modifier)
+\x1b[34~      F20 (Sometimes Shift+F8 or F8 with modifier)
+# F21+ are less common and highly variable
+
+# --- Function Keys with Modifiers (xterm style, typically for the '~' versions) ---
+\x1b[11;2~    Shift+F1
+\x1b[11;3~    Alt+F1
+\x1b[11;5~    Ctrl+F1
+# ---
+\x1b[24;2~    Shift+F12
+\x1b[24;5~    Ctrl+F12
+# ... other combinations follow the pattern for keys >= F5 ...
+# Modifiers for F1-F4 in Application Mode (\x1bOP etc) are less standardized.
+
+# --- Alt/Meta + Character Key ---
+# Traditional: ESC followed by the character
+\x1b<char>    Alt + <char> (e.g., Alt+a might send \x1ba, Alt+A might send \x1bA)
+# Modern (less common, xterm/kitty extensions): May use modifier codes
+# Example Alt+a: \x1b[97;3u (kitty progressive enhancement)
+# Example Alt+Enter: \x1b[13;3u (kitty)
+
+# --- Numeric Keypad Keys ---
+# Behavior depends heavily on NumLock state and Application Keypad Mode (\x1b= vs \x1b>)
+# In Application Mode (\x1b=):
+\x1bOp        KeyPad 0 (Insert)
+\x1bOq        KeyPad 1 (End)
+\x1bOr        KeyPad 2 (Down Arrow)
+\x1bOs        KeyPad 3 (Page Down)
+\x1bOt        KeyPad 4 (Left Arrow)
+\x1bOu        KeyPad 5 (Clear/Center - often sends nothing or \x1b[G)
+\x1bOv        KeyPad 6 (Right Arrow)
+\x1bOw        KeyPad 7 (Home)
+\x1bOx        KeyPad 8 (Up Arrow)
+\x1bOy        KeyPad 9 (Page Up)
+\x1bOM        KeyPad Enter
+\x1bOl        KeyPad +
+\x1bOk        KeyPad *
+\x1bOm        KeyPad -
+\x1bOn        KeyPad . (Delete)
+\x1bOo        KeyPad /
+# In Normal Mode (\x1b>) with NumLock ON: sends digits '0'-'9', '.', '-', etc.
+# In Normal Mode (\x1b>) with NumLock OFF: often duplicates navigation keys (Arrows, Home, End, PgUp/Dn, Ins/Del).
+
+# --- How to Find Codes for Your Specific Terminal ---
+# 1. Use `showkey -a` (Linux console or some terminals): Press keys to see octal/hex/decimal/symbol. Ctrl+C to exit.
+# 2. Use `read -n 1 -s` in a loop (Bash/Zsh): Read one character at a time silently. Good for simple sequences.
+#    Example: while true; do read -rsn1 key; printf "%q" "$key"; done
+# 3. Use `cat -v` or `cat`: Type keys and see the output. ^[ represents ESC (\x1b).
+#    Example: cat -v (then press Up Arrow, Enter, Ctrl+C) might show: ^[[A^M^C
+
+# --- End of Key Input Sequences List ---

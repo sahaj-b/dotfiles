@@ -1,0 +1,33 @@
+[safe]
+  directory = /media/windows/notes
+  directory = /media/data/LinuxBackup/dotfiles
+[user]
+  name = sahaj-b
+  email = sahajb0606@gmail.com
+[init]
+  defaultBranch = main
+[color]
+  ui = auto
+# [credential]
+#   helper = store
+
+# nvim stuff
+[difftool]
+  prompt = false
+[diff]
+  tool = nvimdiff
+[difftool "nvimdiff"]
+  cmd = "nvim -d \"$LOCAL\" \"$REMOTE\""
+
+[merge]
+  tool = vimdiff
+[mergetool]
+  prompt = true
+[mergetool "vimdiff"]
+  cmd = nvim -d $BASE $LOCAL $REMOTE $MERGED -c '$wincmd w' -c 'wincmd J'
+
+# Difftastic
+[alias]
+  dlog = -c diff.external=difft log --ext-diff
+  dshow = -c diff.external=difft show --ext-diff
+  ddiff = -c diff.external=difft diff
