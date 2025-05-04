@@ -9,6 +9,7 @@ GREEN='\e[32m'
 RED='\e[31m'
 YELLOW='\e[33m'
 RESET='\e[0m'
+CLEAR_BOTTOM='\x1b[J'
 success() {
   echo -e "${GREEN}$1$RESET"
 }
@@ -41,7 +42,7 @@ spinnerRun() {
   wait $spinPid 2>/dev/null
   tput cnorm
   trap - INT TERM EXIT
-  printf "\r"
+  echo -e "\r${CLEAR_BOTTOM}"
 }
 
 # --- main script ---
@@ -56,7 +57,7 @@ git add . && git commit -m "Updated"
 git pull origin main --rebase || exit
 echo -n "  Cleaning up $dotfiles_dir"
 spinnerRun "git rm -rf . >/dev/null"
-success "Cleaned up $dotfiles_dir\n"
+success "Cleaned up $dotfiles_dir"
 
 dotfiles=(
   "/etc/keyd/default.conf"
@@ -129,6 +130,7 @@ function copyDots() {
 
 echo -n "  Copying dotfiles to $dotfiles_dir"
 spinnerRun copyDots "$dotfiles_dir"
+success "Copied dotfiles to $dotfiles_dir"
 
 if [[ $1 != "cp" ]]; then
   push $dotfiles_dir
@@ -138,6 +140,7 @@ if [ -w "$data_dir" ]; then
   rm -rf "$data_dir" || exit
   echo -n "  Copying dotfiles to $data_dir"
   spinnerRun copyDots "$data_dir"
+  success "Copied dotfiles to $data_dir"
 else
   echo -e "${YELLOW}Skipping $data_dir $RESET"
   exit 1
