@@ -3,10 +3,46 @@
 dotfiles_dir="/home/sahaj/LinuxBackup/dotfiles/"
 data_dir="/media/data/Linux_Backup/dotfiles/"
 
+# --- helpers ---
+
 GREEN='\e[32m'
 RED='\e[31m'
 YELLOW='\e[33m'
 RESET='\e[0m'
+success() {
+  echo -e "${GREEN}$1$RESET"
+}
+error() {
+  echo -e "${RED}$1$RESET"
+}
+warn() {
+  echo -e "${YELLOW}$1$RESET"
+}
+
+spinner() {
+  local pid=$1
+  local delay=0.1
+  local spinstr='⣾⣽⣻⢿⡿⣟⣯⣷'
+  tput civis
+  while ps -p "$pid" >/dev/null; do
+    local temp=${spinstr#?}
+    printf " %c " "$spinstr"
+    local spinstr=$temp${spinstr%"$temp"}
+    sleep $delay
+    printf "\r"
+  done
+  printf "   \r"
+  tput cnorm
+}
+
+spinTillBG() {
+  RM_PID=$!
+  spinner $RM_PID
+  wait $RM_PID
+  printf "\r\033[K"
+}
+
+# --- main script ---
 
 cd "${dotfiles_dir}" || {
   echo "Couldn't cd into ${dotfiles_dir}"
@@ -14,7 +50,14 @@ cd "${dotfiles_dir}" || {
 }
 git add . && git commit -m "Updated"
 git pull origin main --rebase || exit
-git rm -rf .
+
+echo -e "${GREEN}Cleaning up $dotfiles_dir$RESET"
+git rm -rf . &
+spinTillBG
+if [ $? -ne 0 ]; then
+  error "Error cleaning $dotfiles_dir"
+  exit 1
+fi
 
 dotfiles=(
   "/etc/keyd/default.conf"
@@ -49,24 +92,8 @@ dotfiles=(
   "$HOME/.config/mcphub/"
 )
 
-spinner() {
-  local pid=$1
-  local delay=0.1
-  local spinstr='⣾⣽⣻⢿⡿⣟⣯⣷'
-  tput civis
-  while ps -p "$pid" >/dev/null; do
-    local temp=${spinstr#?}
-    printf " [%c]  " "$spinstr"
-    local spinstr=$temp${spinstr%"$temp"}
-    sleep $delay
-    printf "\r"
-  done
-  printf "    \r" # Clear spinner
-  tput cnorm      # Restore cursor
-}
-
 function push() {
-  echo -e "${GREEN}Uploading $1 to Github$RESET"
+  success "Uploading $1 to Github"
   git add .
   if git diff --staged --quiet; then
     echo "No changes to commit."
@@ -97,16 +124,14 @@ function copyDots() {
     else
       echo -e "${RED}ERROR: $item does not exist.$RESET"
     fi
+    sleep 0.5
   done
-  echo -e "${GREEN}Copying to $1 completed.\n$RESET"
+  success "Uploading $1 to Github"
 }
 
 printf "Copying dotfiles to %s... " "$dotfiles_dir"
 copyDots "$dotfiles_dir" &
-CP_PID=$!
-spinner $CP_PID
-wait $CP_PID
-printf "\r\033[K" # Clear spinner line
+spinTillBG
 
 if [[ $1 != "cp" ]]; then
   push $dotfiles_dir
@@ -115,6 +140,7 @@ fi
 if [ -w "$data_dir" ]; then
   rm -rf "$data_dir" || exit
   copyDots "$data_dir"
+  spinTillBG
 else
   echo -e "${YELLOW}Skipping $data_dir $RESET"
   exit 1
