@@ -69,7 +69,6 @@ cd "${dotfiles_dir}" || {
 }
 
 # handle previous 'copy only' runs
-echo "Checking for previous changes..."
 git add .
 git diff --staged --quiet || git commit -m "Updated" &>/dev/null
 
@@ -79,6 +78,7 @@ if git status -sb | grep -q 'behind'; then
   git pull origin main --rebase
 fi
 
+echo
 spinnerRun "git rm -rf . >/dev/null" "Nuking $dotfiles_dir" "💥 Nuked $dotfiles_dir" "Git rm failed"
 
 dotfiles=(
