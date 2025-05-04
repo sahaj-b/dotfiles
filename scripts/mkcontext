@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 IGNORE_PATTERNS=(
-  ".git" "node_modules" "__pycache__" "venv" ".venv" "env" ".env" "build" "dist" "target" "out"
+  ".git" "node_modules" "__pycache__" "venv" ".venv" "env" ".env" "build" "dist" "target" "out" "debug.log"
 )
 
 USER_IGNORES=()

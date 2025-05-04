@@ -51,6 +51,8 @@ bindkey '^e' end-of-line
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^x^e' edit-command-line
 
+alias df="duf"
+alias du="dust"
 alias grep="grep --color=always"
 alias o="nvim +'Telescope oldfiles'"
 alias bp="sudo l2ping -s 200"
@@ -67,7 +69,7 @@ alias tk="tmux kill-session"
 alias pc="sudo pacman -Syu"
 alias pcn="sudo pacman -Syu --noconfirm"
 alias ycn="yay -Syu --noconfirm"
-alias nvl='nvim -Vdebug.log ~/Leetcode/leet.cpp +"lua vim.diagnostic.enable(false)" +"Copilot disable" +":,%d _" +"norm i#include <bits/stdc++.h>" +"norm ousing namespace std;" +"norm o"'
+alias nvl='nvim ~/Leetcode/leet.cpp +"lua vim.diagnostic.enable(false)" +"Copilot disable" +":,%d _" +"norm i#include <bits/stdc++.h>" +"norm ousing namespace std;" +"norm o"'
 alias dsaq='nvim ~/notes/tech/dsaq.md +"set nowrap"'
 alias nvn='cd ~/notes && nv -c "norm -"; cd -'
 alias notesync='cd ~/notes && git add . && git commit -m "notes backup" && git push && cd -'
