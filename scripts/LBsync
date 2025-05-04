@@ -52,9 +52,8 @@ cd "${dotfiles_dir}" || {
 }
 git add . && git commit -m "Updated"
 git pull origin main --rebase || exit
+echo "  Cleaning up $dotfiles_dir"
 spinnerRun git rm -rf . >/dev/null
-
-echo -e "${GREEN}Cleaning up $dotfiles_dir$RESET"
 
 dotfiles=(
   "/etc/keyd/default.conf"
@@ -125,7 +124,7 @@ function copyDots() {
   done
 }
 
-printf "Copying dotfiles to %s... " "$dotfiles_dir"
+echo "  Copying dotfiles to $dotfiles_dir"
 spinnerRun copyDots "$dotfiles_dir"
 
 if [[ $1 != "cp" ]]; then
@@ -134,6 +133,7 @@ fi
 
 if [ -w "$data_dir" ]; then
   rm -rf "$data_dir" || exit
+  echo "  Copying dotfiles to $data_dir"
   spinnerRun copyDots "$data_dir"
 else
   echo -e "${YELLOW}Skipping $data_dir $RESET"
