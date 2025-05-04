@@ -69,11 +69,11 @@ cd "${dotfiles_dir}" || {
 }
 
 # handle previous 'copy only' runs
-success "Checking for previous changes..."
+echo "Checking for previous changes..."
 git add .
 git diff --staged --quiet || git commit -m "Updated" &>/dev/null
 
-success "Checking for remote changes..."
+echo "Checking for remote changes..."
 git fetch --quiet
 if git status -sb | grep -q 'behind'; then
   git pull origin main --rebase
