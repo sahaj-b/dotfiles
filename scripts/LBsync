@@ -33,16 +33,59 @@ spinner() {
 }
 
 spinnerRun() {
-  local cmd="$*"
-  spinner &
-  local spinPid=$!
-  trap "kill $spinPid 2>/dev/null; tput cnorm" INT TERM EXIT
-  eval "$cmd"
-  kill $spinPid 2>/dev/null
-  wait $spinPid 2>/dev/null
-  tput cnorm
-  trap - INT TERM EXIT
-  echo -e "\r${CLEAR_BOTTOM}"
+  local msg="$1"
+  local cmd="$2"
+  local success_msg="${3:-$msg Done.}" # Default success msg
+  local error_msg="${4:-$msg Failed.}" # Default error msg
+
+  local stdout_tmp stderr_tmp status spinPid cmdPid
+  stdout_tmp=$(mktemp) || return 1
+  stderr_tmp=$(mktemp) || {
+    rm -f "$stdout_tmp"
+    return 1
+  }
+
+  # Combined trap for cleanup and cursor visibility
+  trap 'kill $spinPid $cmdPid &>/dev/null; wait $spinPid &>/dev/null; tput cnorm; rm -f "$stdout_tmp" "$stderr_tmp"; trap - INT TERM EXIT; return $status' INT TERM EXIT
+
+  echo -n "$msg " # Print the initial message without newline
+  spinner &       # Start spinner in background
+  spinPid=$!
+
+  # Run command in background, redirecting output
+  eval "$cmd" >"$stdout_tmp" 2>"$stderr_tmp" &
+  cmdPid=$!
+
+  wait $cmdPid # Wait for the command to finish
+  status=$?    # Capture exit status
+
+  kill $spinPid &>/dev/null # Stop the spinner
+  wait $spinPid &>/dev/null # Wait for spinner to exit
+  tput cnorm                # Ensure cursor is visible
+
+  # Clear the spinner line and move to the next line
+  printf "\r%s\n" "${CLEAR_BOTTOM}"
+
+  # Read captured output
+  local stdout_content stderr_content
+  stdout_content=$(<"$stdout_tmp")
+  stderr_content=$(<"$stderr_tmp")
+  rm -f "$stdout_tmp" "$stderr_tmp" # Clean up temp files
+  trap - INT TERM EXIT              # Remove the function's trap
+
+  # Print status message and any captured output
+  if [ $status -eq 0 ]; then
+    success "$success_msg"
+    # Only print output if it's not empty
+    [[ -n "$stdout_content" ]] && printf "--- stdout ---\n%s\n" "$stdout_content"
+    [[ -n "$stderr_content" ]] && warn "--- stderr ---" && printf "%s\n" "$stderr_content" # Show stderr as warning even on success
+  else
+    error "$error_msg"
+    [[ -n "$stdout_content" ]] && printf "--- stdout ---\n%s\n" "$stdout_content"
+    [[ -n "$stderr_content" ]] && printf "--- stderr ---\n%s\n" "$stderr_content" # Show stderr as part of the error
+  fi
+
+  return $status
 }
 
 # --- main script ---
@@ -53,11 +96,13 @@ cd "${dotfiles_dir}" || {
   echo "Couldn't cd into ${dotfiles_dir}"
   exit 1
 }
-git add . && git commit -m "Updated"
-git pull origin main --rebase || exit
-echo -n "  Cleaning up $dotfiles_dir"
-spinnerRun "git rm -rf . >/dev/null"
-success "Cleaned up $dotfiles_dir"
+spinnerRun "  Commiting previous changes $dotfiles_dir" 'git add . && git commit -m "Updated"' "✨ Committed previous changes"
+
+spinnerRun "  Pulling latest changes" "git pull origin main --rebase" "⤵️ Pulled latest changes" "Git pull failed"
+
+if ! spinnerRun "  Nuking $dotfiles_dir" "git rm -rf . >/dev/null" "💥 Nuked $dotfiles_dir" "Git rm failed"; then
+  exit 1
+fi
 
 dotfiles=(
   "/etc/keyd/default.conf"
@@ -93,7 +138,6 @@ dotfiles=(
 )
 
 function push() {
-  success "Uploading $1 to Github"
   git add .
   if git diff --staged --quiet; then
     echo "No changes to commit."
@@ -118,8 +162,8 @@ function copyDots() {
       mkdir -p "$destination_dir"
       if ! cp -r "$item" "$destination_dir"; then
         echo -e "${RED}ERROR: couldn't copy $item.$RESET"
-      # else
-      #   echo -e "Copied: $item to $destination_dir"
+      else
+        echo -e "Copied: $item to $destination_dir"
       fi
     else
       echo -e "${RED}ERROR: $item does not exist.$RESET"
@@ -129,8 +173,7 @@ function copyDots() {
 }
 
 echo -n "  Copying dotfiles to $dotfiles_dir"
-spinnerRun copyDots "$dotfiles_dir"
-success "Copied dotfiles to $dotfiles_dir"
+spinnerRun "  Copying dotfiles to $dotfiles_dir" "copyDots \"$dotfiles_dir\"" "🚚 Copied dotfiles to $dotfiles_dir" "Copying dotfiles to $dotfiles_dir failed"
 
 if [[ $1 != "cp" ]]; then
   push $dotfiles_dir
@@ -139,10 +182,9 @@ fi
 if [ -w "$data_dir" ]; then
   rm -rf "$data_dir" || exit
   echo -n "  Copying dotfiles to $data_dir"
-  spinnerRun copyDots "$data_dir"
-  success "Copied dotfiles to $data_dir"
+  spinnerRun "  Copying dotfiles to $data_dir" "copyDots \"$data_dir\"" "🚚 Copied dotfiles to $data_dir" "Copying dotfiles to $data_dir failed"
 else
-  echo -e "${YELLOW}Skipping $data_dir $RESET"
+  warn "Skipping $data_dir"
   exit 1
 fi
 
