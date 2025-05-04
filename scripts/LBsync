@@ -33,8 +33,8 @@ spinner() {
 }
 
 spinnerRun() {
-  local msg="$1"
-  local cmd="$2"
+  local cmd="$1"
+  local msg="$2"
   local success_msg="${3:-$msg Done.}" # Default success msg
   local error_msg="${4:-$msg Failed.}" # Default error msg
 
@@ -96,11 +96,13 @@ cd "${dotfiles_dir}" || {
   echo "Couldn't cd into ${dotfiles_dir}"
   exit 1
 }
-spinnerRun "  Commiting previous changes $dotfiles_dir" 'git add . && git commit -m "Updated"' "✨ Committed previous changes"
 
-spinnerRun "  Pulling latest changes" "git pull origin main --rebase" "⤵️ Pulled latest changes" "Git pull failed"
+# handle previous 'copy only' runs
 
-if ! spinnerRun "  Nuking $dotfiles_dir" "git rm -rf . >/dev/null" "💥 Nuked $dotfiles_dir" "Git rm failed"; then
+spinnerRun 'git add . && git commit -m "Updated"' "  Commiting previous changes $dotfiles_dir" "✨ Committed previous changes"
+spinnerRun "git pull origin main --rebase" "  Pulling latest changes" "⤵️ Pulled latest changes" "Git pull failed"
+
+if ! spinnerRun "git rm -rf . >/dev/null" "  Nuking $dotfiles_dir" "💥 Nuked $dotfiles_dir" "Git rm failed"; then
   exit 1
 fi
 
@@ -173,7 +175,7 @@ function copyDots() {
 }
 
 echo -n "  Copying dotfiles to $dotfiles_dir"
-spinnerRun "  Copying dotfiles to $dotfiles_dir" "copyDots \"$dotfiles_dir\"" "🚚 Copied dotfiles to $dotfiles_dir" "Copying dotfiles to $dotfiles_dir failed"
+spinnerRun "copyDots \"$dotfiles_dir\"" "  Copying dotfiles to $dotfiles_dir" "🚚 Copied dotfiles to $dotfiles_dir" "Copying dotfiles to $dotfiles_dir failed"
 
 if [[ $1 != "cp" ]]; then
   push $dotfiles_dir
@@ -182,7 +184,7 @@ fi
 if [ -w "$data_dir" ]; then
   rm -rf "$data_dir" || exit
   echo -n "  Copying dotfiles to $data_dir"
-  spinnerRun "  Copying dotfiles to $data_dir" "copyDots \"$data_dir\"" "🚚 Copied dotfiles to $data_dir" "Copying dotfiles to $data_dir failed"
+  spinnerRun "copyDots \"$data_dir\"" "  Copying dotfiles to $data_dir" "🚚 Copied dotfiles to $data_dir" "Copying dotfiles to $data_dir failed"
 else
   warn "Skipping $data_dir"
   exit 1
