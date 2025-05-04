@@ -21,7 +21,7 @@ warn() {
 
 spinner() {
   tput civis
-  trap 'tput cnorm' INT TERM EXIT
+  trap 'tput cnorm; exit' INT TERM EXIT
   local frames=("⣾" "⣽" "⣻" "⢿" "⡿" "⣟" "⣯" "⣷")
   local i=0
   while true; do
@@ -35,9 +35,13 @@ spinnerRun() {
   local cmd="$*"
   spinner &
   local spinPid=$!
-  trap "kill $spinPid" INT TERM EXIT
+  trap "kill $spinPid 2>/dev/null; tput cnorm" INT TERM EXIT
   eval "$cmd"
-  kill $spinPid
+  kill $spinPid 2>/dev/null
+  wait $spinPid 2>/dev/null
+  tput cnorm
+  trap - INT TERM EXIT
+  printf "\r" # clear spinner
 }
 
 # --- main script ---
@@ -48,7 +52,7 @@ cd "${dotfiles_dir}" || {
 }
 git add . && git commit -m "Updated"
 git pull origin main --rebase || exit
-spinnerRun git rm -rf .
+spinnerRun git rm -rf . >/dev/null
 
 echo -e "${GREEN}Cleaning up $dotfiles_dir$RESET"
 
@@ -119,7 +123,6 @@ function copyDots() {
     fi
     sleep 0.2
   done
-  success "Uploading $1 to Github"
 }
 
 printf "Copying dotfiles to %s... " "$dotfiles_dir"
