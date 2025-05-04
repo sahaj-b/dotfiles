@@ -49,7 +49,7 @@ spinnerRun() {
   wait $spinPid &>/dev/null
 
   tput cnorm
-  echo -e "\r${CLEAR_BOTTOM}\n"
+  echo -e "\r${CLEAR_BOTTOM}"
   if [ $status -eq 0 ]; then
     success "$success_msg"
   else
@@ -136,8 +136,8 @@ function copyDots() {
       mkdir -p "$destination_dir"
       if ! cp -r "$item" "$destination_dir"; then
         echo -e "${RED}ERROR: couldn't copy $item.$RESET"
-      else
-        echo "Copied: $item to $destination_dir"
+      # else
+      #   echo "Copied: $item to $destination_dir"
       fi
     else
       echo -e "${RED}ERROR: $item does not exist.$RESET"
