@@ -41,7 +41,7 @@ spinnerRun() {
   wait $spinPid 2>/dev/null
   tput cnorm
   trap - INT TERM EXIT
-  printf "\r" # clear spinner
+  printf "\r\n"
 }
 
 # --- main script ---
