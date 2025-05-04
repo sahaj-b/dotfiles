@@ -1,8 +1,0 @@
-allow_images=true
-image_size=25
-term=alacritty
-insensitive=true
-no_actions=true
-prompt=Search
-height=350
-width=600

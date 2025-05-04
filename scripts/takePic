@@ -1,4 +1,0 @@
-#!/bin/bash
-ts=$(date +%s)
-ffmpeg -f video4linux2 -s vga -i /dev/video0 -vframes 1 ~/caught/vid-$ts.%01d.jpg
-exit 0
