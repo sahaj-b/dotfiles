@@ -35,56 +35,26 @@ spinner() {
 spinnerRun() {
   local cmd="$1"
   local msg="$2"
-  local success_msg="${3:-$msg Done.}" # Default success msg
-  local error_msg="${4:-$msg Failed.}" # Default error msg
+  local success_msg="${3:-$msg Done.}"
+  local error_msg="${4:-$msg Failed.}"
 
-  local stdout_tmp stderr_tmp status spinPid cmdPid
-  stdout_tmp=$(mktemp) || return 1
-  stderr_tmp=$(mktemp) || {
-    rm -f "$stdout_tmp"
-    return 1
-  }
+  echo -n "$msg "
+  tput civis
 
-  # Combined trap for cleanup and cursor visibility
-  trap 'kill $spinPid $cmdPid &>/dev/null; wait $spinPid &>/dev/null; tput cnorm; rm -f "$stdout_tmp" "$stderr_tmp"; trap - INT TERM EXIT; return $status' INT TERM EXIT
-
-  echo -n "$msg " # Print the initial message without newline
-  spinner &       # Start spinner in background
+  spinner &
   spinPid=$!
+  eval "$cmd"
+  status=$?
+  kill $spinPid &>/dev/null
+  wait $spinPid &>/dev/null
 
-  # Run command in background, redirecting output
-  eval "$cmd" >"$stdout_tmp" 2>"$stderr_tmp" &
-  cmdPid=$!
-
-  wait $cmdPid # Wait for the command to finish
-  status=$?    # Capture exit status
-
-  kill $spinPid &>/dev/null # Stop the spinner
-  wait $spinPid &>/dev/null # Wait for spinner to exit
-  tput cnorm                # Ensure cursor is visible
-
-  # Clear the spinner line and move to the next line
+  tput cnorm
   printf "\r%s\n" "${CLEAR_BOTTOM}"
-
-  # Read captured output
-  local stdout_content stderr_content
-  stdout_content=$(<"$stdout_tmp")
-  stderr_content=$(<"$stderr_tmp")
-  rm -f "$stdout_tmp" "$stderr_tmp" # Clean up temp files
-  trap - INT TERM EXIT              # Remove the function's trap
-
-  # Print status message and any captured output
   if [ $status -eq 0 ]; then
     success "$success_msg"
-    # Only print output if it's not empty
-    [[ -n "$stdout_content" ]] && printf "--- stdout ---\n%s\n" "$stdout_content"
-    [[ -n "$stderr_content" ]] && warn "--- stderr ---" && printf "%s\n" "$stderr_content" # Show stderr as warning even on success
   else
-    error "$error_msg"
-    [[ -n "$stdout_content" ]] && printf "--- stdout ---\n%s\n" "$stdout_content"
-    [[ -n "$stderr_content" ]] && printf "--- stderr ---\n%s\n" "$stderr_content" # Show stderr as part of the error
+    error "$error_msg (Exit Code: $status)"
   fi
-
   return $status
 }
 
@@ -99,8 +69,8 @@ cd "${dotfiles_dir}" || {
 
 # handle previous 'copy only' runs
 
-spinnerRun 'git add . && git commit -m "Updated"' "  Commiting previous changes $dotfiles_dir" "✨ Committed previous changes"
-spinnerRun "git pull origin main --rebase" "  Pulling latest changes" "⤵️ Pulled latest changes" "Git pull failed"
+git add . && git commit -m "Updated" &>/dev/null
+git pull origin main --rebase
 
 if ! spinnerRun "git rm -rf . >/dev/null" "  Nuking $dotfiles_dir" "💥 Nuked $dotfiles_dir" "Git rm failed"; then
   exit 1
