@@ -117,7 +117,7 @@ dotfiles=(
 function push() {
   git add .
   if git diff --staged --quiet; then
-    warn "Nothning to commit 😔"
+    warn "Nothing to commit 😔"
     return 0
   fi
   git commit -m "Updated" || {
@@ -149,7 +149,6 @@ function copyDots() {
     else
       echo -e "${RED}ERROR: $item does not exist.$RESET"
     fi
-    sleep 0.05
   done
 }
 
