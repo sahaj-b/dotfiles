@@ -12,6 +12,7 @@ cd "${dotfiles_dir}" || {
   echo "Couldn't cd into ${dotfiles_dir}"
   exit 1
 }
+git add . && git commit -m "Updated"
 git pull origin main --rebase || exit
 git rm -rf .
 
@@ -90,8 +91,8 @@ function copyDots() {
       mkdir -p "$destination_dir"
       if ! cp -r "$item" "$destination_dir"; then
         echo -e "${RED}ERROR: couldn't copy $item.$RESET"
-      else
-        echo -e "Copied: $item to $destination_dir"
+      # else
+      #   echo -e "Copied: $item to $destination_dir"
       fi
     else
       echo -e "${RED}ERROR: $item does not exist.$RESET"
@@ -101,7 +102,7 @@ function copyDots() {
 }
 
 printf "Copying dotfiles to %s... " "$dotfiles_dir"
-copyDots "$dotfiles_dir"
+copyDots "$dotfiles_dir" &
 CP_PID=$!
 spinner $CP_PID
 wait $CP_PID
