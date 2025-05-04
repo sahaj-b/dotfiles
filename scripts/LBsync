@@ -35,7 +35,7 @@ spinnerRun() {
   local cmd="$*"
   spinner &
   local spinPid=$!
-  trap 'kill $spinPid' INT TERM EXIT
+  trap "kill $spinPid" INT TERM EXIT
   eval "$cmd"
   kill $spinPid
 }
@@ -117,7 +117,7 @@ function copyDots() {
     else
       echo -e "${RED}ERROR: $item does not exist.$RESET"
     fi
-    sleep 0.5
+    sleep 0.2
   done
   success "Uploading $1 to Github"
 }
