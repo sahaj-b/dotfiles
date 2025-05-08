@@ -10,9 +10,11 @@ return {
       --     return "Recording @" .. recording_register
       --   end
       -- end
+      -- local spinner = require("sahaj.plugins.codecompanion.lualine-spinner")
       local lualine = require('lualine')
       lualine.setup {
         options = {
+          globalstatus = true,
           theme = 'auto',
           component_separators = { left = '', right = '' },
           section_separators = { left = '', right = '' },
@@ -36,6 +38,7 @@ return {
             -- }
           },
           lualine_c = { 'diagnostics' },
+          -- lualine_x = { spinner, 'diff', 'filetype' },
           lualine_x = { 'diff', 'filetype' },
           -- lualine_y = { function() return "{.}%3{codeium#GetStatusString()}" end, 'progress' },
           lualine_y = { 'copilot', 'progress' },

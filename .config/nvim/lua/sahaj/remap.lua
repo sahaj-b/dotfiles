@@ -30,10 +30,11 @@ map("n", "<leader>s", "<cmd>w<CR>")
 -- map("n", "<leader>s", function() vim.api.nvim_command('write') end)
 
 --windows
--- map("n", "<M-h>", "<C-w>h")
--- map("n", "<M-j>", "<C-w>j")
--- map("n", "<M-k>", "<C-w>k")
--- map("n", "<M-l>", "<C-w>l")
+map("n", "<M-h>", "<C-w>h")
+map("n", "<M-j>", "<C-w>j")
+map("n", "<M-k>", "<C-w>k")
+map("n", "<M-l>", "<C-w>l")
+map("n", "<M-f>", "<C-w>|")
 
 map("n", "<leader>co", "<cmd>CodeiumToggle<CR>")
 
@@ -149,12 +150,21 @@ end
 map("n", "<leader><leader>t", "<cmd>lua ToggleCheckbox()<CR>")
 map("v", "<leader><leader>t", "<cmd>lua ToggleCheckboxVisual()<CR>")
 
+
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "go",
+  callback = function()
+    map("n", "T", "iif err != nil {<CR><CR><BS>}<up><tab>")
+  end
+})
+
 --plugins-keymaps
 
 -- CodeCompanion
 map({ 'n', 'v' }, "<leader>aa", "<cmd>CodeCompanionActions<cr>")
 map('n', "<leader><leader>a", "<cmd>CodeCompanionChat Toggle<cr>")
 map('ca', "cc", "CodeCompanion")
+map('ca', "cch", "CodeCompanionHistory")
 
 
 -- diffview
@@ -287,7 +297,6 @@ vim.api.nvim_create_autocmd("FileType", {
     map("n", "<leader>2", "<cmd>%y<CR>:!~/scripts/automate db<CR>")
   end
 })
-
 
 --runners
 local filetypes = {

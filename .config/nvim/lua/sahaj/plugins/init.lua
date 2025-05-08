@@ -6,7 +6,7 @@ return {
       notification = {
         window = {
           winblend = 0,
-          border = "rounded",
+          -- border = "rounded",
           max_width = 150,
           x_padding = 0,
           align = "top",
@@ -27,16 +27,16 @@ return {
     event = "VeryLazy",
     opts = {}
   },
-  {
-    "kevinhwang91/nvim-bqf",
-    ft = "qf",
-    opts = {
-      auto_resize_height = true,
-      preview = {
-        win_height = 12,
-      }
-    }
-  },
+  -- {
+  --   "kevinhwang91/nvim-bqf",
+  --   ft = "qf",
+  --   opts = {
+  --     auto_resize_height = true,
+  --     preview = {
+  --       win_height = 12,
+  --     }
+  --   }
+  -- },
   {
     "zbirenbaum/copilot.lua",
     cmd = "Copilot",
