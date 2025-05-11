@@ -3,7 +3,13 @@ return {
     'neovim/nvim-lspconfig',
     config = function()
       local servers = {
-        gopls = {},
+        gopls = {
+          settings = {
+            gopls = {
+              gofumpt = true
+            }
+          }
+        },
         bashls = {},
         shellcheck = {},
         pyright = {},

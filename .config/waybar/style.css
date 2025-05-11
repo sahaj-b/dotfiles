@@ -7,15 +7,15 @@
 }
 
 tooltip {
-  background-color: @mantle;
+  background: @mantle;
   color: @text;
   border: 1px solid @mauve;
 }
 
 window#waybar {
-  /* background-color: @mantle; */
-  /* background-color: @crust; */
-  background-color: transparent;
+  /* background: @mantle; */
+  /* background: @crust; */
+  background: transparent;
   color: @text;
   border-radius: 50px;
 }
@@ -26,7 +26,7 @@ window#waybar {
   /* margin: 1px 1px 0px 1px; */
   /* padding: 0px 0px; */
   border-radius: 15px;
-  background-color: @mantle;
+  background: @mantle;
   color: @text;
 }
 
@@ -35,9 +35,9 @@ window#waybar {
   margin: 1px 4px;
   border-radius: 15px;
   color: @text;
-  /* background-color: @mantle; */
-  /* background-color: transparent; */
-  /* background-color: @surface1; */
+  /* background: @mantle; */
+  /* background: transparent; */
+  /* background: @surface1; */
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -70,6 +70,7 @@ window#waybar {
 #custom-audio,
 #custom-dunst,
 #custom-easyeffects,
+#cpu,
 #memory {
   padding: 0px 12px;
   margin: 2px 0px 0px 0px;
@@ -89,9 +90,7 @@ window#waybar {
   margin: 2px 0px 0px 0px;
   border-radius: 10px;
   color: @blue;
-  /* background: @mantle; */
-
-  background-color: @mantle;
+  background: @mantle;
 }
 
 #clock.3,
@@ -100,11 +99,11 @@ window#waybar {
 }
 
 /* #cpu { */
-/*   background-color: @lavender; */
+/*   background: @lavender; */
 /* } */
 
 #custom-audio {
-  background-color: @lavender;
+  background: @lavender;
 }
 #custom-audio.muted {
   background: @mantle;
@@ -115,10 +114,39 @@ window#waybar {
 /*     background: @mantle; */
 /* } */
 
-/* #memory { */
-/*   background: @sapphire; */
-/* } */
-/**/
+#memory {
+  color: @lavender;
+  background: @mantle;
+}
+#memory.cool {
+  background: @lavender;
+  color: @crust;
+}
+#memory.warning {
+  background: @maroon;
+  color: @crust;
+}
+#memory.critical {
+  background: @red;
+  color: @crust;
+}
+
+#cpu {
+  color: @blue;
+  background: @mantle;
+}
+#cpu.cool {
+  background: @blue;
+  color: @crust;
+}
+#cpu.warning {
+  background: @maroon;
+  color: @crust;
+}
+#cpu.critical {
+  background: @red;
+  color: @crust;
+}
 
 @keyframes rgb {
   0% {
@@ -211,7 +239,7 @@ window#waybar {
   min-height: 7px;
   min-width: 80px;
   border-radius: 5px;
-  background-color: @surface1;
+  background: @surface1;
   transition: 0.1s;
 }
 #pulseaudio-slider:hover trough {
@@ -226,20 +254,20 @@ window#waybar {
   padding-right: 15px;
 }
 #custom-dunst.enabled {
-  background-color: @lavender;
+  background: @lavender;
 }
 #custom-dunst.disabled {
-  background-color: @red;
+  background: @red;
   /* color: @blue; */
 }
 
 #custom-easyeffects.disabled {
-  background-color: @mantle;
+  background: @mantle;
   color: @blue;
 }
 
 #custom-music.Playing {
-  background-color: @transparent;
+  background: @transparent;
   color: @blue;
   animation: rgb 20s linear infinite;
 }

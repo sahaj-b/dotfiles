@@ -7,7 +7,7 @@
     "spacing": 8,
 	"modules-left": ["clock#1", "clock#2", "clock#3", "custom/scratchOutput", "hyprland/submap"],
 	"modules-center": [  "hyprland/workspaces" ],
-	"modules-right": ["custom/music", "custom/audio", "bluetooth", "battery", "custom/dunst", "custom/easyeffects", "tray" ],
+	"modules-right": ["memory","cpu", "custom/music", "custom/audio", "bluetooth", "battery", "custom/dunst", "custom/easyeffects", "tray" ],
 	//"modules-right": ["custom/audio", "bluetooth", "battery", "custom/dunst", "custom/easyeffects", "tray" ],
 
      "hyprland/workspaces":{
@@ -87,7 +87,12 @@
 
 	"memory": {
 		"interval": 5,
-		"format": "  {}%"
+		"format": "  {}%",
+    "states": {
+      "cool": 40,
+      "warning": 70,
+      "critical": 90
+    },
 	},
     "bluetooth": {
     "interval" : 1,
@@ -107,7 +112,11 @@
     "cpu": {
       "interval": 10,
       "format": "  {usage}%",
-      "max-length": 10
+      "states": {
+        "cool": 30,
+        "warning": 70,
+        "critical": 90
+      },
     },
     "battery": {
         "interval":2,
