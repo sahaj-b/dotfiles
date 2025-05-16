@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+# THIS IS MEANT TO BE COPY PASTED TO TERMINAL, TO RUN THE SHELL's time COMMAND, NOT GNU TIME
+echo "binary,size_kb,real_ms"
+for bin in *; do
+  [[ -x "$bin" && ! -d "$bin" ]] || continue
+  size_kb=$(stat -c %s "$bin" | awk '{ printf("%.1f", $1/1024) }')
+  real_ms=$(
+    for _ in $(seq 100); do
+      { time ./"$bin" bench; } 2>&1 | awk '{ print $9 }'
+    done |
+      awk '{ sum+=$1 } END { printf("%.1f", (sum/NR)*1000) }'
+  )
+  echo "$bin,$size_kb,$real_ms"
+done

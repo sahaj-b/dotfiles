@@ -1,5 +1,7 @@
 return {
-
+  {
+    "hiphish/rainbow-delimiters.nvim",
+  },
   {
     "j-hui/fidget.nvim",
     opts = {
@@ -261,8 +263,24 @@ return {
     'windwp/nvim-autopairs',
     event = "InsertEnter",
     opts = {},
-
   },
+  -- {
+  --   'saghen/blink.pairs',
+  --   version = '*',
+  --   dependencies = 'saghen/blink.download',
+  --   opts = {
+  --     highlights = {
+  --       enabled = true,
+  --       groups = {
+  --         '',
+  --         'DiagnosticHint',
+  --         'DiagnosticWarn',
+  --         'DiagnosticOk',
+  --         'DiagnosticError',
+  --       },
+  --     },
+  --   }
+  -- },
   { 'kylechui/nvim-surround', event = "VeryLazy", opts = { keymaps = { visual = "Y" }, }, },
   -- {
   --   "aserowy/tmux.nvim",

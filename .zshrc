@@ -51,6 +51,7 @@ bindkey '^e' end-of-line
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^x^e' edit-command-line
 
+alias gitl="git log --oneline --graph --decorate"
 alias df="duf"
 alias du="dust"
 alias grep="grep --color=always"
@@ -67,7 +68,7 @@ alias todo="glow ~/notes/todo.md"
 alias f="nvim ~/notes/todo.md"
 alias tk="tmux kill-session"
 alias pc="sudo pacman -Syu"
-alias pcn="sudo pacman -Syu --noconfirm"
+alias pcn="sudo pacman -Syu --noconfirm --needed"
 alias ycn="yay -Syu --noconfirm"
 alias nvl='nvim ~/Leetcode/leet.cpp +"lua vim.diagnostic.enable(false)" +"Copilot disable" +":,%d _" +"norm i#include <bits/stdc++.h>" +"norm ousing namespace std;" +"norm o"'
 alias dsaq='nvim ~/notes/tech/dsaq.md +"set nowrap"'
@@ -107,6 +108,12 @@ function lorem () {shuf -n ${1:-100} /usr/share/dict/cracklib-small | tr '\n' ' 
 function ggl () { links www.google.com/search\?q="$*"; }
 function postmanToHttp() { node ~/projects/postman-collection-gen/node.js --names --short -c "$1" | ~/scripts/curlToHttp }
 bindkey -s "^o" "o\n"
+
+function ffss(){
+  # trim video
+  duration=$(ffprobe -i $1 -show_entries format=duration -v quiet -of csv="p=0")
+  ffmpeg -ss $2 -i $1 -t $(( $duration - $3 )) -c copy ${4:-output.mp4}
+}
 
 # yazi file browser
 function y() {

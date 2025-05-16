@@ -36,7 +36,7 @@ return {
         -- javascriptreact = { 'prettier' },
         -- typescriptreact = { 'prettier' },
         css = { 'prettierd' },
-        python = { 'blackd', 'black' },
+        python = { 'ruff' },
         sql = { 'sql_formatter' },
       }
       -- Conform can also run multiple formatters sequentially

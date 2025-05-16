@@ -5,6 +5,20 @@ IGNORE_PATTERNS=(
 )
 
 USER_IGNORES=()
+MAX_FILE_SIZE="800k"
+OUTPUT_FILE=""
+
+show_help() {
+  echo "Usage: $(basename "$0") [OPTIONS]"
+  echo "Generate a context dump of your project files"
+  echo
+  echo "Options:"
+  echo "  -e, --exclude PATTERN    Exclude files/folders matching PATTERN"
+  echo "  -m, --max-size SIZE      Max file size to include (default: 1M)"
+  echo "  -o, --output FILE        Write output to FILE instead of stdout"
+  echo "  -h, --help               Show this help message"
+  exit 0
+}
 
 # parse args
 while [[ "$#" -gt 0 ]]; do
@@ -15,12 +29,33 @@ while [[ "$#" -gt 0 ]]; do
       exit 1
     }
     ;;
+  -m | --max-size)
+    [[ -n "$2" ]] && MAX_FILE_SIZE="$2" && shift 2 || {
+      echo "Error: '$1' needs a size." >&2
+      exit 1
+    }
+    ;;
+  -o | --output)
+    [[ -n "$2" ]] && OUTPUT_FILE="$2" && shift 2 || {
+      echo "Error: '$1' needs a filename." >&2
+      exit 1
+    }
+    ;;
+  -h | --help)
+    show_help
+    ;;
   *)
-    echo "Usage: $(basename "$0") [-e PATTERN]..." >&2
+    echo "Unknown option: $1" >&2
+    echo "Use --help to see available options" >&2
     exit 1
     ;;
   esac
 done
+
+# output redirection
+if [[ -n "$OUTPUT_FILE" ]]; then
+  exec >"$OUTPUT_FILE"
+fi
 
 ALL_IGNORE_PATTERNS=("${IGNORE_PATTERNS[@]}" "${USER_IGNORES[@]}")
 
@@ -55,12 +90,13 @@ if [ ${#ALL_IGNORE_PATTERNS[@]} -gt 0 ]; then
   FIND_ARGS+=(")" "-prune" "-o")
 fi
 
-FIND_ARGS+=("-type" "f" "-print0")
+FIND_ARGS+=("-type" "f" "-size" "-$MAX_FILE_SIZE" "-print0")
 
 # execution
 if [ ${#USER_IGNORES[@]} -gt 0 ]; then
   echo "Excluding files/folders: ${USER_IGNORES[*]}"
 fi
+echo "Max file size: $MAX_FILE_SIZE"
 if [ "$TREE_AVAILABLE" = true ]; then
   echo "--- Workspace Tree ---"
   tree -aF "${TREE_IGNORE_ARGS[@]}"
@@ -71,7 +107,14 @@ fi
 
 while IFS= read -r -d $'\0' file; do
   [[ -z "$file" ]] && continue
-  echo "--- ${file} ---"
-  cat "${file}" 2>/dev/null || echo "[mkcontext: Error reading file '${file}']" >&2
-  echo
+
+  if file "$file" | grep -qEi "binary|media|image"; then
+    echo "--- ${file} (BINARY FILE SKIPPED) ---"
+    continue
+  fi
+
+  # echo "--- ${file} ---"
+  wc -l <"${file}" 2>/dev/null || echo "[mkcontext: Error reading file '${file}']" >&2
+  # cat "${file}" 2>/dev/null || echo "[mkcontext: Error reading file '${file}']" >&2
+  # echo
 done < <(find "${FIND_ARGS[@]}")

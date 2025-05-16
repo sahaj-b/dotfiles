@@ -10,6 +10,7 @@ return {
             }
           }
         },
+        ruff = {},
         bashls = {},
         shellcheck = {},
         pyright = {},
