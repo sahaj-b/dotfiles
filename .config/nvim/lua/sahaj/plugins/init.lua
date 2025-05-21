@@ -1,4 +1,49 @@
 return {
+  -- {
+  --   'MeanderingProgrammer/render-markdown.nvim',
+  --   dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-tree/nvim-web-devicons' },
+  --   ft = { 'markdown' },
+  --   opts = {},
+  -- },
+  {
+    "OXY2DEV/markview.nvim",
+    config = function()
+      require("markview").setup({
+
+        preview = {
+          filetypes = { "markdown", "codecompanion", "Avante" },
+          ignore_buftypes = {},
+          --   enable_hybrid_mode = true,
+          --   hybrid_modes = { "i" },
+          --   ignore_previews = {}
+        },
+        markdown_inline = {
+          checkboxes = {
+            checked = { text = "" },
+            unchecked = { text = "", hl = "Normal", scope_hl = "Normal" },
+            ["/"] = { text = "󰡖" }
+          }
+        },
+        markdown = {
+          list_items = {
+            shift_width = function(buffer, item)
+              local parent_indnet = math.max(1,
+                item.indent - vim.bo[buffer].shiftwidth);
+
+              return (item.indent) * (1 / (parent_indnet * 2));
+            end,
+            marker_minus = {
+              add_padding = function(_, item)
+                return item.indent > 1;
+              end
+            }
+          }
+        },
+        ft = { "markdown", "codecompanion", "avante" },
+        cmd = "Markview"
+      })
+    end,
+  },
   {
     "hiphish/rainbow-delimiters.nvim",
   },
@@ -87,38 +132,6 @@ return {
     config = function()
       require("sahaj.rest-nvim-extract")
     end
-  },
-  {
-    "OXY2DEV/markview.nvim",
-    config = function()
-      require("markview").setup({
-
-        preview = {
-          filetypes = { "markdown", "codecompanion", "Avante" },
-          ignore_buftypes = {},
-          --   enable_hybrid_mode = true,
-          --   hybrid_modes = { "i" },
-          --   ignore_previews = {}
-        },
-        markdown = {
-          list_items = {
-            shift_width = function(buffer, item)
-              local parent_indnet = math.max(1,
-                item.indent - vim.bo[buffer].shiftwidth);
-
-              return (item.indent) * (1 / (parent_indnet * 2));
-            end,
-            marker_minus = {
-              add_padding = function(_, item)
-                return item.indent > 1;
-              end
-            }
-          }
-        },
-        ft = { "markdown", "codecompanion", "avante" },
-        cmd = "Markview"
-      })
-    end,
   },
   {
     "ThePrimeagen/refactoring.nvim",
@@ -291,29 +304,24 @@ return {
   --   }
   -- }
   -- { 'kevinhwang91/nvim-ufo',     dependencies = { 'kevinhwang91/promise-async' }, opts = {} },
-  -- {
-  --   'MeanderingProgrammer/render-markdown.nvim',
-  --   dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-tree/nvim-web-devicons' },
-  --   ft = { 'markdown' },
-  --   opts = {},
-  -- },
-  -- {
-  --   "m4xshen/hardtime.nvim",
-  --   dependencies = { "MunifTanjim/nui.nvim" },
-  --   opts = {
-  --     disable_mouse = false,
-  --     disabled_keys = {
-  --       ["<Up>"] = {},
-  --       ["<Down>"] = {},
-  --       ["<Left>"] = {},
-  --       ["<Right>"] = {},
-  --
-  --     },
-  --     max_time = 400,
-  --     max_count = 6,
-  --
-  --   }
-  -- },
+  {
+    "m4xshen/hardtime.nvim",
+    dependencies = { "MunifTanjim/nui.nvim" },
+    opts = {
+      disable_mouse = false,
+      disabled_keys = {
+        ["<Up>"] = {},
+        ["<Down>"] = {},
+        ["<Left>"] = {},
+        ["<Right>"] = {},
+
+      },
+      -- hint = false,
+      max_time = 400,
+      max_count = 6,
+
+    }
+  },
   -- { 'echasnovski/mini.cursorword', opts = {} },
 
   -- inconsistent

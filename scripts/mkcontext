@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+if ! command -v fd &>/dev/null; then
+  echo "Error: 'fd' command not found"
+fi
+
 IGNORE_PATTERNS=(
   ".git" "node_modules" "__pycache__" "venv" ".venv" "env" ".env" "build" "dist" "target" "out" "debug.log"
 )
@@ -13,8 +17,8 @@ show_help() {
   echo "Generate a context dump of your project files"
   echo
   echo "Options:"
-  echo "  -e, --exclude PATTERN    Exclude files/folders matching PATTERN"
-  echo "  -m, --max-size SIZE      Max file size to include (default: 1M)"
+  echo "  -e, --exclude PATTERN    Exclude files/folders matching PATTERN (can be used multiple times)"
+  echo "  -m, --max-size SIZE      Max file size to include (default: ${MAX_FILE_SIZE})"
   echo "  -o, --output FILE        Write output to FILE instead of stdout"
   echo "  -h, --help               Show this help message"
   exit 0
@@ -24,10 +28,20 @@ show_help() {
 while [[ "$#" -gt 0 ]]; do
   case $1 in
   -e | --exclude)
-    [[ -n "$2" ]] && USER_IGNORES+=("$2") && shift 2 || {
-      echo "Error: '$1' needs a pattern." >&2
+
+    current_flag="$1"
+    shift
+
+    if [[ -z "$1" || "$1" == -* ]]; then
+      echo "Error: Option '$current_flag' requires at least one pattern argument." >&2
       exit 1
-    }
+    fi
+
+    while [[ -n "$1" && "$1" != -* ]]; do
+      USER_IGNORES+=("$1")
+      shift
+    done
+
     ;;
   -m | --max-size)
     [[ -n "$2" ]] && MAX_FILE_SIZE="$2" && shift 2 || {
@@ -65,56 +79,48 @@ TREE_IGNORE_ARGS=()
 if command -v tree &>/dev/null; then
   TREE_AVAILABLE=true
   if [ ${#ALL_IGNORE_PATTERNS[@]} -gt 0 ]; then
-    # Build the -I arg for tree, joining patterns with |
     TREE_IGNORE_PATTERN=$(printf "%s|" "${ALL_IGNORE_PATTERNS[@]}")
     TREE_IGNORE_ARGS=("-I" "${TREE_IGNORE_PATTERN%|}") # Remove trailing |
   fi
 else
-  echo "WARNING: 'tree' command not found. Skipping tree view" >&2
+  echo "WARNING: 'tree' command not found. Skipping tree view." >&2
 fi
 
-# build find cmd
-FIND_ARGS=(".")
+# build fd cmd args
+FD_CMD_ARGS=("--print0" "--type" "f" "--size" "-$MAX_FILE_SIZE")
 
-if [ ${#ALL_IGNORE_PATTERNS[@]} -gt 0 ]; then
-  FIND_ARGS+=("(")
-  first_pattern=true
-  for pattern in "${ALL_IGNORE_PATTERNS[@]}"; do
-    if [ "$first_pattern" = true ]; then
-      FIND_ARGS+=("-name" "$pattern")
-      first_pattern=false
-    else
-      FIND_ARGS+=("-o" "-name" "$pattern")
-    fi
-  done
-  FIND_ARGS+=(")" "-prune" "-o")
-fi
-
-FIND_ARGS+=("-type" "f" "-size" "-$MAX_FILE_SIZE" "-print0")
+for pattern in "${ALL_IGNORE_PATTERNS[@]}"; do
+  FD_CMD_ARGS+=("--exclude" "$pattern")
+done
 
 # execution
 if [ ${#USER_IGNORES[@]} -gt 0 ]; then
   echo "Excluding files/folders: ${USER_IGNORES[*]}"
 fi
-echo "Max file size: $MAX_FILE_SIZE"
+
 if [ "$TREE_AVAILABLE" = true ]; then
   echo "--- Workspace Tree ---"
-  tree -aF "${TREE_IGNORE_ARGS[@]}"
+  tree -aF "${TREE_IGNORE_ARGS[@]}" .
   echo -e "\n\n--- File Contents ---"
 else
   echo "--- File Contents ---"
 fi
 
+FD_EXEC_CMD=("fd")
+FD_EXEC_CMD+=("${FD_CMD_ARGS[@]}")
+FD_EXEC_CMD+=(".")
+
 while IFS= read -r -d $'\0' file; do
   [[ -z "$file" ]] && continue
 
-  if file "$file" | grep -qEi "binary|media|image"; then
-    echo "--- ${file} (BINARY FILE SKIPPED) ---"
+  clean_file="${file#./}"
+
+  if file "$clean_file" | grep -qEi "binary|media|image"; then
+    echo "--- ${clean_file} (BINARY FILE SKIPPED) ---"
     continue
   fi
 
-  # echo "--- ${file} ---"
-  wc -l <"${file}" 2>/dev/null || echo "[mkcontext: Error reading file '${file}']" >&2
-  # cat "${file}" 2>/dev/null || echo "[mkcontext: Error reading file '${file}']" >&2
-  # echo
-done < <(find "${FIND_ARGS[@]}")
+  echo "--- ${clean_file} ---"
+  cat "${clean_file}" 2>/dev/null || echo "[mkcontext: Error reading file '${clean_file}']" >&2
+  echo
+done < <("${FD_EXEC_CMD[@]}")

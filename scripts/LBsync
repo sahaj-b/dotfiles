@@ -97,6 +97,7 @@ dotfiles=(
   "$HOME/.config/waybar/"
   "$HOME/.config/dunst/"
   "$HOME/.config/wofi/"
+  "$HOME/.config/mpv/"
   "$HOME/.config/nvim/"
   "$HOME/.config/yay/config.json"
   "$HOME/.config/gtk-3.0/"
