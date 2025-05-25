@@ -19,7 +19,7 @@ if [[ $1 = db ]]; then
 
 else
   # for leetcode
-  textBoxPos="0.9 0.2"
+  textBoxPos="0.9 0.25"
   if [[ $2 = switch ]]; then
     # switch workspace
     echo "key super+1" | dotoolc

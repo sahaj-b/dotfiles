@@ -170,7 +170,7 @@ return {
   },
   {
     'stevearc/oil.nvim',
-    cmd = "Oil",
+    lazy = false,
     opts = { skip_confirm_for_simple_edits = true },
   },
   { "nvim-pack/nvim-spectre",                  cmd = "Spectre" },
