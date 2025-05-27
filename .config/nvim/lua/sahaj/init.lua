@@ -256,7 +256,7 @@ function foldtext()
   local line = vim.api.nvim_buf_get_lines(0, pos - 1, pos, false)[1]
   return {
     { line .. " " },
-    { " ⋯ ", "FoldIcon" }
+    { " ⋯ ",    "FoldIcon" }
   }
 end
 

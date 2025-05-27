@@ -3,6 +3,7 @@ return {
     'neovim/nvim-lspconfig',
     config = function()
       local servers = {
+        eslintd = {},
         gopls = {
           settings = {
             gopls = {
@@ -19,7 +20,9 @@ return {
         clangd = {
           cmd = {
             "clangd",
+            -- "--style={AllowShortBlocksOnASingleLine: Always, AllowShortIfStatementsOnASingleLine: WithoutElse}"
             -- "--fallback-style=\"{'ColumnLimit': '1000'}\"",
+            -- "--fallback-style={BasedOnStyle: Google, ColumnLimit: 1000, AllowShortBlocksOnASingleLine: Always, AllowShortIfStatementsOnASingleLine: WithoutElse}",
           },
           capabilities = {
             textDocument = {

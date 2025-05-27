@@ -31,12 +31,7 @@ return {
     },
     cmd = { "CodeCompanion", "CodeCompanionChat", "CodeCompanionActions", "CodeCompanionCmd", "CodeCompanionHistory" },
     config = function()
-      -- require("sahaj.plugins.codecompanion.history").setup()
       require("codecompanion").setup {
-        -- history = {
-        --   auto_generate_title = true,                                       -- Generate titles using Groq LLM
-        --   file_path = vim.fn.stdpath("data") .. "/codecompanion_chats.json" -- History storage location
-        -- },
         extensions = {
           history = {
             enabled = true,
@@ -80,9 +75,6 @@ return {
               },
             },
             keymaps = {
-              send = {
-                modes = { i = "<C-Enter>" },
-              },
               toggle_models = {
                 modes = {
                   n = "<leader>ga",
@@ -92,6 +84,7 @@ return {
               },
             },
           },
+          inline = { adapter = "copilot_o3" },
         },
         display = {
           chat = {
@@ -107,7 +100,16 @@ return {
             return require("codecompanion.adapters").extend("copilot", {
               schema = {
                 model = {
-                  default = "gpt-4.1"
+                  default = "claude-sonnet-4"
+                }
+              }
+            })
+          end,
+          copilot_o3 = function()
+            return require("codecompanion.adapters").extend("copilot", {
+              schema = {
+                model = {
+                  default = "o3-mini"
                 }
               }
             })

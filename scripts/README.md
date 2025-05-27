@@ -12,7 +12,7 @@
 | `dualmonitor/`                            | Scripts to configure an external HDMI monitor (for Xorg)                               |
 | `cal.py`                                  | Displays current event from Google Calendar (moved to `.config/waybar/scripts`)        |
 | `fm`                                      | Fzf-based file browser for quick navigation                                            |
-| `LBSync`                                  | Backs up dotfiles to another partition and pushes them to GitHub                      |
+| `dotsync`                                  | Backs up dotfiles to another folder/partition and pushes them to GitHub                      |
 | `mouseSim` / `mouse.cpp`                  | Simulates mouse using keyboard shortcuts                                               |
 | `startScratch`                            | Toggles scratchpad terminal (hyprland)                                                 |
 | `stopwatch`, `countdown`                  | Timers                                                                                 |

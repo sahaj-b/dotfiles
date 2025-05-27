@@ -3,6 +3,41 @@
 dotfiles_dir="/home/sahaj/LinuxBackup/dotfiles/"
 data_dir="/media/data/Linux_Backup/dotfiles/"
 
+dotfiles=(
+  "/etc/keyd/default.conf"
+  "/etc/tlp.conf"
+  "/etc/auto-cpufreq.conf"
+  "/etc/systemd/system/powermgmt.service"
+  "/etc/systemd/system/fix-mic.service"
+  # "/etc/udev/rules.d/90-power.rules"
+  "$HOME/.clang_format"
+  "$HOME/scripts/"
+  "$HOME/.gitconfig"
+  "$HOME/.zshrc"
+  "$HOME/.zprofile"
+  "$HOME/.config/hypr/"
+  "$HOME/.config/swaylock/config"
+  "$HOME/.config/waybar/"
+  "$HOME/.config/dunst/"
+  "$HOME/.config/wofi/"
+  "$HOME/.config/mpv/"
+  "$HOME/.config/nvim/"
+  "$HOME/.config/yay/config.json"
+  "$HOME/.config/gtk-3.0/"
+  "$HOME/.config/gtk-4.0/"
+  "$HOME/.config/easyeffects/"
+  # "$HOME/.config/alacritty/alacritty.toml"
+  "$HOME/.config/dconf/"
+  "$HOME/.config/tmux/tmux.conf"
+  "$HOME/.config/foot/"
+  "$HOME/.config/starship/"
+  "$HOME/.config/btop/"
+  "$HOME/.config/mimeapps.list"
+  "$HOME/wallpapers/"
+  "$HOME/.config/mods/"
+  "$HOME/.config/mcphub/"
+)
+
 # --- helpers ---
 
 GREEN='\e[32m'
@@ -80,40 +115,6 @@ fi
 
 echo
 spinnerRun "git rm -rf . >/dev/null" "Nuking $dotfiles_dir" "💥 Nuked $dotfiles_dir" "Git rm failed"
-
-dotfiles=(
-  "/etc/keyd/default.conf"
-  "/etc/tlp.conf"
-  "/etc/auto-cpufreq.conf"
-  "/etc/systemd/system/powermgmt.service"
-  "/etc/systemd/system/fix-mic.service"
-  # "/etc/udev/rules.d/90-power.rules"
-  "$HOME/scripts/"
-  "$HOME/.gitconfig"
-  "$HOME/.zshrc"
-  "$HOME/.zprofile"
-  "$HOME/.config/hypr/"
-  "$HOME/.config/swaylock/config"
-  "$HOME/.config/waybar/"
-  "$HOME/.config/dunst/"
-  "$HOME/.config/wofi/"
-  "$HOME/.config/mpv/"
-  "$HOME/.config/nvim/"
-  "$HOME/.config/yay/config.json"
-  "$HOME/.config/gtk-3.0/"
-  "$HOME/.config/gtk-4.0/"
-  "$HOME/.config/easyeffects/"
-  # "$HOME/.config/alacritty/alacritty.toml"
-  "$HOME/.config/dconf/"
-  "$HOME/.config/tmux/tmux.conf"
-  "$HOME/.config/foot/"
-  "$HOME/.config/starship/"
-  "$HOME/.config/btop/"
-  "$HOME/.config/mimeapps.list"
-  "$HOME/wallpapers/"
-  "$HOME/.config/mods/"
-  "$HOME/.config/mcphub/"
-)
 
 function push() {
   git add .

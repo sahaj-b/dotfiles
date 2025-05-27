@@ -158,7 +158,11 @@ vim.api.nvim_create_autocmd("FileType", {
   end
 })
 
---plugins-keymaps
+
+-- macros
+vim.fn.setreg("t", [[_f"ý5r`ý5f"ý5r`ý5a}hF`ý5i{]]) -- JS/TS: convert to template string
+
+--Plugins keymaps
 
 -- CodeCompanion
 map({ 'n', 'v' }, "<leader>aa", "<cmd>CodeCompanionActions<cr>")
