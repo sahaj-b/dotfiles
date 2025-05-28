@@ -136,7 +136,8 @@ end
 if vim.g.started_by_firenvim == true then
   Opaque()
 else
-  Transparent()
+  Opaque()
+  -- Transparent()
 end
 
 vim.api.nvim_create_autocmd({ 'UIEnter' }, {
@@ -256,7 +257,7 @@ function foldtext()
   local line = vim.api.nvim_buf_get_lines(0, pos - 1, pos, false)[1]
   return {
     { line .. " " },
-    { " ⋯ ",    "FoldIcon" }
+    { " ⋯ ", "FoldIcon" }
   }
 end
 

@@ -295,14 +295,14 @@ return {
   --   }
   -- },
   { 'kylechui/nvim-surround', event = "VeryLazy", opts = { keymaps = { visual = "Y" }, }, },
-  -- {
-  --   "aserowy/tmux.nvim",
-  --   opts = {
-  --     copy_sync = {
-  --       enable = false
-  --     },
-  --   }
-  -- }
+  {
+    "aserowy/tmux.nvim",
+    opts = {
+      copy_sync = {
+        enable = false
+      },
+    }
+  },
   -- { 'kevinhwang91/nvim-ufo',     dependencies = { 'kevinhwang91/promise-async' }, opts = {} },
   {
     "m4xshen/hardtime.nvim",

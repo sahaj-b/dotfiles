@@ -46,7 +46,7 @@ return function(chat)
   local make_display = function(entry)
     local model_name = entry.name
     local expense_text = " " .. entry.expense
-    local model_highlight = "Normal"
+    local model_highlight = "None"
 
     if entry.name == current_model then
       model_highlight = curr_highlight

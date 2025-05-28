@@ -10,7 +10,7 @@ dotfiles=(
   "/etc/systemd/system/powermgmt.service"
   "/etc/systemd/system/fix-mic.service"
   # "/etc/udev/rules.d/90-power.rules"
-  "$HOME/.clang_format"
+  "$HOME/.clang-format"
   "$HOME/scripts/"
   "$HOME/.gitconfig"
   "$HOME/.zshrc"

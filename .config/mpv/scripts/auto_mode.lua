@@ -71,10 +71,10 @@ end
 
 -- binding configuration
 
--- audio_mode_bindings = {
---   { "Left",  function() mp.command("seek -10") end, "repeatable" }, -- make audio mode seek length longer than video mode seek length
---   { "Right", function() mp.command("seek  10") end, "repeatable" }, -- make audio mode seek length longer than video mode seek length
--- }
+audio_mode_bindings = {
+  --   { "Left",  function() mp.command("seek -10") end, "repeatable" }, -- make audio mode seek length longer than video mode seek length
+  --   { "Right", function() mp.command("seek  10") end, "repeatable" }, -- make audio mode seek length longer than video mode seek length
+}
 
 image_mode_bindings = {
   { "UP",         function() mp.command("no-osd add video-pan-y -0.02") end,                     "repeatable" }, -- move image up
