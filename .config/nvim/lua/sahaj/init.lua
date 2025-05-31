@@ -171,8 +171,10 @@ function CopilotToCodeium()
   }
 end
 
+-- OPTIONS ---
 -- vim.g.codeium_enabled = false
 -- vim.opt.cmdheight = 0
+vim.o.shada = "!,'500,<50,s10,h"
 vim.g.blink_cmp = true
 vim.opt.showmode = false
 vim.opt.breakindent = true

@@ -3,7 +3,16 @@ return {
   --   'MeanderingProgrammer/render-markdown.nvim',
   --   dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-tree/nvim-web-devicons' },
   --   ft = { 'markdown' },
-  --   opts = {},
+  --   opts = {
+  --     anti_conceal = {
+  --       enabled = false,
+  --     },
+  --     win_options = {
+  --       concealcursor = {
+  --         rendered = 'n',
+  --       },
+  --     }
+  --   },
   -- },
   {
     "OXY2DEV/markview.nvim",
@@ -26,17 +35,12 @@ return {
         },
         markdown = {
           list_items = {
-            shift_width = function(buffer, item)
-              local parent_indnet = math.max(1,
-                item.indent - vim.bo[buffer].shiftwidth);
-
-              return (item.indent) * (1 / (parent_indnet * 2));
-            end,
-            marker_minus = {
-              add_padding = function(_, item)
-                return item.indent > 1;
-              end
-            }
+            shift_width = 0,
+            marker_minus = { add_padding = false },
+            marker_plus = { add_padding = false },
+            marker_star = { add_padding = false },
+            marker_dot = { add_padding = false },
+            marker_parenthesis = { add_padding = false },
           }
         },
         ft = { "markdown", "codecompanion", "avante" },

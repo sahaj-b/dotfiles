@@ -51,6 +51,7 @@ bindkey '^e' end-of-line
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^x^e' edit-command-line
 
+alias brr="git add -A; git commit -m 'IDGAF'; git push --force"
 alias mpvo="eza --no-quotes *.mp4 | mpv --playlist=- "
 alias xo="xdg-open"
 alias gitl="git log --oneline --graph --decorate"

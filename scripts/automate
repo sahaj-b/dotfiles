@@ -1,6 +1,32 @@
 #!/bin/env bash
+if [[ $1 = "yt" ]]; then
+  # for inverting youtube video
+  echo "$('video').style.filter = 'invert(1)'" | wl-copy
+  echo 'key super+space' | dotoolc # chromium console open
+  sleep 0.1
+  # echo 'key ctrl+r' | dotoolc
+  # sleep 2.5
+  # echo 'key space' | dotoolc
+  # sleep 0.3
+  echo 'key ctrl+shift+j' | dotoolc
+  sleep 1.5
+  echo 'key ctrl+v' | dotoolc
+  sleep 0.1
+  echo 'key enter' | dotoolc
+  sleep 0.1
+  echo 'key ctrl+shift+j' | dotoolc
 
-if [[ $1 = db ]]; then
+elif [[ $1 = pdf ]]; then
+  # for inverting pdf
+  echo "document.getElementsByTagName('embed')[0].style.filter = 'invert(1)'" | wl-copy
+  echo "key super+space" | dotoolc
+  echo "key ctrl+shift+j" | dotoolc
+  sleep 0.5
+  echo "key ctrl+v" | dotoolc
+  echo "key enter" | dotoolc
+  echo "key ctrl+shift+j" | dotoolc
+
+elif [[ $1 = db ]]; then
   # for dbdiagram.io
   textBoxPos="0.2 0.2"
   echo "key super+space" | dotoolc

@@ -28,6 +28,7 @@ return {
         c = { 'clangd' },
         sh = { 'shfmt' },
         json = { 'prettierd' },
+        jsonc = { 'prettierd' },
         javascript = { 'prettierd' },
         typescript = { 'prettierd' },
         html = { 'prettierd' },

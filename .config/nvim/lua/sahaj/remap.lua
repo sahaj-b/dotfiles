@@ -21,12 +21,12 @@ map("n", "<leader>to", "<cmd>lua Opaque()<CR>", { silent = true })
 
 map("n", "<leader>q", 'cs"`ysa`}')
 
-map('n', '<leader>w', ':silent! noautocmd w<CR>', { noremap = true, silent = true })
+map('n', '<leader><leader>w', ':silent! noautocmd w<CR>', { noremap = true, silent = true })
 
 map("x", "Q", "<cmd>norm @q<CR>")
 map("n", "Q", "@q")
 
-map("n", "<leader>s", "<cmd>w<CR>")
+map("n", "<leader>w", "<cmd>w<CR>")
 -- map("n", "<leader>s", function() vim.api.nvim_command('write') end)
 
 --windows
@@ -236,38 +236,38 @@ map("n", "<leader>cmd", "<cmd>lua require('cmp').setup.buffer { enabled = false 
 map("n", "<leader>cme", "<cmd>lua require('cmp').setup.buffer { enabled = true }<CR>")
 
 -- telescope
-map("n", "<leader>fh", "<cmd>Telescope help_tags<cr>", { desc = "File Browser" })
-map("n", "<leader>ff", "<cmd>Telescope find_files<cr>", { desc = "Fuzzy find files in cwd" })
-map("n", "<leader>fo", "<cmd>Telescope oldfiles<cr>", { desc = "Fuzzy find recent files" })
-map("n", "<leader>frs", "<cmd>Telescope live_grep<cr>", { desc = "Find string in cwd (regex)" })
-map("n", "<leader>mg", function() require("sahaj.multigrep").setup() end, { desc = "Find string in cwd" })
-map("n", "<leader>fzs", "<cmd>Telescope grep_string search=<cr>", { desc = "Find string in cwd (regex)" })
-map("n", "<leader>fs",
+map("n", "<leader>sh", "<cmd>Telescope help_tags<cr>", { desc = "File Browser" })
+map("n", "<leader>sf", "<cmd>Telescope find_files<cr>", { desc = "Fuzzy find files in cwd" })
+map("n", "<leader>so", "<cmd>Telescope oldfiles<cr>", { desc = "Fuzzy find recent files" })
+map("n", "<leader>srs", "<cmd>Telescope live_grep<cr>", { desc = "Search string in cwd (regex)" })
+map("n", "<leader>smg", function() require("sahaj.multigrep").setup() end, { desc = "Search string in cwd" })
+map("n", "<leader>szs", "<cmd>Telescope grep_string search=<cr>", { desc = "Search string in cwd (regex)" })
+map("n", "<leader>ss",
   function() require("telescope.builtin").live_grep({ additional_args = "--fixed-string" }) end,
-  { desc = "Find string in cwd" })
-map("n", "<leader>fb", "<cmd>Telescope buffers<cr>", { desc = "Show open buffers" })
-map("n", "<leader>gc", "<cmd>Telescope git_commits<cr>", { desc = "Show git commits" })
-map("n", "<leader>gfc", "<cmd>Telescope git_bcommits<cr>", { desc = "Show git commits for current buffer" })
+  { desc = "Search string in cwd" })
+map("n", "<leader>sb", "<cmd>Telescope buffers<cr>", { desc = "Show open buffers" })
+map("n", "<leader>gac", "<cmd>Telescope git_commits<cr>", { desc = "Show git commits" })
+map("n", "<leader>gc", "<cmd>Telescope git_bcommits<cr>", { desc = "Show git commits for current buffer" })
 map("n", "<leader>gb", "<cmd>Telescope git_branches<cr>", { desc = "Show git branches" })
 map("n", "<leader>gs", "<cmd>Telescope git_status<cr>", { desc = "Show current git changes per file" })
-map("n", "<leader>ft", "<cmd>Telescope<cr>", { desc = "Open Telescope options" })
-map("n", "<leader>fr", "<cmd>Telescope lsp_references<cr>", { desc = "Find lsp references" })
-map("n", "<leader>fw", "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", { desc = "Find workspace symbols" })
+map("n", "<leader>st", "<cmd>Telescope<cr>", { desc = "Open Telescope options" })
+-- map("n", "<leader>sr", "<cmd>Telescope lsp_references<cr>", { desc = "Search lsp references" })
+-- map("n", "<leader>sw", "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", { desc = "Search workspace symbols" })
 
-map('n', '<leader>fps', function()
+map('n', '<leader>sps', function()
     require("telescope.builtin").grep_string({ search = vim.fn.input("Grep > ") });
   end,
-  { desc = "Find string, then filter with path" })
+  { desc = "Search string, then filter with path" })
 
-map('n', '<leader>fc', function()
+map('n', '<leader>sc', function()
     require("telescope.builtin").find_files({ cwd = require("telescope.utils").buffer_dir() });
   end,
-  { desc = "Find files in buffer cwd" })
+  { desc = "Search files in buffer cwd" })
 
-map('n', '<leader>fn', function()
+map('n', '<leader>sn', function()
     require("telescope.builtin").find_files({ cwd = "~/.config/nvim/" });
   end,
-  { desc = "Find files in neovim config" })
+  { desc = "Search files in neovim config" })
 
 
 -- Conform
