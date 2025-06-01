@@ -51,7 +51,6 @@ bindkey '^e' end-of-line
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^x^e' edit-command-line
 
-alias brr="git add -A; git commit -m 'IDGAF'; git push --force"
 alias mpvo="eza --no-quotes *.mp4 | mpv --playlist=- "
 alias xo="xdg-open"
 alias gitl="git log --oneline --graph --decorate"
@@ -60,7 +59,6 @@ alias du="dust"
 alias grep="grep --color=auto"
 alias o="nvim +'Telescope oldfiles'"
 alias bp="sudo l2ping -s 200"
-alias dark="echo 'key super+space'|dotoolc; sleep 0.1;echo 'key ctrl+r'|dotoolc; sleep 2.5; echo 'key space'|dotoolc;sleep 0.3; echo 'key ctrl+shift+k'|dotoolc; sleep 1.5; echo 'key up' | dotoolc; sleep 0.1; echo 'key enter' | dotoolc; sleep 0.1; echo 'key f12'|dotoolc; pkill dotoold; dotoold&disown"
 alias neofetch="fastfetch"
 alias ls='eza --no-quotes -a --icons --group-directories-first'
 alias nv='nvim'
@@ -69,10 +67,8 @@ alias nvsu='sudoedit'
 alias cpcmd='fc -nl -1 | wl-copy'
 alias todo="glow ~/notes/todo.md"
 alias f="nvim ~/notes/todo.md"
-alias tk="tmux kill-session"
 alias pc="sudo pacman -Syu"
 alias pcn="sudo pacman -Syu --noconfirm --needed"
-alias ycn="yay -Syu --noconfirm"
 alias nvl='nvim ~/Leetcode/leet.cpp +"lua vim.diagnostic.enable(false)" +"Copilot disable" +":,%d _" +"norm i#include <bits/stdc++.h>" +"norm ousing namespace std;" +"norm o"'
 alias dsaq='nvim ~/notes/dsa/dsaq.md +"set nowrap"'
 alias nvn='cd ~/notes && nv -c "norm -"; cd -'
@@ -80,7 +76,7 @@ alias notesync='cd ~/notes && git add . && git commit -m "notes backup" && git p
 alias pymath='python3 -ic "from math import *"'
 alias ts="~/scripts/tmux-sessionizer"
 alias dblur="hyprctl keyword decoration:blur:enabled false, decoration:shadow:enabled false"
-alias h="harsh"
+# alias h="harsh"
 alias tp="trash-put"
 # alias rm="echo hell naw bro"
 alias dunstHist="dunstctl history | jq '.data[0][] | .summary.data + \": \" + .body.data' -r"
@@ -89,6 +85,7 @@ alias scratch="hyprctl dispatch exec '[workspace special:term silent] foot -a sc
 alias oscratch="hyprctl dispatch exec '[workspace special:term silent] foot -o colors.alpha=1 -a scratch -e tmux new-session -A -s scratch' & disown; exit"
 alias vibes='~/wayvibes/main ~/Downloads/creamy -v 5 > /dev/null 2>&1 &'
 alias unimatrix='unimatrix -n -s 96 -l o'
+# disable lappy keeb
 alias dk='line=$(sed -n "3p" /etc/keyd/default.conf); if [[ $line == \#* ]]; then sudo sed -i "3s/^#//" /etc/keyd/default.conf; else sudo sed -i "3s/^/#/" /etc/keyd/default.conf; fi; sudo keyd reload'
 alias cmdbrowse="ls $(echo $PATH | tr ':' ' ') | grep -v '/' | grep . | fzf --preview 'whereis {};tldr {}' --layout=reverse --bind 'enter:execute( tldr {} | less)';"
 alias packbrowse="pacman -Qq | fzf --preview 'pacman -Qil {}' --layout=reverse --bind 'enter:execute(pacman -Qil {} | less)'" 
@@ -97,21 +94,24 @@ alias shToHttp="node ~/projects/multiple-curl-to-postman/index.js --file"
 alias randgen="tr -dc a-z1-4 </dev/urandom | tr 1-2 ' \n' | awk 'length==0 || length>50' | tr 3-4 ' ' | sed 's/^ *//' | cat -s | fmt | head"
 alias gs="git status"
 alias fm="source fm"
+alias duration="ffprobe -show_entries format=duration -v quiet -of csv='p=0' -i"
+
+# bros
+alias gpt='mods -m gpt-4.1'
+alias gpto='mods -m gpt-4o'
+alias pro='mods -m 2.5-pro'
+alias flash='mods -m 2.5-flash'
+alias flas='mods -m 2.0-flash'
+alias lite='mods -m 2.0-flash-lite'
 alias gcs="gh copilot suggest -t shell"
 alias gce="gh copilot explain"
 alias gits="gh copilot suggest -t git"
-
-function gpt () { mods -m gpt-4.1 $* }
-function g4o () { mods -m gpt-4o $* }
-function flash () { mods -m 2.5-flash $* }
-function pro () { mods -m 2.5-pro $* }
-function lite () { mods -m 2.0-flash-lite $* }
-function flas () { mods -m 2.0-flash $* }
 
 function lorem () {shuf -n ${1:-100} /usr/share/dict/cracklib-small | tr '\n' ' ' | fmt }
 function ggl () { links www.google.com/search\?q="$*"; }
 function postmanToHttp() { node ~/projects/postman-collection-gen/node.js --names --short -c "$1" | ~/scripts/curlToHttp }
 bindkey -s "^o" "o\n"
+
 
 function ffss(){
   # trim video

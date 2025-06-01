@@ -4,17 +4,17 @@ current_dir="."
 
 while true; do
   selection=$( (
-    eza --no-quotes -a --color=always --group-directories-first "$current_dir"
+    eza --no-quotes -aa --color=always --group-directories-first "$current_dir"
     echo -e "\e[1;33mSEARCH-ALL\e[0m"
   ) |
     fzf --ansi --preview "\
         if [ -f '$current_dir'/{} ]; then
-            bat --theme="Dracula" --color=always --decorations=never '$current_dir'/{};
+            bat --theme='Dracula' --color=always --decorations=never '$current_dir'/{};
         else
-            eza --no-quotes -a --color=always --group-directories-first '$current_dir'/{};
+            eza --no-quotes -a --color=always --group-directories-first -1 '$current_dir'/{};
             fi" \
       --layout=reverse \
-      --bind="left:pos(2)+accept,right:accept,ctrl-d:execute-silent(mv {} ~/Trash),ctrl-alt-d:execute(sudo mv {} ~/Trash)"" \
+      --bind="left:pos(2)+accept,right:accept,ctrl-d:execute-silent(mv '$current_dir/{}' ~/Trash),ctrl-alt-d:execute(sudo mv '$current_dir/{}' ~/Trash),ctrl-o:execute(xdg-open '$current_dir/{}')" \
       --query "'")
 
   if [[ "$selection" == "." ]]; then
