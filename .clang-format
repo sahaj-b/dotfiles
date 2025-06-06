@@ -1,2 +1,2 @@
 ColumnLimit: 90
-AllowShortIfStatementsOnASingleLine: Always
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse

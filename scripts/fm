@@ -14,7 +14,7 @@ while true; do
             eza --no-quotes -a --color=always --group-directories-first -1 '$current_dir'/{};
             fi" \
       --layout=reverse \
-      --bind="left:pos(2)+accept,right:accept,ctrl-d:execute-silent(mv '$current_dir/{}' ~/Trash),ctrl-alt-d:execute(sudo mv '$current_dir/{}' ~/Trash),ctrl-o:execute(xdg-open '$current_dir/{}')" \
+      --bind="left:pos(2)+accept,right:accept,ctrl-d:execute(mv $current_dir/{} ~/Trash),ctrl-alt-d:execute(sudo mv $current_dir/{} ~/Trash),ctrl-o:execute(xdg-open '$current_dir/{}')" \
       --query "'")
 
   if [[ "$selection" == "." ]]; then

@@ -17,7 +17,7 @@ if [[ $1 = "yt" ]]; then
   echo 'key ctrl+shift+j' | dotoolc
 
 elif [[ $1 = pdf ]]; then
-  # for inverting pdf
+  # for inverting pdf colors
   echo "document.getElementsByTagName('embed')[0].style.filter = 'invert(1)'" | wl-copy
   echo "key super+space" | dotoolc
   echo "key ctrl+shift+j" | dotoolc

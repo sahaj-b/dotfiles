@@ -219,12 +219,13 @@ map("n", "gd", "<cmd>Telescope lsp_definitions<cr>", { desc = "[G]oto [D]efiniti
 map("n", "gr", "<cmd>Telescope lsp_references<cr>", { desc = "[G]oto [R]eferences" })
 map("n", "gI", "<cmd>Telescope lsp_implementations<cr>", { desc = "[G]oto [I]mplementation" })
 map("n", "gt", "<cmd>Telescope lsp_type_definitions<cr>", { desc = "Type [D]efinition" })
-map("n", "gs", "<cmd>Telescope lsp_document_symbols<cr>", { desc = "[D]ocument [S]ymbols" })
-map("n", "gS", "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", { desc = '[W]orkspace [S]ymbols' })
+-- map("n", "gS", "<cmd>Telescope lsp_document_symbols<cr>", { desc = "[D]ocument [S]ymbols" })
+-- map("n", "gs", "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", { desc = '[W]orkspace [S]ymbols' })
 map("n", "<leader>ca", vim.lsp.buf.code_action, { desc = "[C]ode [A]ction" })
 map("n", "K", vim.lsp.buf.hover, { desc = "Hover Documentation" })
 map("n", 'gD', vim.lsp.buf.declaration, { desc = '[G]oto [D]eclaration' })
-map("n", "gd", "<cmd>lua vim.lsp.buf.definition()<CR>")
+
+-- map("n", "gd", "<cmd>lua vim.lsp.buf.definition()<CR>")
 map("i", "<C-t>", "<Cmd>lua vim.lsp.buf.signature_help()<CR>")
 map("n", "]d", "<cmd>lua vim.diagnostic.goto_next()<CR>")
 map("n", "[d", "<cmd>lua vim.diagnostic.goto_prev()<CR>")
@@ -252,7 +253,7 @@ map("n", "<leader>gb", "<cmd>Telescope git_branches<cr>", { desc = "Show git bra
 map("n", "<leader>gs", "<cmd>Telescope git_status<cr>", { desc = "Show current git changes per file" })
 map("n", "<leader>st", "<cmd>Telescope<cr>", { desc = "Open Telescope options" })
 -- map("n", "<leader>sr", "<cmd>Telescope lsp_references<cr>", { desc = "Search lsp references" })
--- map("n", "<leader>sw", "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", { desc = "Search workspace symbols" })
+map("n", "<leader>sw", "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", { desc = "Search workspace symbols" })
 
 map('n', '<leader>sps', function()
     require("telescope.builtin").grep_string({ search = vim.fn.input("Grep > ") });

@@ -141,6 +141,15 @@ x-scheme-handler/mmsh=mpv.desktop
 x-scheme-handler/rtmp=mpv.desktop
 x-scheme-handler/rtp=mpv.desktop
 x-scheme-handler/rtsp=mpv.desktop
+image/png=org.xfce.ristretto.desktop
+image/gif=org.xfce.ristretto.desktop
+image/jpeg=org.xfce.ristretto.desktop
+image/bmp=org.xfce.ristretto.desktop
+image/x-pixmap=org.xfce.ristretto.desktop
+image/tiff=org.xfce.ristretto.desktop
+image/svg+xml=org.xfce.ristretto.desktop
+image/x-xpixmap=org.xfce.ristretto.desktop
+image/webp=org.xfce.ristretto.desktop
 
 [Added Associations]
 x-scheme-handler/http=brave-browser.desktop;
