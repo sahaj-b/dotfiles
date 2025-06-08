@@ -84,7 +84,7 @@ return {
               },
             },
           },
-          inline = { adapter = "copilot_o3" },
+          inline = { adapter = "copilot" },
         },
         display = {
           chat = {
