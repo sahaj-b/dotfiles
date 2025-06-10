@@ -175,7 +175,7 @@ return {
   {
     'stevearc/oil.nvim',
     lazy = false,
-    opts = { skip_confirm_for_simple_edits = true },
+    opts = { skip_confirm_for_simple_edits = true, delete_to_trash = true },
   },
   { "nvim-pack/nvim-spectre",                  cmd = "Spectre" },
   {
@@ -321,8 +321,8 @@ return {
 
       },
       -- hint = false,
-      max_time = 400,
-      max_count = 6,
+      max_time = 150,
+      max_count = 8,
 
     }
   },

@@ -77,7 +77,7 @@ return {
             keymaps = {
               toggle_models = {
                 modes = {
-                  n = "<leader>ga",
+                  n = "<leader>gm",
                 },
                 callback = require("sahaj.plugins.codecompanion.model_picker"),
                 description = "Change models",

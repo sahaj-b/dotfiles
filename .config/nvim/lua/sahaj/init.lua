@@ -254,16 +254,17 @@ vim.opt.foldcolumn = "0"
 vim.opt.fillchars = "fold: ,foldopen:,foldsep:│,foldclose:"
 
 
-function foldtext()
-  local pos = vim.v.foldstart
-  local line = vim.api.nvim_buf_get_lines(0, pos - 1, pos, false)[1]
-  return {
-    { line .. " " },
-    { " ⋯ ", "FoldIcon" }
-  }
-end
+-- function foldtext()
+--   local pos = vim.v.foldstart
+--   local line = vim.api.nvim_buf_get_lines(0, pos - 1, pos, false)[1]
+--   return {
+--     { line .. " " },
+--     { " ⋯ ", "FoldIcon" }
+--   }
+-- end
 
-vim.opt.foldtext = "v:lua.foldtext()"
+-- vim.opt.foldtext = "v:lua.foldtext()"
+require("sahaj.foldtext")
 
 local cmp_enabled = true
 vim.api.nvim_create_user_command("ToggleAutoComplete", function()

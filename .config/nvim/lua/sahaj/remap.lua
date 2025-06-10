@@ -69,12 +69,12 @@ map("n", "<C-o>", "<ESC>o<ESC>")
 map("n", "<C-E>", "<C-O>", { noremap = true })
 
 -- search and replace on recently c insert if forgot to search
-map("n", "g.", '/\\V\\C<C-r>"<CR>cgn<C-a><Esc>')
+map("n", "g.", '/\\V\\C<C-r>z<CR>cgn<C-a><Esc>')
 map({ "n", "x" }, "<leader>d", '"_d')
 map({ "n", "x" }, "<leader>D", '"_D')
 map({ "n" }, "S", '"_S')
-map({ "n", "x" }, "c", '"_c')
-map({ "n", "x" }, "C", '"_C')
+map({ "n", "x" }, "c", '"zc')
+map({ "n", "x" }, "C", '"zC')
 
 map("v", "y", "y`>")
 map("v", "/", "<esc>/\\%V")
@@ -215,6 +215,7 @@ vim.api.nvim_create_autocmd('LspAttach', {
   end,
 })
 
+-- lsp
 map("n", "gd", "<cmd>Telescope lsp_definitions<cr>", { desc = "[G]oto [D]efinition" })
 map("n", "gr", "<cmd>Telescope lsp_references<cr>", { desc = "[G]oto [R]eferences" })
 map("n", "gI", "<cmd>Telescope lsp_implementations<cr>", { desc = "[G]oto [I]mplementation" })
@@ -237,15 +238,16 @@ map("n", "<leader>cmd", "<cmd>lua require('cmp').setup.buffer { enabled = false 
 map("n", "<leader>cme", "<cmd>lua require('cmp').setup.buffer { enabled = true }<CR>")
 
 -- telescope
+map("n", "<leader>sr", "<cmd>Telescope resume<cr>", { desc = "File Browser" })
 map("n", "<leader>sh", "<cmd>Telescope help_tags<cr>", { desc = "File Browser" })
 map("n", "<leader>sf", "<cmd>Telescope find_files<cr>", { desc = "Fuzzy find files in cwd" })
 map("n", "<leader>so", "<cmd>Telescope oldfiles<cr>", { desc = "Fuzzy find recent files" })
-map("n", "<leader>srs", "<cmd>Telescope live_grep<cr>", { desc = "Search string in cwd (regex)" })
-map("n", "<leader>smg", function() require("sahaj.multigrep").setup() end, { desc = "Search string in cwd" })
-map("n", "<leader>szs", "<cmd>Telescope grep_string search=<cr>", { desc = "Search string in cwd (regex)" })
+map("n", "<leader>sg", "<cmd>Telescope live_grep<cr>", { desc = "Search string in cwd (regex)" })
+map("n", "<leader>su", "<cmd>Telescope grep_string search=<cr>", { desc = "Search string in cwd (regex)" })
 map("n", "<leader>ss",
-  function() require("telescope.builtin").live_grep({ additional_args = "--fixed-string" }) end,
+  function() require("telescope.builtin").live_grep({ additional_args = { "-F" } }) end,
   { desc = "Search string in cwd" })
+map("n", "<leader>sw", "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", { desc = "Search workspace symbols" })
 map("n", "<leader>sb", "<cmd>Telescope buffers<cr>", { desc = "Show open buffers" })
 map("n", "<leader>gac", "<cmd>Telescope git_commits<cr>", { desc = "Show git commits" })
 map("n", "<leader>gc", "<cmd>Telescope git_bcommits<cr>", { desc = "Show git commits for current buffer" })
@@ -253,7 +255,6 @@ map("n", "<leader>gb", "<cmd>Telescope git_branches<cr>", { desc = "Show git bra
 map("n", "<leader>gs", "<cmd>Telescope git_status<cr>", { desc = "Show current git changes per file" })
 map("n", "<leader>st", "<cmd>Telescope<cr>", { desc = "Open Telescope options" })
 -- map("n", "<leader>sr", "<cmd>Telescope lsp_references<cr>", { desc = "Search lsp references" })
-map("n", "<leader>sw", "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", { desc = "Search workspace symbols" })
 
 map('n', '<leader>sps', function()
     require("telescope.builtin").grep_string({ search = vim.fn.input("Grep > ") });

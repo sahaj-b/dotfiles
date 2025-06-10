@@ -17,6 +17,7 @@ return {
         ['<C-u>'] = { 'scroll_documentation_up', 'show_documentation', 'fallback' },
         ['<C-d>'] = { 'scroll_documentation_down', 'show_documentation', 'fallback' },
       },
+      completion = { documentation = { auto_show = true } },
       appearance = { nerd_font_variant = 'mono' },
       signature = { enabled = true, trigger = { show_on_trigger_character = false, show_on_insert_on_trigger_character = false }, window = { show_documentation = false } },
     },

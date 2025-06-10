@@ -1,4 +1,4 @@
--- Overcomplicated Asynchrounous and cached folding text with treesitter syntax highlighting, but it works
+-- Overengineered Asynchrounous and cached folding text with treesitter syntax highlighting, but it works
 -- Global cache table: for each buffer, cache results per fold start line.
 local foldtext_cache = {}
 
@@ -57,7 +57,7 @@ local function update_foldtext_async(bufnr, pos)
       local text = compute_foldtext(bufnr, pos)
       foldtext_cache[bufnr] = foldtext_cache[bufnr] or {}
       foldtext_cache[bufnr][pos] = text
-      vim.cmd("redraw")
+      vim.cmd("redraw!")
     end)
     timer:stop()
     timer:close()

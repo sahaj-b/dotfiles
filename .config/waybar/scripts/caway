@@ -84,7 +84,7 @@ clean_create_pipe $playerctl_waybar_pipe
 
 # playerctl output into playerctl_waybar_pipe
 # playerctl -a metadata --format '{"text": "{{artist}} - {{title}}", "tooltip": "{{playerName}} : {{markup_escape(artist)}} - {{markup_escape(title)}}", "alt": "{{status}}", "class": "{{status}}"}' -F >$playerctl_waybar_pipe &
-playerctl -p 'spotify' metadata --format '{"text": "{{title}}", "tooltip": "{{playerName}} : {{markup_escape(artist)}} - {{markup_escape(title)}}", "alt": "{{status}}", "class": "{{status}}"}' -F >$playerctl_waybar_pipe &
+playerctl -p 'spotify, %any' metadata --format '{"text": "{{title}}", "tooltip": "{{playerName}} : {{markup_escape(artist)}} - {{markup_escape(title)}}", "alt": "{{status}}", "class": "{{status}}"}' -F >$playerctl_waybar_pipe &
 
 # Read the playerctl o/p via its fifo pipe
 while read -r line; do

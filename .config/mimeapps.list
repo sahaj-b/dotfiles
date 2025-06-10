@@ -150,6 +150,7 @@ image/tiff=org.xfce.ristretto.desktop
 image/svg+xml=org.xfce.ristretto.desktop
 image/x-xpixmap=org.xfce.ristretto.desktop
 image/webp=org.xfce.ristretto.desktop
+x-scheme-handler/mailto=brave-browser.desktop
 
 [Added Associations]
 x-scheme-handler/http=brave-browser.desktop;
