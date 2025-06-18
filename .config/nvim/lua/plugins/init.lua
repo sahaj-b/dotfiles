@@ -1,53 +1,61 @@
 return {
-  -- {
-  --   'MeanderingProgrammer/render-markdown.nvim',
-  --   dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-tree/nvim-web-devicons' },
-  --   ft = { 'markdown' },
-  --   opts = {
-  --     anti_conceal = {
-  --       enabled = false,
-  --     },
-  --     win_options = {
-  --       concealcursor = {
-  --         rendered = 'n',
-  --       },
-  --     }
-  --   },
-  -- },
+  { "https://github.com/tpope/vim-abolish" },
   {
-    "OXY2DEV/markview.nvim",
-    config = function()
-      require("markview").setup({
-
-        preview = {
-          filetypes = { "markdown", "codecompanion", "Avante" },
-          ignore_buftypes = {},
-          --   enable_hybrid_mode = true,
-          --   hybrid_modes = { "i" },
-          --   ignore_previews = {}
+    'MeanderingProgrammer/render-markdown.nvim',
+    dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-tree/nvim-web-devicons' },
+    ft = { 'markdown', 'codecompanion', 'Avante' },
+    opts = {
+      anti_conceal = {
+        enabled = false,
+      },
+      win_options = {
+        conceallevel = {
+          rendered = 2,
         },
-        markdown_inline = {
-          checkboxes = {
-            checked = { text = "" },
-            unchecked = { text = "", hl = "Normal", scope_hl = "Normal" },
-            ["/"] = { text = "󰡖" }
-          }
+        concealcursor = {
+          rendered = 'n',
         },
-        markdown = {
-          list_items = {
-            shift_width = 0,
-            marker_minus = { add_padding = false },
-            marker_plus = { add_padding = false },
-            marker_star = { add_padding = false },
-            marker_dot = { add_padding = false },
-            marker_parenthesis = { add_padding = false },
-          }
-        },
-        ft = { "markdown", "codecompanion", "avante" },
-        cmd = "Markview"
-      })
-    end,
+      }
+    },
   },
+  -- {
+  --   "OXY2DEV/markview.nvim",
+  --   config = function()
+  --     require("markview").setup({
+  --       highlight_groups = {
+  --         -- Customize the highlight group used for bold text
+  --         -- You may need to identify which specific group is used for bold
+  --         MarkviewPalette1Fg = { fg = "#ff6b6b", bold = true },
+  --       },
+  --       preview = {
+  --         filetypes = { "markdown", "codecompanion", "Avante" },
+  --         ignore_buftypes = {},
+  --         --   enable_hybrid_mode = true,
+  --         --   hybrid_modes = { "i" },
+  --         --   ignore_previews = {}
+  --       },
+  --       markdown_inline = {
+  --         checkboxes = {
+  --           checked = { text = "" },
+  --           unchecked = { text = "", hl = "Normal", scope_hl = "Normal" },
+  --           ["/"] = { text = "󰡖" }
+  --         }
+  --       },
+  --       markdown = {
+  --         list_items = {
+  --           shift_width = 0,
+  --           marker_minus = { add_padding = false },
+  --           marker_plus = { add_padding = false },
+  --           marker_star = { add_padding = false },
+  --           marker_dot = { add_padding = false },
+  --           marker_parenthesis = { add_padding = false },
+  --         }
+  --       },
+  --       ft = { "markdown", "codecompanion", "avante" },
+  --       cmd = "Markview"
+  --     })
+  --   end,
+  -- },
   {
     "hiphish/rainbow-delimiters.nvim",
   },
@@ -113,8 +121,8 @@ return {
   --   dependencies = { "nvim-lua/plenary.nvim" },
   --   opts = {}
   -- },
-  { "williamboman/mason.nvim",  opts = {},                          cmd = "Mason" },
-  { 'glacambre/firenvim',       build = ":call firenvim#install(0)" },
+  { "williamboman/mason.nvim",             opts = {},                          cmd = "Mason" },
+  { 'glacambre/firenvim',                  build = ":call firenvim#install(0)" },
   {
     "folke/lazydev.nvim",
     ft = "lua",
@@ -134,7 +142,7 @@ return {
     "rest-nvim/rest.nvim",
     ft = { "http" },
     config = function()
-      require("sahaj.rest-nvim-extract")
+      require("rest-nvim-extract")
     end
   },
   {
@@ -206,9 +214,9 @@ return {
     opts = {}
   },
 
-  "mg979/vim-visual-multi",
-  { 'nvim-telescope/telescope-ui-select.nvim' },
-  { 'wakatime/vim-wakatime',                  lazy = false },
+  { "mg979/vim-visual-multi" },
+
+  { 'wakatime/vim-wakatime', lazy = false },
   {
     "dhruvasagar/vim-table-mode",
     keys = { "<leader>tt", },
@@ -272,11 +280,6 @@ return {
   { "mbbill/undotree" },
   { "catppuccin/nvim", name = "catppuccin", priority = 1000, opts = { integrations = { blink_cmp = true, fidget = true, } } },
   {
-    'nvim-telescope/telescope-fzf-native.nvim',
-    build =
-    'cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build',
-  },
-  {
     'windwp/nvim-autopairs',
     event = "InsertEnter",
     opts = {},
@@ -307,7 +310,19 @@ return {
       },
     }
   },
-  -- { 'kevinhwang91/nvim-ufo',     dependencies = { 'kevinhwang91/promise-async' }, opts = {} },
+  {
+    'kevinhwang91/nvim-ufo',
+    dependencies = { 'kevinhwang91/promise-async' },
+    opts = {
+      close_fold_kinds_for_ft = {
+        default = {} -- don't auto close any folds
+      },
+      open_fold_hl_timeout = 90,
+      provider_selector = function()
+        return { 'treesitter', 'indent' }
+      end
+    }
+  },
   {
     "m4xshen/hardtime.nvim",
     dependencies = { "MunifTanjim/nui.nvim" },
@@ -370,16 +385,6 @@ return {
   --       { expr = true, silent = true })
   --     vim.keymap.set('i', '<C-x>', function() return vim.fn['codeium#Clear']() end,
   --       { expr = true, silent = true })
-  --   end
-  -- },
-  -- {
-  --   'numToStr/Comment.nvim',
-  --   event = { "BufReadPre", "BufNewFile" },
-  --   config = function()
-  --     require('Comment').setup {
-  --       toggler = { line = '<leader>/', },
-  --       opleader = { line = '<leader>/', }
-  --     }
   --   end
   -- },
 }

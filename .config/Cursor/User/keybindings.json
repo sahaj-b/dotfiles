@@ -1,0 +1,205 @@
+[
+	{
+		"key": "ctrl+u",
+		"command": "runCommands",
+		"args": {
+			"commands": [
+				{
+					"command": "vscode-neovim.send",
+					"args": "<C-u>"
+				},
+				{
+					"command": "editorScroll",
+					"args": {
+						"to": "up",
+						"by": "halfPage"
+					}
+				}
+			]
+		},
+		"when": "editorTextFocus"
+	},
+	{
+		"key": "ctrl+d",
+		"command": "runCommands",
+		"args": {
+			"commands": [
+				{
+					"command": "vscode-neovim.send",
+					"args": "<C-d>"
+				},
+				{
+					"command": "editorScroll",
+					"args": {
+						"to": "down",
+						"by": "halfPage"
+					}
+				}
+			]
+		},
+		"when": "editorTextFocus"
+	},
+	{
+		"key": "alt-h",
+		"command": "workbench.action.navigateLeft"
+	},
+	{
+		"key": "alt-l",
+		"command": "workbench.action.navigateRight"
+	},
+	{
+		"key": "alt-j",
+		"command": "workbench.action.navigateDown"
+	},
+	{
+		"key": "alt-k",
+		"command": "workbench.action.navigateUp"
+	},
+	{
+		"key": "ctrl+w h",
+		"command": "workbench.action.navigateLeft"
+	},
+	{
+		"key": "ctrl+w l",
+		"command": "workbench.action.navigateRight"
+	},
+	{
+		"key": "ctrl+w j",
+		"command": "workbench.action.navigateDown"
+	},
+	{
+		"key": "ctrl+w left",
+		"command": "workbench.action.navigateLeft"
+	},
+	{
+		"key": "ctrl+w right",
+		"command": "workbench.action.navigateRight"
+	},
+	{
+		"key": "ctrl+w down",
+		"command": "workbench.action.navigateDown"
+	},
+	{
+		"key": "ctrl+w up",
+		"command": "workbench.action.navigateUp"
+	},
+	{
+		"key": "ctrl+w ctrl+w",
+		"command": "workbench.action.closeActiveEditor",
+	},
+	{
+		"key": "ctrl+w w",
+		"command": "workbench.action.closeActiveEditor",
+	},
+	{
+		"key": "ctrl+e",
+		"command": "vscode-neovim.send",
+		"args": "<C-e>",
+		"when": "editorTextFocus && neovim.init && neovim.mode != insert"
+	},
+	{
+		"key": "ctrl+n",
+		"command": "vscode-neovim.send",
+		"args": "<C-n>",
+		"when": "editorTextFocus && neovim.init && neovim.mode != insert"
+	},
+	{
+		"key": "ctrl+shift+c",
+		"command": "workbench.action.toggleAuxiliaryBar"
+	},
+	{
+		"key": "ctrl+b",
+		"command": "workbench.action.toggleSidebarVisibility"
+	},
+	{
+		"key": "u",
+		"command": "undo",
+		"when": "editorTextFocus && neovim.init && neovim.mode == normal"
+	},
+	{
+		"key": "ctrl+r",
+		"command": "redo",
+		"when": "editorTextFocus && neovim.init && neovim.mode == normal"
+	},
+	{
+		"key": "o",
+		"command": "explorer.newFile",
+		"when": "filesExplorerFocus && foldersViewVisible && !explorerResourceIsRoot && !explorerResourceReadonly && !inputFocus"
+	},
+	{
+		"key": "ctrl+v",
+		"command": "explorer.openToSide",
+		"when": "filesExplorerFocus && foldersViewVisible && !explorerResourceIsRoot && !explorerResourceReadonly && !inputFocus"
+	},
+	{
+		"key": "ctrl+alt+c",
+		"command": "notifications.clearAll"
+	},
+	{
+		"key": "ctrl+space",
+		"command": "acceptSelectedSuggestion",
+		"when": "suggestWidgetHasFocusedSuggestion && suggestWidgetVisible && textInputFocus"
+	},
+	{
+		"key": "tab",
+		"command": "-acceptSelectedSuggestion",
+		"when": "suggestWidgetHasFocusedSuggestion && suggestWidgetVisible && textInputFocus"
+	},
+	{
+		"key": "shift+m",
+		"command": "workbench.action.quickOpenPreviousRecentlyUsedEditorInGroup",
+		"when": "!activeEditorGroupEmpty && editorTextFocus && neovim.init && neovim.mode != insert"
+	},
+	{
+		"key": "ctrl+shift+enter",
+		"command": "workbench.action.terminal.openNativeConsole"
+	},
+	{
+		"key": "ctrl+e",
+		"command": "-composer.showBackgroundAgentHistory",
+		"when": "backgroundComposerEnabled || showBackgroundAgentHistoryAction"
+	},
+	{
+		"key": "ctrl+e",
+		"command": "-workbench.action.quickOpen"
+	},
+	{
+		"key": "ctrl+e",
+		"command": "hideSuggestWidget",
+		"when": "suggestWidgetHasFocusedSuggestion && suggestWidgetVisible && textInputFocus"
+	},
+	{
+		"key": "ctrl+e",
+		"command": "workbench.action.navigateBack",
+		"when": "editorTextFocus && neovim.init && neovim.mode != insert"
+	},
+	{
+		"key": "ctrl+i",
+		"command": "workbench.action.navigateForward",
+		"when": "editortextfocus && neovim.init && neovim.mode != insert"
+	},
+	{
+		"key": "ctrl+i",
+		"command": "-composer.startComposerPrompt"
+	},
+	{
+		"key": "h",
+		"command": "editor.action.scrollLeftHover",
+		"when": "editorHoverFocused"
+	},
+	{
+		"key": "j",
+		"command": "editor.action.scrollDownHover",
+		"when": "editorHoverFocused"
+	},
+	{
+		"key": "k",
+		"command": "editor.action.scrollUpHover",
+		"when": "editorHoverFocused"
+	},
+	{
+		"key": "l",
+		"command": "editor.action.scrollRightHover",
+		"when": "editorHoverFocused"
+	}
+]

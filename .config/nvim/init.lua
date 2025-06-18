@@ -1,2 +1,1 @@
--- vim.loader.enable()
-require("sahaj")
+require(".")

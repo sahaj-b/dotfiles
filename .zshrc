@@ -21,7 +21,7 @@ stty stop undef
 # Enable colors and change prompt:
 autoload -U colors && colors
 PS1="%F{cyan}%1~ %F{magenta}%B❯ %f%b"
-PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:~/scripts:~/scripts/pen:/sbin/:~/.local/bin:~/.cargo/bin
+PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:~/scripts:~/scripts/pen:/sbin/:~/.local/bin:~/.cargo/bin:~/.local/share/pnpm/
 
 # History
 HISTSIZE=10000
@@ -51,13 +51,15 @@ bindkey '^e' end-of-line
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^x^e' edit-command-line
 
+alias tok="fd -t d | xargs -I{} sh -c 'printf \"\n\x1b[36m{}\x1b[0m\n\"; tokei {}| grep -v = | tail -n +2'"
+alias scrntime="scrntime -s 2"
 alias mpvo="eza --no-quotes *.mp4 | mpv --playlist=- "
 alias xo="xdg-open"
 alias gitl="git log --oneline --graph --decorate"
 alias df="duf"
 alias du="dust"
 alias grep="grep --color=auto"
-alias o="nvim +'Telescope oldfiles'"
+alias o="nvim +'Telescope frecency'"
 alias bp="sudo l2ping -s 200"
 alias neofetch="fastfetch"
 alias ls='eza --no-quotes -a --icons --group-directories-first'
@@ -171,3 +173,9 @@ case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
+export FZF_DEFAULT_OPTS="--bind 'ctrl-u:preview-page-up,ctrl-d:preview-page-down' \
+--color=bg+:#313244,bg:#1E1E2E,spinner:#F5E0DC,hl:#F38BA8 \
+--color=fg:#CDD6F4,header:#F38BA8,info:#CBA6F7,pointer:#F5E0DC \
+--color=marker:#B4BEFE,fg+:#CDD6F4,prompt:#CBA6F7,hl+:#F38BA8 \
+--color=selected-bg:#45475A \
+--color=border:#313244,label:#CDD6F4"

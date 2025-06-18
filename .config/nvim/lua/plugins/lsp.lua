@@ -3,7 +3,8 @@ return {
     'neovim/nvim-lspconfig',
     config = function()
       local servers = {
-        eslintd = {},
+        jsonls = {},
+        biome = {},
         gopls = {
           settings = {
             gopls = {
@@ -75,6 +76,5 @@ return {
         }
       })
     end,
-  }
-  ,
+  },
 }

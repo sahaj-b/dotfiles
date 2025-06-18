@@ -22,6 +22,11 @@ dotfiles=(
   "$HOME/.config/wofi/"
   "$HOME/.config/mpv/"
   "$HOME/.config/nvim/"
+  # i had to do this :(
+  "$HOME/.config/Code/User/keybindings.json"
+  "$HOME/.config/Code/User/settings.json"
+  "$HOME/.config/Cursor/User/keybindings.json"
+  "$HOME/.config/Cursor/User/settings.json"
   "$HOME/.config/yay/config.json"
   "$HOME/.config/gtk-3.0/"
   "$HOME/.config/gtk-4.0/"

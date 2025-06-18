@@ -1,5 +1,6 @@
--- require("sahaj.startup")
-require("sahaj.remap")
+-- require("startup")
+require("remap")
+require("options")
 
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
@@ -18,11 +19,28 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
-require("lazy").setup({
-  { import = "sahaj.plugins" }, }, {
-  checker = { enabled = true, notify = false, },
-  change_detection = { notify = false, },
+if vim.g.vscode then
+  require("lazy").setup({
+    { import = "vscode-plugins" }, }, {
+    checker = { enabled = true, notify = false, },
+    change_detection = { notify = false, },
+  })
+else
+  require("lazy").setup({
+    { import = "plugins" }, }, {
+    checker = { enabled = true, notify = false, },
+    change_detection = { notify = false, },
+  })
+end
+
+vim.api.nvim_create_autocmd("TextYankPost", {
+  group = vim.api.nvim_create_augroup("highlight_yank", { clear = true }),
+  callback = function()
+    vim.highlight.on_yank({ higroup = "Search", timeout = 150 })
+  end,
 })
+
+if vim.g.vscode then return end
 
 vim.cmd [[colorscheme catppuccin
 hi! link BlinkCmpDoc BlinkCmpMenu
@@ -65,7 +83,7 @@ hi LineNr guifg=#6c7086
   hi IblScope guifg=#585b70
   hi TabLineSel guibg=#a6e3a1 guifg=#11111b
   hi TabLine  guifg=#cdd6f4
-  hi FoldIcon guifg=#181825 guibg=#cba6f7 gui=bold
+  hi UfoFoldedEllipsis guifg=#181825 guibg=#cba6f7 gui=bold
   ]]
 
   -- reload indent-blankline highlight
@@ -88,7 +106,7 @@ function Opaque()
   " hi CursorLineNr guibg=#181825
   hi LineNr guifg=#6c7086
   hi Folded guibg=none
-  hi FoldIcon guifg=#cba6f7 guibg=#432d5d gui=bold
+  hi UfoFoldedEllipsis guifg=#cba6f7 guibg=#432d5d gui=bold
   hi IblScope guifg=#585b70
   hi TabLineSel guibg=#a6e3a1 guifg=#11111b
   hi TabLine  guifg=#cdd6f4
@@ -130,7 +148,7 @@ function Opaque()
   -- })
 end
 
--- vim.api.nvim_set_hl(0, 'FoldIcon', { fg = "#afb4f9", bg = "#2a2b3d", bold = true })
+-- vim.api.nvim_set_hl(0, 'UfoFoldedEllipsis', { fg = "#afb4f9", bg = "#2a2b3d", bold = true })
 
 -- firenvim
 if vim.g.started_by_firenvim == true then
@@ -171,101 +189,6 @@ function CopilotToCodeium()
   }
 end
 
--- OPTIONS ---
--- vim.g.codeium_enabled = false
--- vim.opt.cmdheight = 0
-vim.o.shada = "!,'500,<50,s10,h"
-vim.g.blink_cmp = true
-vim.opt.showmode = false
-vim.opt.breakindent = true
-vim.opt.signcolumn = 'auto'
-vim.g.tailwindSortOnSave = true
-vim.opt.guicursor = {
-  "n-v-c:block-Cursor",
-  "i-ci-ve:ver25-Cursor",
-  "r-cr:hor20-Cursor",
-  "o:hor50-Cursor",
-}
-
-vim.g.tailwindSortOnSave = true
--- vim.g.codecompanion_auto_tool_mode = true
-
-vim.o.laststatus = 3
-vim.opt.conceallevel = 2
--- vim.opt.concealcursor = 'nc'
-vim.opt.magic = false
-
-vim.opt.inccommand = 'split'
-
-vim.opt.mouse = 'a'
-
-vim.opt.nu = true
-vim.opt.rnu = true
-
-vim.opt.tabstop = 2
-vim.opt.softtabstop = 2
-vim.opt.shiftwidth = 2
-vim.opt.expandtab = true
-
-vim.opt.splitright = true
-vim.opt.splitbelow = true
-
-vim.opt.smartindent = true
-
--- vim.opt.wrap = false
-vim.opt.hlsearch = false
-
-vim.opt.swapfile = false
-vim.opt.backup = false
-vim.opt.undodir = os.getenv("HOME") .. "/.vim/undodir"
-vim.opt.undofile = true
-
-vim.opt.incsearch = true
-
-vim.opt.termguicolors = true
-
-vim.opt.scrolloff = 8
-vim.opt.signcolumn = "yes"
-vim.opt.isfname:append("@-@")
-
-vim.opt.updatetime = 500
-
--- vim.opt.autoindent = true
-
-vim.opt.ignorecase = true
-vim.opt.smartcase = true
-
-vim.opt.cursorline = true
-
-vim.opt.clipboard:append("unnamedplus")
--- vim.opt.iskeyword:append("-")
-
-vim.opt.nrformats:append("unsigned")
-
--- folds
-vim.opt.foldmethod = "expr"
-vim.opt.foldexpr = "nvim_treesitter#foldexpr()"
-vim.opt.foldenable = true
-vim.opt.foldlevel = 1
-vim.opt.foldlevelstart = 99
-vim.opt.foldnestmax = 4
-vim.opt.foldminlines = 1
-vim.opt.foldcolumn = "0"
-vim.opt.fillchars = "fold: ,foldopen:,foldsep:│,foldclose:"
-
-
--- function foldtext()
---   local pos = vim.v.foldstart
---   local line = vim.api.nvim_buf_get_lines(0, pos - 1, pos, false)[1]
---   return {
---     { line .. " " },
---     { " ⋯ ", "FoldIcon" }
---   }
--- end
-
--- vim.opt.foldtext = "v:lua.foldtext()"
-require("sahaj.foldtext")
-
 local cmp_enabled = true
 vim.api.nvim_create_user_command("ToggleAutoComplete", function()
   if cmp_enabled then
@@ -288,34 +211,6 @@ vim.filetype.add({
     ["%.env%.[%w_.-]+"] = "dotenv",
   },
 })
--- -- Status Column for folding
--- local fcs = vim.opt.fillchars:get()
--- local function get_fold(lnum)
---   if vim.fn.foldlevel(lnum) <= vim.fn.foldlevel(lnum - 1) then return ' ' end
---   local fold_sym = vim.fn.foldclosed(lnum) == -1 and fcs.foldopen or fcs.foldclose
---   return fold_sym
--- end
--- _G.get_statuscol = function()
---   return "%s%l " .. get_fold(vim.v.lnum) .. " "
--- end
--- vim.o.statuscolumn = "%!v:lua.get_statuscol()"
-
--- vim.api.nvim_create_autocmd("QuickFixCmdPost", {
---   callback = function()
---     vim.cmd([[Trouble qflist open]])
---   end,
--- })
-
--- vim.api.nvim_create_autocmd("RecordingEnter", {
---   callback = function()
---     vim.opt.cmdheight = 1
---   end,
--- })
--- vim.api.nvim_create_autocmd("RecordingLeave", {
---   allback = function()
---     vim.opt.cmdheight = 0
---   end,
--- })
 
 vim.api.nvim_create_autocmd("BufEnter", {
   callback = function()
@@ -323,12 +218,7 @@ vim.api.nvim_create_autocmd("BufEnter", {
   end,
   desc = "Disable Commenting on New Line",
 })
-vim.api.nvim_create_autocmd("TextYankPost", {
-  group = vim.api.nvim_create_augroup("highlight_yank", { clear = true }),
-  callback = function()
-    vim.highlight.on_yank({ higroup = "Search", timeout = 150 })
-  end,
-})
+
 vim.api.nvim_create_autocmd("BufWritePre", {
   pattern = "*.jsx,*.tsx",
   group = vim.api.nvim_create_augroup("TailwindSortSync", { clear = true }),
@@ -413,28 +303,4 @@ vim.api.nvim_create_autocmd("FileType", {
   end,
 })
 
--- local view_group = augroup("auto_view", { clear = true })
--- autocmd({ "BufWinLeave", "BufWritePost", "WinLeave" }, {
---   desc = "Save view with mkview for real files",
---   group = view_group,
---   callback = function(args)
---     if vim.b[args.buf].view_activated then vim.cmd.mkview { mods = { emsg_silent = true } } end
---   end,
--- })
--- autocmd("BufWinEnter", {
---   desc = "Try to load file view if available and enable view saving for real files",
---   group = view_group,
---   callback = function(args)
---     if not vim.b[args.buf].view_activated then
---       local filetype = vim.api.nvim_get_option_value("filetype", { buf = args.buf })
---       local buftype = vim.api.nvim_get_option_value("buftype", { buf = args.buf })
---       local ignore_filetypes = { "gitcommit", "gitrebase", "svg", "hgcommit" }
---       if buftype == "" and filetype and filetype ~= "" and not vim.tbl_contains(ignore_filetypes, filetype) then
---         vim.b[args.buf].view_activated = true
---         vim.cmd.loadview { mods = { emsg_silent = true } }
---       end
---     end
---   end,
--- })
---
--- require("sahaj.rest-nvim-extract")
+-- require("rest-nvim-extract")

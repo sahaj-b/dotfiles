@@ -12,8 +12,11 @@ map("n", "<leader>/", "gcc", { remap = true })
 map("v", "<leader>/", "gc", { remap = true })
 map("x", "p", "P")
 
-map("n", "zM", "<cmd>%foldc<CR>", { silent = true })
-map("n", "<leader>zm", "<cmd>%foldc!<CR>", { silent = true })
+local closeLevel = require("close-fold-level")
+map("n", "<leader>zm", "<cmd>%foldc<CR>", { silent = true }) -- close level 1
+map("n", "z2", function()
+  closeLevel(2)
+end, { silent = true, desc = "Close folds till level 2" })
 
 map("n", "<leader>lt", "<cmd>!xdg-open https://leetcode.com/problems/<cword><CR>")
 map("n", "<leader>tr", "<cmd>lua Transparent()<CR>", { silent = true })
@@ -27,7 +30,6 @@ map("x", "Q", "<cmd>norm @q<CR>")
 map("n", "Q", "@q")
 
 map("n", "<leader>w", "<cmd>w<CR>")
--- map("n", "<leader>s", function() vim.api.nvim_command('write') end)
 
 --windows
 map("n", "<M-h>", "<C-w>h")
@@ -66,7 +68,7 @@ map("n", "N", "Nzzzv")
 -- map("i", "<C-o>", "<ESC>o")
 map("n", "<C-o>", "<ESC>o<ESC>")
 
-map("n", "<C-E>", "<C-O>", { noremap = true })
+map("n", "<C-e>", "<C-o>", { noremap = true })
 
 -- search and replace on recently c insert if forgot to search
 map("n", "g.", '/\\V\\C<C-r>z<CR>cgn<C-a><Esc>')
@@ -175,12 +177,31 @@ map('ca', "cch", "CodeCompanionHistory")
 -- map("n", "<leader><leader>d", "<cmd>DiffviewToggle<CR>")
 
 -- Oil.nvim
--- open preview pane by default
+map('n', '<C-b>', function()
+  local oil = require('oil')
+  if vim.bo.filetype == "oil" then
+    oil.close()
+    return
+  end
+
+  oil.open()
+
+  -- Wait until oil has opened, max 1 sec, then open preview
+  vim.wait(1000, function()
+    return oil.get_cursor_entry() ~= nil
+  end)
+  if oil.get_cursor_entry() then
+    oil.open_preview()
+    vim.defer_fn(function()
+      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("20<C-w><", true, false, true), "n", true)
+    end, 50)
+  end
+end)
 map('n', '-', function()
   local oil = require('oil')
   oil.open()
 
-  -- Wait until oil has opened, for a maximum of 1 second.
+  -- Wait until oil has opened, max 1 sec, then open preview
   vim.wait(1000, function()
     return oil.get_cursor_entry() ~= nil
   end)
@@ -222,7 +243,7 @@ map("n", "gI", "<cmd>Telescope lsp_implementations<cr>", { desc = "[G]oto [I]mpl
 map("n", "gt", "<cmd>Telescope lsp_type_definitions<cr>", { desc = "Type [D]efinition" })
 -- map("n", "gS", "<cmd>Telescope lsp_document_symbols<cr>", { desc = "[D]ocument [S]ymbols" })
 -- map("n", "gs", "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", { desc = '[W]orkspace [S]ymbols' })
-map("n", "<leader>ca", vim.lsp.buf.code_action, { desc = "[C]ode [A]ction" })
+-- map("n", "<leader>ca", vim.lsp.buf.code_action, { desc = "[C]ode [A]ction" })
 map("n", "K", vim.lsp.buf.hover, { desc = "Hover Documentation" })
 map("n", 'gD', vim.lsp.buf.declaration, { desc = '[G]oto [D]eclaration' })
 
@@ -238,15 +259,89 @@ map("n", "<leader>cmd", "<cmd>lua require('cmp').setup.buffer { enabled = false 
 map("n", "<leader>cme", "<cmd>lua require('cmp').setup.buffer { enabled = true }<CR>")
 
 -- telescope
+-- {
+-- 	"key": "-",
+-- 	"command": "runCommands",
+-- 	"args": {
+-- 		"commands": [
+-- 			"workbench.action.toggleSidebarVisibility",
+-- 			"workbench.files.action.focusFilesExplorer"
+-- 		]
+-- 	},
+-- 	"when": "vim.mode == 'Normal' && (editorTextFocus || !inputFocus) && !sideBarFocus"
+-- },
+-- {
+-- 	"key": "shift-k",
+-- 	"command": "editor.action.showHover",
+-- 	"when": "vim.mode == 'Normal' && editorTextFocus"
+-- },
+-- {
+-- 	"key": "ctrl+c",
+-- 	"command": "workbench.action.toggleSidebarVisibility",
+-- 	"when": "sideBarFocus"
+-- },
+-- {
+-- 	"key": "shift+j",
+-- 	"command": "editor.action.moveLinesDownAction",
+-- 	"when": "vim.mode == 'VisualLine' && editorTextFocus"
+-- },
+-- {
+-- 	"key": "shift+k",
+-- 	"command": "editor.action.moveLinesUpAction",
+-- 	"when": "vim.mode == 'VisualLine' && editorTextFocus"
+-- },
+--
+-- {
+-- 	"key": "space /",
+-- 	"command": "editor.action.commentLine",
+-- 	"when": "vim.mode == 'Normal' && editorTextFocus"
+-- },
+--
+-- // Telescope type shi
+-- {
+-- 	"key": "space s f",
+-- 	"command": "workbench.action.quickOpen",
+-- 	"when": "vim.mode == 'Normal' && (editorTextFocus || !inputFocus)"
+-- },
+-- {
+-- 	"key": "space s o",
+-- 	"command": "workbench.action.openRecent",
+-- 	"when": "vim.mode == 'Normal' && (editorTextFocus || !inputFocus)"
+-- },
+-- {
+-- 	"key": "space s s",
+-- 	"command": "workbench.action.findInFiles",
+-- 	"when": "vim.mode == 'Normal' && (editorTextFocus || !inputFocus)"
+-- },
+-- {
+-- 	"key": "leader s t",
+-- 	"command": "workbench.action.showCommands",
+-- 	"when": "vim.mode == 'Normal' && (editorTextFocus || !inputFocus)"
+-- },
+-- {
+-- 	"key": "space s b",
+-- 	"command": "workbench.action.showAllEditors",
+-- 	"when": "vim.mode == 'Normal' && (editorTextFocus || !inputFocus)"
+-- },
+-- {
+-- 	"key": "space g d t",
+-- 	"command": "problems.action.showHideProblems",
+-- 	"when": "vim.mode == 'Normal' && editorTextFocus"
+-- },
+-- {
+-- 	"key": "space f m",
+-- 	"command": "editor.action.formatDocument",
+-- 	"when": "vim.mode == 'Normal' && editorTextFocus"
+-- },
+
 map("n", "<leader>sr", "<cmd>Telescope resume<cr>", { desc = "File Browser" })
 map("n", "<leader>sh", "<cmd>Telescope help_tags<cr>", { desc = "File Browser" })
-map("n", "<leader>sf", "<cmd>Telescope find_files<cr>", { desc = "Fuzzy find files in cwd" })
-map("n", "<leader>so", "<cmd>Telescope oldfiles<cr>", { desc = "Fuzzy find recent files" })
+-- map("n", "<leader>sf", "<cmd>Telescope find_files<cr>", { desc = "Fuzzy find files in cwd" })
+map('n', '<leader>sf', "<cmd>Telescope frecency workspace=CWD<cr>", { desc = "Search files in buffer cwd" })
+map("n", "<leader><leader>so", "<cmd>Telescope oldfiles<cr>", { desc = "Fuzzy find recent files" })
+map("n", "<leader>so", "<cmd>Telescope frecency<cr>", { desc = "Fuzzy find recent files" })
 map("n", "<leader>sg", "<cmd>Telescope live_grep<cr>", { desc = "Search string in cwd (regex)" })
 map("n", "<leader>su", "<cmd>Telescope grep_string search=<cr>", { desc = "Search string in cwd (regex)" })
-map("n", "<leader>ss",
-  function() require("telescope.builtin").live_grep({ additional_args = { "-F" } }) end,
-  { desc = "Search string in cwd" })
 map("n", "<leader>sw", "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", { desc = "Search workspace symbols" })
 map("n", "<leader>sb", "<cmd>Telescope buffers<cr>", { desc = "Show open buffers" })
 map("n", "<leader>gac", "<cmd>Telescope git_commits<cr>", { desc = "Show git commits" })
@@ -255,6 +350,12 @@ map("n", "<leader>gb", "<cmd>Telescope git_branches<cr>", { desc = "Show git bra
 map("n", "<leader>gs", "<cmd>Telescope git_status<cr>", { desc = "Show current git changes per file" })
 map("n", "<leader>st", "<cmd>Telescope<cr>", { desc = "Open Telescope options" })
 -- map("n", "<leader>sr", "<cmd>Telescope lsp_references<cr>", { desc = "Search lsp references" })
+
+-- map("n", "<leader>ss",
+--   function() require("telescope.builtin").live_grep({ additional_args = { "-F" } }) end,
+--   { desc = "Search string in cwd" })
+map("n", "<leader>ss", function() require("multigrep").setup() end,
+  { desc = "Find string in cwd with file filter" })
 
 map('n', '<leader>sps', function()
     require("telescope.builtin").grep_string({ search = vim.fn.input("Grep > ") });
@@ -265,6 +366,7 @@ map('n', '<leader>sc', function()
     require("telescope.builtin").find_files({ cwd = require("telescope.utils").buffer_dir() });
   end,
   { desc = "Search files in buffer cwd" })
+
 
 map('n', '<leader>sn', function()
     require("telescope.builtin").find_files({ cwd = "~/.config/nvim/" });
@@ -278,12 +380,9 @@ map("n", "<leader>ct", "<cmd>ConformToggle<CR>", { desc = "Toggle Format on save
 map("n", "<leader>cb", "<cmd>ConformToggle!<CR>", { desc = "Toggle Format on save in current buffer" })
 map("n", "<leader>ts",
   function()
-    local conform = require("conform")
-    conform.formatters.prettier = { prepend_args = { "--plugin=prettier-plugin-tailwindcss" } }
-    conform.format({ formatters = { "prettier" } })
-    conform.formatters.prettier = { prepend_args = {} }
+    require("conform").format({ formatters = { "biome-tailwind" } })
   end,
-  { desc = "sorts Tailwind classes (prettier plugin)" }
+  { desc = "Sorts Tailwind classes" }
 )
 
 -- automate
@@ -367,3 +466,7 @@ map("n", "<leader>mv", "<cmd>Markview<CR>", { desc = "Toggle Markview" })
 
 -- rest
 map("n", "<leader><leader>r", "<cmd>Rest run<CR>")
+
+if vim.g.vscode then
+  require("vscode-remaps")
+end

@@ -6,6 +6,8 @@ return {
       build =
       'cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build',
     },
+    { 'nvim-telescope/telescope-ui-select.nvim' },
+    { "nvim-telescope/telescope-frecency.nvim", }
     -- { 'nvim-telescope/telescope-media-files.nvim' },
   },
   module = 'telescope',
@@ -58,6 +60,13 @@ return {
           override_file_sorter = true,    -- override the file sorter
           case_mode = "smart_case",       -- or "ignore_case" or "respect_case"
           -- the default case_mode is "smart_case"
+        },
+        ['frecency'] = {
+          path_display = { "filename_first" },
+          ignore_patterns = { "*.git/*", "*/tmp/*", "term://*", "oil://*", "*/node_modules/*", "[CodeCompanion]" },
+          ignore_register = function(bufnr)
+            return not vim.bo[bufnr].buflisted
+          end,
         }
       },
       defaults = {
@@ -97,6 +106,8 @@ return {
       },
     }
     telescope.load_extension('fzf')
+    telescope.load_extension('ui-select')
+    telescope.load_extension('frecency')
     -- telescope.load_extension('media_files')
   end,
 }

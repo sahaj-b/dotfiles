@@ -1,5 +1,5 @@
 # Default model (gpt-3.5-turbo, gpt-4, ggml-gpt4all-j...).
-default-model: gemin-2.0-flash
+default-model: gpt-4.1,
 # Text to append when using the -f flag.
 format-text:
   markdown: 'Format the response as markdown without enclosing backticks.'
@@ -30,7 +30,7 @@ topp: 1.0
 # TopK, only sample from the top K options for each subsequent token.
 topk: 50
 # Turn off the client-side limit on the size of the input into the model.
-no-limit: false
+no-limit: true
 # Wrap formatted output at specific width (default is 80)
 word-wrap: 80
 # Include the prompt from the arguments in the response.

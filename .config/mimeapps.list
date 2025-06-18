@@ -1,14 +1,14 @@
 [Default Applications]
 x-scheme-handler/http=brave-browser.desktop
 x-scheme-handler/https=brave-browser.desktop
-x-scheme-handler/chrome=brave-browser.desktop
+x-scheme-handler/chrome=zen.desktop
 text/html=brave-browser.desktop
-application/x-extension-htm=brave-browser.desktop
-application/x-extension-html=brave-browser.desktop
-application/x-extension-shtml=brave-browser.desktop
-application/xhtml+xml=brave-browser.desktop
-application/x-extension-xhtml=brave-browser.desktop
-application/x-extension-xht=brave-browser.desktop
+application/x-extension-htm=zen.desktop
+application/x-extension-html=zen.desktop
+application/x-extension-shtml=zen.desktop
+application/xhtml+xml=zen.desktop
+application/x-extension-xhtml=zen.desktop
+application/x-extension-xht=zen.desktop
 x-scheme-handler/about=brave-browser.desktop
 x-scheme-handler/unknown=brave-browser.desktop
 x-scheme-handler/fdm=freedownloadmanager_fdm_up.desktop
@@ -153,13 +153,13 @@ image/webp=org.xfce.ristretto.desktop
 x-scheme-handler/mailto=brave-browser.desktop
 
 [Added Associations]
-x-scheme-handler/http=brave-browser.desktop;
-x-scheme-handler/https=brave-browser.desktop;
-x-scheme-handler/chrome=brave-browser.desktop;
-text/html=brave-browser.desktop;
-application/x-extension-htm=brave-browser.desktop;
-application/x-extension-html=brave-browser.desktop;
-application/x-extension-shtml=brave-browser.desktop;
-application/xhtml+xml=brave-browser.desktop;
-application/x-extension-xhtml=brave-browser.desktop;
-application/x-extension-xht=brave-browser.desktop;
+x-scheme-handler/http=zen.desktop;brave-browser.desktop;
+x-scheme-handler/https=zen.desktop;brave-browser.desktop;
+x-scheme-handler/chrome=zen.desktop;brave-browser.desktop;
+text/html=brave-browser.desktop;zen.desktop;
+application/x-extension-htm=brave-browser.desktop;zen.desktop;
+application/x-extension-html=brave-browser.desktop;zen.desktop;
+application/x-extension-shtml=brave-browser.desktop;zen.desktop;
+application/xhtml+xml=brave-browser.desktop;zen.desktop;
+application/x-extension-xhtml=brave-browser.desktop;zen.desktop;
+application/x-extension-xht=brave-browser.desktop;zen.desktop;

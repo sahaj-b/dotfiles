@@ -10,7 +10,7 @@ return {
       --     return "Recording @" .. recording_register
       --   end
       -- end
-      -- local spinner = require("sahaj.plugins.codecompanion.lualine-spinner")
+      -- local spinner = require("plugins.codecompanion.lualine-spinner")
       local lualine = require('lualine')
       lualine.setup {
         options = {

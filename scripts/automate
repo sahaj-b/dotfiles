@@ -1,23 +1,32 @@
 #!/bin/env bash
 if [[ $1 = "yt" ]]; then
   # for inverting youtube video
-  echo "$('video').style.filter = 'invert(1)'" | wl-copy
-  echo 'key super+space' | dotoolc # chromium console open
+
+  # firefox
+  consoleOpen="key ctrl+shift+k"
+  consoleClose="key f12"
+
+  # chromium
+  # consoleOpen="key ctrl+shift+j"
+  # consoleClose="key ctrl+shift+j"
+
+  echo "\$('video').style.filter = 'invert(1)'" | wl-copy
+  echo 'key super+space' | dotoolc
   sleep 0.1
   # echo 'key ctrl+r' | dotoolc
   # sleep 2.5
   # echo 'key space' | dotoolc
   # sleep 0.3
-  echo 'key ctrl+shift+j' | dotoolc
-  sleep 1.5
+  echo "$consoleOpen" | dotoolc
+  sleep 1
   echo 'key ctrl+v' | dotoolc
   sleep 0.1
   echo 'key enter' | dotoolc
   sleep 0.1
-  echo 'key ctrl+shift+j' | dotoolc
+  echo "$consoleClose" | dotoolc
 
 elif [[ $1 = pdf ]]; then
-  # for inverting pdf colors
+  # for inverting pdf colors(firefox)
   echo "document.getElementsByTagName('embed')[0].style.filter = 'invert(1)'" | wl-copy
   echo "key super+space" | dotoolc
   echo "key ctrl+shift+j" | dotoolc
@@ -47,7 +56,6 @@ else
   # for leetcode
   textBoxPos="0.9 0.25"
   if [[ $2 = switch ]]; then
-    # switch workspace
     echo "key super+1" | dotoolc
     sleep 0.1
   else

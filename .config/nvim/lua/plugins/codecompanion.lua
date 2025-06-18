@@ -56,6 +56,17 @@ return {
         },
         strategies = {
           chat = {
+            tools = {
+              ["insert_edit_into_file"] = {
+                opts = {
+                  requires_approval = {
+                    buffer = false,
+                    file = true,
+                  },
+                  user_confirmation = false,
+                },
+              },
+            },
             variables = {
               ["mkcontext"] = {
                 callback = function()
@@ -79,7 +90,7 @@ return {
                 modes = {
                   n = "<leader>gm",
                 },
-                callback = require("sahaj.plugins.codecompanion.model_picker"),
+                callback = require("plugins.codecompanion.model_picker"),
                 description = "Change models",
               },
             },
@@ -100,7 +111,7 @@ return {
             return require("codecompanion.adapters").extend("copilot", {
               schema = {
                 model = {
-                  default = "gpt-4.1"
+                  default = "claude-sonnet-4"
                 }
               }
             })
@@ -127,12 +138,12 @@ return {
             })
           end,
         },
-        opts = { system_prompt = require("sahaj.plugins.codecompanion.proompt") }
+        opts = { system_prompt = require("plugins.codecompanion.proompt") }
       }
     end,
 
     init = function()
-      require("sahaj.plugins.codecompanion.fidget-spinner"):init()
+      require("plugins.codecompanion.fidget-spinner"):init()
     end,
   },
 }
