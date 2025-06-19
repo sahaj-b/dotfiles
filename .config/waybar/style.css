@@ -69,6 +69,7 @@ window#waybar {
 #battery,
 #custom-audio,
 #custom-dunst,
+#custom-wf-recorder,
 #custom-easyeffects,
 #cpu,
 #memory {
@@ -227,6 +228,9 @@ window#waybar {
   color: @blue;
 }
 
+#custom-wf-recorder{
+  padding-right: 10px;
+}
 #custom-dunst {
   padding-right: 15px;
 }

@@ -1,5 +1,3 @@
-// -*- mode: json -*-
-
 {
   "layer": "top",
   "position": "top",
@@ -11,10 +9,13 @@
     "clock#3",
     "custom/tmux",
     "custom/scratchOutput",
-    "hyprland/submap",
+    "hyprland/submap"
   ],
-  "modules-center": ["hyprland/workspaces"],
+  "modules-center": [
+    "hyprland/workspaces"
+  ],
   "modules-right": [
+    "custom/wf-recorder",
     "custom/music",
     "memory",
     "custom/audio",
@@ -22,15 +23,16 @@
     "battery",
     "custom/dunst",
     "custom/easyeffects",
-    "tray",
+    "tray"
   ],
-  //"modules-right": ["custom/audio", "bluetooth", "battery", "custom/dunst", "custom/easyeffects", "tray" ],
-
   "hyprland/workspaces": {
     "on-scroll-up": "hyprctl dispatch workspace e+1",
-    "on-scroll-down": "hyprctl dispatch workspace e-1",
+    "on-scroll-down": "hyprctl dispatch workspace e-1"
   },
-  "clock#1": { "format": "{:%a}", "tooltip": false },
+  "clock#1": {
+    "format": "{:%a}",
+    "tooltip": false
+  },
   "clock#2": {
     "format": "{:%d-%m %b}",
     "tooltip-format": "{calendar}",
@@ -41,43 +43,49 @@
         "months": "<span color='#89b4fa'><b>{}</b></span>",
         "days": "<span color='#f5c2e7'><b>{}</b></span>",
         "weekdays": "<span color='#f9e2af'><b>{}</b></span>",
-        "today": "<span color='#f38ba8'><b><u>{}</u></b></span>",
-      },
+        "today": "<span color='#f38ba8'><b><u>{}</u></b></span>"
+      }
     },
     "actions": {
       "on-click-right": "mode",
       "on-scroll-up": "shift_up",
-      "on-scroll-down": "shift_down",
-    },
+      "on-scroll-down": "shift_down"
+    }
   },
-  "clock#3": { "format": "{:%I:%M %p}", "tooltip": false },
-
+  "clock#3": {
+    "format": "{:%I:%M %p}",
+    "tooltip": false
+  },
   "custom/tmux": {
     "format": " {}",
     "interval": 5,
     "exec": "tmux ls | wc -l",
-    "on-click": "tmux ls -F '#S' | grep -v '^scratch$' | xargs -r -n1 tmux kill-session -t",
+    "on-click": "tmux ls -F '#S' | grep -v '^scratch$' | xargs -r -n1 tmux kill-session -t"
   },
-
   "custom/scratchOutput": {
-    // "max-length": 5,
     "return-type": "json",
     "format": "{}",
     "interval": 1,
-    "exec": "~/.config/waybar/scripts/getScratchOutput.sh",
+    "exec": "~/.config/waybar/scripts/getScratchOutput.sh"
   },
-
   "custom/cal": {
     "interval": 120,
     "exec": "python3 ~/scripts/cal.py",
-    "on-click": "xdg-open https://calendar.google.com/calendar/u/0/r",
+    "on-click": "xdg-open https://calendar.google.com/calendar/u/0/r"
+  },
+  "custom/wf-recorder": {
+    "format": "{}",
+    "interval": "once",
+    "exec": "echo ' '",
+    "tooltip": "false",
+    "exec-if": "pgrep 'wf-recorder'",
+    "on-click": "exec ~/scripts/wfrecord",
+    "signal": 8
   },
   "custom/music": {
     "format": "{icon}{0}",
     "format-icons": {
-      // "Playing": " ", // Uncomment if not using the dynamic script
-      "Paused": " ",
-      //"Stopped": "&#x202d;ﭥ " // This stop symbol is RTL. So &#x202d; is left-to-right override.
+      "Paused": " "
     },
     "escape": true,
     "tooltip": true,
@@ -88,44 +96,31 @@
     "on-scroll-down": "playerctl previous -p spotify",
     "on-click-right": "spotify",
     "on-click-middle": "pkill spotify; pkill waybar; waybar",
-    "max-length": 15,
+    "max-length": 15
   },
   "pulseaudio/slider": {
     "min": 0,
     "max": 100,
-    "orientation": "horizontal",
+    "orientation": "horizontal"
   },
   "pulseaudio": {
     "format": "󰕾 {volume}",
     "format-muted": "󰖁 {volume}",
     "on-click-right": "pavucontrol",
-    "on-click": "pamixer -t",
+    "on-click": "pamixer -t"
   },
   "custom/audio": {
     "interval": 1,
     "return-type": "json",
     "format": "{}",
-    // "exec": "sym='󰕾'; [[ $(pamixer --get-volume-human) == muted ]] && sym='󰖁'; printf \"$sym $(pamixer --get-volume)\n\"",
     "exec": "printf '{\"text\":\"%s %s\",\"class\":\"%s\"}\n' \"$([[ $(pamixer --get-volume-human) == \"muted\" ]] && echo \"󰖁\" || echo \"󰕾\")\" \"$(pamixer --get-volume)\" \"$([[ $(pamixer --get-volume-human) == \"muted\" ]] && echo \"muted\" || echo \"unmuted\")\"",
     "signal": 10,
     "tooltip": false,
     "on-click-right": "pavucontrol",
     "on-click": "pamixer -t && pkill -RTMIN+10 waybar",
     "on-scroll-up": "pamixer -i  2 --allow-boost",
-    "on-scroll-down": "pamixer -d  2 --allow-boost",
+    "on-scroll-down": "pamixer -d  2 --allow-boost"
   },
-
-  // "pulseaudio#microphone": {
-  //     "format": "{format_source}",
-  //     "format-source": " {volume}%",
-  //     "format-source-muted": " ",
-  //     "on-click": "pamixer --default-source -t",
-  //     "on-click-right": "pavucontrol",
-  //     "on-scroll-up": "pamixer --default-source -i 5",
-  //     "on-scroll-down": "pamixer --default-source -d 5",
-  //     "scroll-step": 5
-  // },
-
   "memory": {
     "interval": 5,
     "format": "  {}%",
@@ -133,8 +128,8 @@
     "states": {
       "cool": 50,
       "warning": 70,
-      "critical": 90,
-    },
+      "critical": 90
+    }
   },
   "bluetooth": {
     "interval": 1,
@@ -143,13 +138,11 @@
     "format-disabled": "󰂲",
     "format-connected": "󰂱",
     "format-connected-battery": "󰂯 {device_battery_percentage}%",
-    // "format-device-preference": [ "device1", "device2" ], // preference list deciding the displayed device
-    // "tooltip-format": "{controller_alias}\t{controller_address}\n\n{num_connections} connected",
     "tooltip-format-connected": "{num_connections} connected\n{device_enumerate}",
     "tooltip-format-enumerate-connected": "{device_alias}\t{device_address}",
     "tooltip-format-enumerate-connected-battery": "{device_alias}\t{device_address}\t{device_battery_percentage}%",
     "on-click": "bluetoothctl <<< $(bluetoothctl show | awk '/Powered:/ {print ($2 ~ /yes|on/) ? \"power off\" : \"power on\"; exit}')",
-    "on-click-right": "blueman-manager",
+    "on-click-right": "blueman-manager"
   },
   "cpu": {
     "interval": 10,
@@ -157,31 +150,39 @@
     "states": {
       "cool": 30,
       "warning": 70,
-      "critical": 90,
-    },
+      "critical": 90
+    }
   },
   "battery": {
     "interval": 2,
     "states": {
       "warning": 30,
-      "critical": 15,
+      "critical": 15
     },
     "format-discharging": "{icon} {capacity}% {time}",
     "format-charging": "{icon} {capacity}% {time}",
     "format-plugged": "{icon} {capacity}%",
     "format-full": "󰁹",
     "format-time": "{H}h{M:2}m",
-    "format-icons": ["󰂎", "󰁻", "󰁼", "󰁽", "󰁿", "󰂁", "󰁹"],
+    "format-icons": [
+      "󰂎",
+      "󰁻",
+      "󰁼",
+      "󰁽",
+      "󰁿",
+      "󰂁",
+      "󰁹"
+    ],
     "tooltip-format-discharging": "Using {power:4.1f}W",
     "tooltip-format-plugged": "Using {power:4.1f}W",
-    "tooltip-format-charging": "Charging {power:4.1f}W",
+    "tooltip-format-charging": "Charging {power:4.1f}W"
   },
   "custom/dunst": {
     "return-type": "json",
     "exec": "~/.config/waybar/scripts/dunst.sh",
     "on-click": "dunstctl set-paused toggle",
     "on-click-right": "dunstctl history-pop",
-    "format": "{}",
+    "format": "{}"
   },
   "custom/easyeffects": {
     "return-type": "json",
@@ -191,10 +192,10 @@
     "tooltip": true,
     "tooltip-format": "EasyEffects",
     "format": "{}",
-    "interval": 1,
+    "interval": 1
   },
   "tray": {
     "spacing": 5,
-    "icon-size": 20,
-  },
+    "icon-size": 20
+  }
 }
