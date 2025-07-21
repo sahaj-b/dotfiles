@@ -40,8 +40,10 @@ map("n", "<M-f>", "<C-w>|")
 
 map("n", "<leader>co", "<cmd>CodeiumToggle<CR>")
 
-map("n", "<leader>cpd", "<cmd>Copilot disable<CR>")
-map("n", "<leader>cpe", "<cmd>Copilot enable<CR>")
+-- map("n", "<leader>cpd", "<cmd>Copilot disable<CR>")
+-- map("n", "<leader>cpe", "<cmd>Copilot enable<CR>")
+map("n", "<leader>cpd", "<cmd>SupermavenStop<CR>")
+map("n", "<leader>cpe", "<cmd>SupermavenStart<CR>")
 
 map("n", "<leader>p", '"0p')
 
@@ -258,88 +260,12 @@ map("n", "<leader>rn", "<cmd>lua vim.lsp.buf.rename()<CR>")
 map("n", "<leader>cmd", "<cmd>lua require('cmp').setup.buffer { enabled = false }<CR>")
 map("n", "<leader>cme", "<cmd>lua require('cmp').setup.buffer { enabled = true }<CR>")
 
--- telescope
--- {
--- 	"key": "-",
--- 	"command": "runCommands",
--- 	"args": {
--- 		"commands": [
--- 			"workbench.action.toggleSidebarVisibility",
--- 			"workbench.files.action.focusFilesExplorer"
--- 		]
--- 	},
--- 	"when": "vim.mode == 'Normal' && (editorTextFocus || !inputFocus) && !sideBarFocus"
--- },
--- {
--- 	"key": "shift-k",
--- 	"command": "editor.action.showHover",
--- 	"when": "vim.mode == 'Normal' && editorTextFocus"
--- },
--- {
--- 	"key": "ctrl+c",
--- 	"command": "workbench.action.toggleSidebarVisibility",
--- 	"when": "sideBarFocus"
--- },
--- {
--- 	"key": "shift+j",
--- 	"command": "editor.action.moveLinesDownAction",
--- 	"when": "vim.mode == 'VisualLine' && editorTextFocus"
--- },
--- {
--- 	"key": "shift+k",
--- 	"command": "editor.action.moveLinesUpAction",
--- 	"when": "vim.mode == 'VisualLine' && editorTextFocus"
--- },
---
--- {
--- 	"key": "space /",
--- 	"command": "editor.action.commentLine",
--- 	"when": "vim.mode == 'Normal' && editorTextFocus"
--- },
---
--- // Telescope type shi
--- {
--- 	"key": "space s f",
--- 	"command": "workbench.action.quickOpen",
--- 	"when": "vim.mode == 'Normal' && (editorTextFocus || !inputFocus)"
--- },
--- {
--- 	"key": "space s o",
--- 	"command": "workbench.action.openRecent",
--- 	"when": "vim.mode == 'Normal' && (editorTextFocus || !inputFocus)"
--- },
--- {
--- 	"key": "space s s",
--- 	"command": "workbench.action.findInFiles",
--- 	"when": "vim.mode == 'Normal' && (editorTextFocus || !inputFocus)"
--- },
--- {
--- 	"key": "leader s t",
--- 	"command": "workbench.action.showCommands",
--- 	"when": "vim.mode == 'Normal' && (editorTextFocus || !inputFocus)"
--- },
--- {
--- 	"key": "space s b",
--- 	"command": "workbench.action.showAllEditors",
--- 	"when": "vim.mode == 'Normal' && (editorTextFocus || !inputFocus)"
--- },
--- {
--- 	"key": "space g d t",
--- 	"command": "problems.action.showHideProblems",
--- 	"when": "vim.mode == 'Normal' && editorTextFocus"
--- },
--- {
--- 	"key": "space f m",
--- 	"command": "editor.action.formatDocument",
--- 	"when": "vim.mode == 'Normal' && editorTextFocus"
--- },
-
 map("n", "<leader>sr", "<cmd>Telescope resume<cr>", { desc = "File Browser" })
 map("n", "<leader>sh", "<cmd>Telescope help_tags<cr>", { desc = "File Browser" })
--- map("n", "<leader>sf", "<cmd>Telescope find_files<cr>", { desc = "Fuzzy find files in cwd" })
-map('n', '<leader>sf', "<cmd>Telescope frecency workspace=CWD<cr>", { desc = "Search files in buffer cwd" })
-map("n", "<leader><leader>so", "<cmd>Telescope oldfiles<cr>", { desc = "Fuzzy find recent files" })
-map("n", "<leader>so", "<cmd>Telescope frecency<cr>", { desc = "Fuzzy find recent files" })
+map("n", "<leader>sf", "<cmd>Telescope find_files<cr>", { desc = "Fuzzy find files in cwd" })
+-- map('n', '<leader>sf', "<cmd>Telescope frecency workspace=CWD<cr>", { desc = "Search files in buffer cwd" })
+map("n", "<leader>so", "<cmd>Telescope oldfiles<cr>", { desc = "Fuzzy find recent files" })
+-- map("n", "<leader>so", "<cmd>Telescope frecency<cr>", { desc = "Fuzzy find recent files" })
 map("n", "<leader>sg", "<cmd>Telescope live_grep<cr>", { desc = "Search string in cwd (regex)" })
 map("n", "<leader>su", "<cmd>Telescope grep_string search=<cr>", { desc = "Search string in cwd (regex)" })
 map("n", "<leader>sw", "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", { desc = "Search workspace symbols" })

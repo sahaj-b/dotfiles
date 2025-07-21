@@ -3,12 +3,12 @@ if [[ $1 = "yt" ]]; then
   # for inverting youtube video
 
   # firefox
-  consoleOpen="key ctrl+shift+k"
-  consoleClose="key f12"
+  # consoleOpen="key ctrl+shift+k"
+  # consoleClose="key f12"
 
   # chromium
-  # consoleOpen="key ctrl+shift+j"
-  # consoleClose="key ctrl+shift+j"
+  consoleOpen="key ctrl+shift+j"
+  consoleClose="key ctrl+shift+j"
 
   echo "\$('video').style.filter = 'invert(1)'" | wl-copy
   echo 'key super+space' | dotoolc

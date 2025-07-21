@@ -7,7 +7,7 @@
     "clock#1",
     "clock#2",
     "clock#3",
-    "custom/tmux",
+    "custom/wakapi",
     "custom/scratchOutput",
     "hyprland/submap"
   ],
@@ -56,11 +56,11 @@
     "format": "{:%I:%M %p}",
     "tooltip": false
   },
-  "custom/tmux": {
-    "format": " {}",
-    "interval": 5,
-    "exec": "tmux ls | wc -l",
-    "on-click": "tmux ls -F '#S' | grep -v '^scratch$' | xargs -r -n1 tmux kill-session -t"
+  "custom/wakapi": {
+    "format": " {}",
+    "interval": 600,
+    "exec": "~/.wakatime/wakatime-cli --today | awk '{print $1 \"h\", $3 \"m\"}'",
+    "on-click": "xdg-open https://wakapi.dev"
   },
   "custom/scratchOutput": {
     "return-type": "json",
@@ -178,11 +178,14 @@
     "tooltip-format-charging": "Charging {power:4.1f}W"
   },
   "custom/dunst": {
+    "exec": "~/.config/waybar/scripts/dunst_display.sh",
     "return-type": "json",
-    "exec": "~/.config/waybar/scripts/dunst.sh",
-    "on-click": "dunstctl set-paused toggle",
-    "on-click-right": "dunstctl history-pop",
-    "format": "{}"
+    "format": "{}",
+    "interval": "once",
+    "signal": 8,
+    "on-click": "~/scripts/dnd toggle",
+    "on-scroll-up": "~/scripts/dnd add 5",
+    "on-scroll-down": "~/scripts/dnd sub 5"
   },
   "custom/easyeffects": {
     "return-type": "json",

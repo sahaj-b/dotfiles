@@ -4,15 +4,18 @@
 | ---------------                           | -------------                                                                          |
 | `pcs`, `ycs <query>`                      | Search for packages on `pacman`, `yay`                                                 |
 | `picker <type> [--float] [--prefix CODE]` | Emoji/Unicode/NerdFonts/ANSI_codes picker using `fzf`, optionally in floating terminal |
-| `tmux-sessionizer`                        | Edited version of tmux-sessionizer by primeagen
-| `mkcontext [-e/--exclude PATHS]`          | Generates context (workspace tree and all files content in current dir) for AIs
+| `tmux-sessionizer`                        | Edited version of tmux-sessionizer by primeagen                                        |
+| `mkcontext [-e/--exclude PATHS]`          | Generates context (workspace tree and all files content in current dir) for AIs        |
+| `dnd_daemon`                              | Daemon for DND timer state control                                                     |
+| `dnd`                                     | Controller CLI for DND timer, used by waybar                                           |
 | `bat-notif`                               | Daemon for battery notifications                                                       |
 | `blu-notif`                               | Sends notifications for Bluetooth events                                               |
 | `blu`                                     | Connects Bluetooth devices                                                             |
+| `wfrecord`                                | Wrapper for `wf-recorder` with notifs and waybar module                                |
 | `dualmonitor/`                            | Scripts to configure an external HDMI monitor (for Xorg)                               |
 | `cal.py`                                  | Displays current event from Google Calendar (moved to `.config/waybar/scripts`)        |
 | `fm`                                      | Fzf-based file browser for quick navigation                                            |
-| `dotsync`                                  | Backs up dotfiles to another folder/partition and pushes them to GitHub                      |
+| `dotsync`                                 | Backs up dotfiles to another folder/partition and pushes them to GitHub                |
 | `mouseSim` / `mouse.cpp`                  | Simulates mouse using keyboard shortcuts                                               |
 | `startScratch`                            | Toggles scratchpad terminal (hyprland)                                                 |
 | `stopwatch`, `countdown`                  | Timers                                                                                 |

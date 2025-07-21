@@ -1,4 +1,25 @@
 return {
+  {
+    "supermaven-inc/supermaven-nvim",
+    opts = {}
+  },
+  -- {
+  --   "zbirenbaum/copilot.lua",
+  --   cmd = "Copilot",
+  --   event = "InsertEnter",
+  --   opts = {
+  --     filetypes = {
+  --       ["*"] = true
+  --     },
+  --     suggestion = {
+  --       auto_trigger = true,
+  --       debounce = 50,
+  --       keymap = {
+  --         accept = "<Tab>",
+  --       }
+  --     },
+  --   }
+  -- },
   { "https://github.com/tpope/vim-abolish" },
   {
     'MeanderingProgrammer/render-markdown.nvim',
@@ -96,23 +117,6 @@ return {
   --     }
   --   }
   -- },
-  {
-    "zbirenbaum/copilot.lua",
-    cmd = "Copilot",
-    event = "InsertEnter",
-    opts = {
-      filetypes = {
-        ["*"] = true
-      },
-      suggestion = {
-        auto_trigger = true,
-        debounce = 50,
-        keymap = {
-          accept = "<Tab>",
-        }
-      },
-    }
-  },
   { 'AndreM222/copilot-lualine' },
   -- {
   --   "Davidyz/VectorCode",

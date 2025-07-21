@@ -11,13 +11,14 @@ return function(chat)
     "gpt-4.1 0",
     "o4-mini 0.33",
     "claude-sonnet-4 1",
+    "gpt-4o 0",
     "gemini-2.5-pro 1",
     "claude-3.5-sonnet 1",
     "claude-3.7-sonnet 1",
     "gemini-2.0-flash-001 0.25",
     "claude-3.7-sonnet-thought 1.25",
     "o3-mini 0.33",
-    "gpt-4o 1",
+    "o3 1",
     "o1 10",
   }
 

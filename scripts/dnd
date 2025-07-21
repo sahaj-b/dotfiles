@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly PID_FILE="/tmp/waybar_dnd.pid"
+readonly CMD_FILE="/tmp/waybar_dnd_cmd"
+readonly TIMER_FILE="/tmp/waybar_dnd_timer"
+readonly DAEMON_SCRIPT="$HOME/scripts/dnd_daemon"
+
+ensure_daemon_running() {
+  if ! [ -f "$PID_FILE" ] || ! kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+    "$DAEMON_SCRIPT" &
+    sleep 0.2 # smol delay to setup PID file
+  fi
+}
+
+usage() {
+  echo "Usage: $0 [COMMAND] [MINUTES]"
+  echo "The DND daemon controller."
+  echo
+  echo "Commands:"
+  echo "  add [mins]      Add time to the current timer (default: 5)."
+  echo "  sub [mins]      Subtract time from the current timer (default: 5)."
+  echo "  stop            Turn off DND and clear any timer."
+  echo "  toggle          Toggle DND on/off. If turning on, it's indefinite."
+  echo "  status          Show the current DND and timer status."
+}
+
+ensure_daemon_running
+readonly DAEMON_PID=$(cat "$PID_FILE")
+
+case "${1:-status}" in
+add)
+  minutes=${2:-5}
+  seconds=$((minutes * 60))
+  echo "$seconds" >"$CMD_FILE"
+  kill -USR1 "$DAEMON_PID"
+  echo "DND timer updated (+${minutes}m)."
+  ;;
+
+sub)
+  minutes=${2:-5}
+  seconds=$((minutes * 60))
+  echo "$seconds" >"$CMD_FILE"
+  kill -USR2 "$DAEMON_PID"
+  echo "DND timer updated (-${minutes}m)."
+  ;;
+
+stop)
+  dunstctl set-paused false
+  rm -f "$TIMER_FILE"
+  kill -RTMIN+9 "$DAEMON_PID" # daemon update
+  pkill -RTMIN+8 waybar       # waybar update
+  echo "DND stopped."
+  ;;
+
+toggle)
+  dunstctl set-paused toggle
+  kill -RTMIN+9 "$DAEMON_PID"
+  pkill -RTMIN+8 waybar
+  echo "DND toggled."
+  ;;
+
+status)
+  if dunstctl is-paused | grep -q "true"; then
+    if [[ -f "$TIMER_FILE" ]]; then
+      timer_end=$(cat "$TIMER_FILE")
+      remaining=$((timer_end - $(date +%s)))
+      if ((remaining > 0)); then
+        hours=$((remaining / 3600))
+        minutes=$(((remaining % 3600) / 60))
+        if [[ $hours -gt 0 ]]; then
+          echo "DND active with timer: ${hours}h ${minutes}m remaining."
+        else
+          echo "DND active with timer: ${minutes}m remaining."
+        fi
+      else
+        echo "DND active (timer expired or invalid)."
+      fi
+    else
+      echo "DND active (indefinite)."
+    fi
+  else
+    echo "DND is disabled."
+  fi
+  ;;
+
+*)
+  usage
+  exit 1
+  ;;
+esac

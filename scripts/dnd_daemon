@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+
+# --- DND TIMER SYSTEM heres how it works ---
+# its a 3 part system:
+# 1. DAEMON (this script):
+#    - manages the timer state.
+#    - Listens for signals (USR1/USR2 to change time, RTMIN+9 to force update).
+#    - Runs a `dbus-monitor` sidekick for live notification counts.
+#
+# 2. CONTROLLER (`scripts/dnd`):
+#    - Takes commands (add, sub, toggle) and sends signals here.
+#    - autostart daemon if dead.
+#
+# 3. DISPLAY (`waybar/scripts/dunst_display.sh`):
+#    - Just reads state and prints JSON for Waybar
+#
+# FLOW: Controller sends signal to Daemon -> Daemon updates state & tells Waybar to refresh -> Waybar runs Display script.
+
+set -euo pipefail
+
+readonly TIMER_FILE="/tmp/waybar_dnd_timer"
+readonly PID_FILE="/tmp/waybar_dnd.pid"
+readonly CMD_FILE="/tmp/waybar_dnd_cmd"
+
+# storing PID for signal targeting
+echo $$ >"$PID_FILE"
+
+trap 'rm -f "$PID_FILE" "$CMD_FILE"' EXIT
+
+timer_end=0
+timer_active=false
+
+update_state() {
+  if [[ -f "$TIMER_FILE" ]] && [[ "$(dunstctl is-paused)" == "true" ]]; then
+    timer_end=$(cat "$TIMER_FILE")
+    if ((timer_end > $(date +%s))); then
+      timer_active=true
+    else
+      # Timer expired
+      dunstctl set-paused false
+      rm -f "$TIMER_FILE"
+      timer_active=false
+    fi
+  else
+    timer_active=false
+    if [[ "$(dunstctl is-paused)" == "false" ]]; then
+      rm -f "$TIMER_FILE"
+    fi
+  fi
+}
+
+handle_scroll_up() {
+  local add_time=300 # 5 mins
+  if [[ -f "$CMD_FILE" ]]; then
+    add_time=$(cat "$CMD_FILE")
+    rm -f "$CMD_FILE"
+  fi
+
+  if [[ $timer_active == false ]]; then
+    dunstctl set-paused true
+    timer_end=$(($(date +%s) + add_time))
+  else
+    timer_end=$((timer_end + add_time))
+  fi
+  echo "$timer_end" >"$TIMER_FILE"
+  pkill -RTMIN+8 waybar
+}
+
+handle_scroll_down() {
+  if [[ $timer_active == true ]]; then
+    local sub_time=300 # 5 mins
+    if [[ -f "$CMD_FILE" ]]; then
+      sub_time=$(cat "$CMD_FILE")
+      rm -f "$CMD_FILE"
+    fi
+    timer_end=$((timer_end - sub_time))
+    echo "$timer_end" >"$TIMER_FILE"
+    pkill -RTMIN+8 waybar
+  fi
+}
+
+trap 'handle_scroll_up' USR1
+trap 'handle_scroll_down' USR2
+trap 'update_state' SIGRTMIN+9
+
+# monitor notifications
+(dbus-monitor path='/org/freedesktop/Notifications',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged' --profile |
+  while read -r _; do
+    pkill -RTMIN+8 waybar
+  done) &
+
+while true; do
+  update_state
+  if [[ $timer_active == true ]]; then
+    pkill -RTMIN+8 waybar
+    sleep 30 &      # sleep is blocking (cant trap signals), so using &
+    wait $! || true # wait for sleep. ''|| true' coz signals intercept wait and errors out script(set -e)
+  else
+    sleep 5 &
+    wait $! || true
+  fi
+done
