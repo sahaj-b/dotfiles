@@ -93,7 +93,7 @@ while true; do
   update_state
   if [[ $timer_active == true ]]; then
     pkill -RTMIN+8 waybar
-    sleep 30 &      # sleep is blocking (cant trap signals), so using &
+    sleep 10 &      # sleep is blocking (cant trap signals), so using &
     wait $! || true # wait for sleep. ''|| true' coz signals intercept wait and errors out script(set -e)
   else
     sleep 5 &

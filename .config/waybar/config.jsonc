@@ -66,11 +66,11 @@
     "return-type": "json",
     "format": "{}",
     "interval": 1,
-    "exec": "~/.config/waybar/scripts/getScratchOutput.sh"
+    "exec": "~/scripts/waybar/getScratchOutput.sh"
   },
   "custom/cal": {
     "interval": 120,
-    "exec": "python3 ~/scripts/cal.py",
+    "exec": "python3 ~/scripts/waybar/cal.py",
     "on-click": "xdg-open https://calendar.google.com/calendar/u/0/r"
   },
   "custom/wf-recorder": {
@@ -89,7 +89,7 @@
     },
     "escape": true,
     "tooltip": true,
-    "exec": "~/.config/waybar/scripts/caway -b 10",
+    "exec": "~/scripts/waybar/caway -b 10",
     "return-type": "json",
     "on-click": "playerctl play-pause -p spotify %any",
     "on-scroll-up": "playerctl next -p spotify",
@@ -178,7 +178,7 @@
     "tooltip-format-charging": "Charging {power:4.1f}W"
   },
   "custom/dunst": {
-    "exec": "~/.config/waybar/scripts/dunst_display.sh",
+    "exec": "~/scripts/waybar/dunst_display.sh",
     "return-type": "json",
     "format": "{}",
     "interval": "once",
