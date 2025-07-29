@@ -40,9 +40,12 @@ vim.api.nvim_create_autocmd("TextYankPost", {
   end,
 })
 
+vim.g.augment_workspace_folders = { '~/projects/binge-meter/' }
+
 if vim.g.vscode then return end
 
-vim.cmd [[colorscheme catppuccin
+vim.cmd [[
+colorscheme catppuccin
 hi! link BlinkCmpDoc BlinkCmpMenu
 ]]
 
@@ -65,45 +68,27 @@ function Transparent()
   hi StatusLine none
 hi LineNr guifg=#6c7086
   hi NormalNC guibg=none ctermbg=none
-  hi TelescopePreviewNormal none
-  hi TelescopePreviewBorder none
-  hi TelescopeResultNormal none
-  hi TelescopeResultBorder none
-  hi TelescopePromptNormal none
-  hi TelescopePromptBorder none
-  hi TelescopePromptPrefix none
-  hi TelescopeSelection none
   hi DiagnosticVirtualTextWarn none
   hi DiagnosticVirtualTextError none
   hi DiagnosticVirtualTextInfo none
   hi DiagnosticVirtualTextHint none
-  " hi LocalHighlight guibg=none gui=underline
-  " hi MiniCursorword guibg=none cterm=none guibg=none
-  " hi MiniCursorwordCurrent guibg=none cterm=none gui=none
+
+  hi FloatBorder guibg=none
   hi IblScope guifg=#585b70
+
   hi TabLineSel guibg=#a6e3a1 guifg=#11111b
   hi TabLine  guifg=#cdd6f4
   hi UfoFoldedEllipsis guifg=#181825 guibg=#cba6f7 gui=bold
   ]]
 
   -- reload indent-blankline highlight
-  require("ibl").setup { scope = { highlight = { "IblScope" }, show_start = false, show_end = false }, }
-  -- vim.g.minicursorword_disable = true
-  -- enabled bordered completion menu
-  -- local cmp = require("cmp")
-  -- cmp.setup({ window = { completion = cmp.config.window.bordered({}) } })
+  -- require("ibl").setup { scope = { highlight = { "IblScope" }, show_start = false, show_end = false }, }
 end
 
 function Opaque()
   -- vim.g.minicursorword_disable = false
   vim.g.transparent = false
   vim.cmd [[ colorscheme catppuccin
-  " hi LocalHighlight guibg= guifg=none
-  " hi MiniCursorword guibg=#313340 cterm=none gui=none
-  " hi MiniCursorwordCurrent guibg=none cterm=none gui=none
-  " hi CursorLine guibg=#181825
-  " hi SignColumn guibg=#181825
-  " hi CursorLineNr guibg=#181825
   hi LineNr guifg=#6c7086
   hi Folded guibg=none
   hi UfoFoldedEllipsis guifg=#cba6f7 guibg=#432d5d gui=bold
@@ -129,12 +114,31 @@ function Opaque()
     TelescopePreviewTitle = { bg = colors.green, fg = colors.mantle },
   }
 
+  local SnacksPickerColors = {
+    SnacksPickerBorder = { fg = colors.surface0, bg = colors.mantle },
+    SnacksPickerPreviewBorder = { fg = colors.mantle, bg = colors.mantle },
+    SnacksPickerPreviewTitle = { fg = colors.mantle, bg = colors.green },
+    SnacksPickerBoxBorder = { fg = colors.mantle, bg = colors.mantle },
+    SnacksPickerDir = { fg = colors.overlay1 },
+    -- SnacksPickerInputBorder = { fg = colors.mantle, bg = colors.mantle },
+    -- SnacksPickerInput = { bg = colors.surface0 },
+    -- SnacksPickerInputSearch = { fg = colors.text, bg = colors.surface0 },
+    SnacksPickerListBorder = { fg = colors.mantle, bg = colors.mantle },
+    SnacksPickerListCursorLine = { bg = colors.surface0 },
+    SnacksPickerTitle = { fg = colors.mantle, bg = colors.pink },
+    SnacksPickerList = { bg = colors.mantle },
+    SnacksPickerListTitle = { fg = colors.mantle, bg = colors.red },
+  }
+
   for hl, col in pairs(TelescopeColor) do
+    vim.api.nvim_set_hl(0, hl, col)
+  end
+  for hl, col in pairs(SnacksPickerColors) do
     vim.api.nvim_set_hl(0, hl, col)
   end
 
   -- reload indent-blankline highlight
-  require("ibl").setup { scope = { highlight = { "IblScope" }, show_start = false, show_end = false }, }
+  -- require("ibl").setup { scope = { highlight = { "IblScope" }, show_start = false, show_end = false }, }
 
   -- disable bordered completion menu
   -- local cmp = require("cmp")
@@ -148,8 +152,6 @@ function Opaque()
   -- })
 end
 
--- vim.api.nvim_set_hl(0, 'UfoFoldedEllipsis', { fg = "#afb4f9", bg = "#2a2b3d", bold = true })
-
 -- firenvim
 if vim.g.started_by_firenvim == true then
   Opaque()
@@ -157,6 +159,12 @@ else
   Opaque()
   -- Transparent()
 end
+
+-- styles
+vim.cmd [[
+  hi SnacksIndentScope guifg=#9f9f9f
+  hi SnacksIndent guifg=#585b70
+]]
 
 vim.api.nvim_create_autocmd({ 'UIEnter' }, {
   callback = function()
@@ -188,17 +196,6 @@ function CopilotToCodeium()
     },
   }
 end
-
-local cmp_enabled = true
-vim.api.nvim_create_user_command("ToggleAutoComplete", function()
-  if cmp_enabled then
-    require("cmp").setup.buffer({ enabled = false })
-    cmp_enabled = false
-  else
-    require("cmp").setup.buffer({ enabled = true })
-    cmp_enabled = true
-  end
-end, {})
 
 vim.filetype.add({
   extension = {
@@ -251,6 +248,21 @@ if not rgignore_file then
 else
   rgignore_file:close()
 end
+
+local augroup = vim.api.nvim_create_augroup("allfilesindent", { clear = true })
+
+vim.api.nvim_create_autocmd("FileType", {
+  group = augroup,
+  pattern = "*",
+  callback = function()
+    vim.opt_local.tabstop = 2
+    vim.opt_local.shiftwidth = 2
+    vim.opt_local.softtabstop = 2
+  end,
+})
+
+-- require("rest-nvim-extract")
+
 -- local codeiumString = " {.}%3{codeium#GetStatusString()}"
 -- vim.o.statusline = " "
 --     .. "  "
@@ -269,38 +281,3 @@ end
 --     .. " %p%%  "
 --     .. codeiumString
 -- vim.cmd [[Copilot disable]]
-
-function HLsearch()
-  local blinktime = 1
-  local ns = vim.api.nvim_create_namespace("search")
-  vim.api.nvim_buf_clear_namespace(0, ns, 0, -1)
-
-  local search_pat = "\\c\\%#" .. vim.fn.getreg("/")
-  local ring = vim.fn.matchadd("IncSearch", search_pat)
-  vim.cmd("redraw")
-  vim.cmd("sleep " .. blinktime * 1000 .. "m")
-
-  local sc = vim.fn.searchcount()
-  vim.api.nvim_buf_set_extmark(0, ns, vim.api.nvim_win_get_cursor(0)[1] - 1, 0, {
-    virt_text = { { "[" .. sc.current .. "/" .. sc.total .. "]", "Comment" } },
-    virt_text_pos = "eol",
-  })
-
-  vim.fn.matchdelete(ring)
-  vim.cmd("redraw")
-end
-
--- setting 2 spaces indent for all filetypes
-local augroup = vim.api.nvim_create_augroup("allfilesindent", { clear = true })
-
-vim.api.nvim_create_autocmd("FileType", {
-  group = augroup,
-  pattern = "*",
-  callback = function()
-    vim.opt_local.tabstop = 2
-    vim.opt_local.shiftwidth = 2
-    vim.opt_local.softtabstop = 2
-  end,
-})
-
--- require("rest-nvim-extract")

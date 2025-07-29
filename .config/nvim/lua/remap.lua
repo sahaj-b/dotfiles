@@ -94,14 +94,11 @@ map("v", "<leader>mrn", [["hy:%sno/<C-r>h/<C-r>h/gIc<left><left><left><Left>]])
 map("n", "<leader>vpp", "<cmd>e ~/.config/nlua/sahaj/lazy.lua")
 map("n", "x", '"_x')
 
-map("n", "<leader>gd", "<cmd>lua vim.diagnostic.enable(false)<CR>")
-map("n", "<leader>ge", "<cmd>lua vim.diagnostic.enable()<CR>")
-
 map("t", "<esc>", "<C-\\><C-n>")
 
 map("i", "<C-d>", "<Del>")
 
-map({ "n", "v" }, "<C-n>", "nvgn")
+-- map({ "n", "v" }, "<C-n>", "nvgn")
 
 map("n", "<leader>cd", "<cmd>cd %:h<CR>", { desc = "Change cwd to buffer dir" })
 
@@ -141,13 +138,13 @@ function ToggleCheckbox()
 end
 
 function ToggleCheckboxVisual()
-  local start_line = vim.fn.line("'<")
-  local end_line = vim.fn.line("'>")
+  local start_line = vim.fn.line("v")
+  local end_line = vim.fn.line(".")
+  local step = start_line <= end_line and 1 or -1
 
-  for line_num = start_line, end_line do
+  for line_num = start_line, end_line, step do
     vim.cmd("normal! " .. line_num .. "gg")
     ToggleCheckbox()
-    -- vim.api.nvim_buf_set_line(0, line_num - 1, line_num - 1, false, ToggleLineCheckbox(vim.api.nvim_buf_get_lines(0, line_num - 1, line_num, false)[1]))
   end
 end
 
@@ -227,7 +224,126 @@ map("n", "<leader>cc", "<cmd>CccPick<CR>")
 --undotree
 map("n", "<leader>u", "<cmd>UndotreeToggle<CR>")
 
--- lsp
+-- Snacks.picker ---
+map("n", "<leader>sf", function() Snacks.picker.smart() end, { desc = "Smart Find Files" })
+map("n", "<leader>sb", function() Snacks.picker.buffers() end, { desc = "Buffers" })
+map("n", "<leader>s:", function() Snacks.picker.command_history() end, { desc = "Command History" })
+-- map("n", "<leader>e", function() Snacks.explorer() end, { desc = "File Explorer" })
+-- find
+map("n", "<leader>sb", function() Snacks.picker.buffers() end, { desc = "Buffers" })
+map("n", "<leader>sc", function() Snacks.picker.files({ cwd = vim.fn.stdpath("config") }) end,
+  { desc = "Find Config File" })
+-- map("n", "<leader>sf", function() Snacks.picker.files() end, { desc = "Find Files" })
+map("n", "<leader>sg", function() Snacks.picker.git_files() end, { desc = "Find Git Files" })
+-- map("n", "<leader>sp", function() Snacks.picker.projects() end, { desc = "Projects" })
+map("n", "<leader>so", function() Snacks.picker.recent() end, { desc = "Recent" })
+-- git
+map("n", "<leader>gb", function() Snacks.picker.git_branches() end, { desc = "Git Branches" })
+map("n", "<leader>gl", function() Snacks.picker.git_log() end, { desc = "Git Log" })
+map("n", "<leader>gL", function() Snacks.picker.git_log_line() end, { desc = "Git Log Line" })
+map("n", "<leader>gs", function() Snacks.picker.git_status() end, { desc = "Git Status" })
+map("n", "<leader>gS", function() Snacks.picker.git_stash() end, { desc = "Git Stash" })
+map("n", "<leader>gd", function() Snacks.picker.git_diff() end, { desc = "Git Diff (Hunks)" })
+map("n", "<leader>gf", function() Snacks.picker.git_log_file() end, { desc = "Git Log File" })
+-- Grep
+map("n", "<leader>ss", function() Snacks.picker.grep({ regex = false }) end, { desc = "Grep" })
+map("n", "<leader>sR", function() Snacks.picker.grep() end, { desc = "Grep(Regex)" })
+map({ "n", "x" }, "<leader>sv", function() Snacks.picker.grep_word() end, { desc = "Visual selection or word" })
+-- search
+map("n", '<leader>s"', function() Snacks.picker.registers() end, { desc = "Registers" })
+map("n", '<leader>s/', function() Snacks.picker.search_history() end, { desc = "Search History" })
+map("n", "<leader>sC", function() Snacks.picker.commands() end, { desc = "Commands" })
+map("n", "<leader>sd", function() Snacks.picker.diagnostics() end, { desc = "Diagnostics" })
+map("n", "<leader>sD", function() Snacks.picker.diagnostics_buffer() end, { desc = "Buffer Diagnostics" })
+map("n", "<leader>sh", function() Snacks.picker.help() end, { desc = "Help Pages" })
+map("n", "<leader>si", function() Snacks.picker.icons() end, { desc = "Icons" })
+map("n", "<leader>sq", function() Snacks.picker.qflist() end, { desc = "Quickfix List" })
+map("n", "<leader>sr", function() Snacks.picker.resume() end, { desc = "Resume" })
+map("n", "<leader>su", function() Snacks.picker.undo() end, { desc = "Undo History" })
+-- LSP
+map("n", "gd", function() Snacks.picker.lsp_definitions() end, { desc = "Goto Definition" })
+map("n", "gD", function() Snacks.picker.lsp_declarations() end, { desc = "Goto Declaration" })
+map("n", "gr", function() Snacks.picker.lsp_references() end, { nowait = true, desc = "References" })
+map("n", "gI", function() Snacks.picker.lsp_implementations() end, { desc = "Goto Implementation" })
+map("n", "gt", function() Snacks.picker.lsp_type_definitions() end, { desc = "Goto T[y]pe Definition" })
+map("n", "<leader>sW", function() Snacks.picker.lsp_symbols({ filter = { default = true } }) end,
+  { desc = "LSP Symbols" })
+map("n", "<leader>sw", function() Snacks.picker.lsp_workspace_symbols({ filter = { default = true } }) end,
+  { desc = "LSP Workspace Symbols" })
+map("n", "<leader>sp", function() Snacks.picker() end, { desc = "Pickers" })
+
+
+map("n", "K", vim.lsp.buf.hover, { desc = "Hover Documentation" })
+map("i", "<C-t>", vim.lsp.buf.signature_help, { desc = "Signature Help" })
+map("n", "<leader>ca", vim.lsp.buf.code_action, { desc = "Code Action" })
+map("n", "<leader>rn", vim.lsp.buf.rename, { desc = "LSP Rename" })
+map("n", "<leader>o", vim.diagnostic.open_float, { desc = "Open Diagnostic Float" })
+map("n", "<leader>ca", vim.lsp.buf.code_action, { desc = "LSP Code Action" })
+map("n", "<leader>gd", function() vim.diagnostic.enable(false) end, { desc = "Disable Diagnostics" })
+map("n", "<leader>ge", vim.diagnostic.enable, { desc = "Enable Diagnostics" })
+
+
+-- Telescope
+-- map("n", "<leader>cmd", "<cmd>lua require('cmp').setup.buffer { enabled = false }<CR>")
+-- map("n", "<leader>cme", "<cmd>lua require('cmp').setup.buffer { enabled = true }<CR>")
+
+-- map("n", "gd", "<cmd>Telescope lsp_definitions<cr>", { desc = "[G]oto [D]efinition" })
+-- map("n", "gr", "<cmd>Telescope lsp_references<cr>", { desc = "[G]oto [R]eferences" })
+-- map("n", "gI", "<cmd>Telescope lsp_implementations<cr>", { desc = "[G]oto [I]mplementation" })
+-- map("n", "gt", "<cmd>Telescope lsp_type_definitions<cr>", { desc = "Type [D]efinition" })
+-- map("n", "gS", "<cmd>Telescope lsp_document_symbols<cr>", { desc = "[D]ocument [S]ymbols" })
+
+-- map("n", "<leader>sr", "<cmd>Telescope resume<cr>", { desc = "File Browser" })
+-- map("n", "<leader>sh", "<cmd>Telescope help_tags<cr>", { desc = "File Browser" })
+-- map("n", "<leader>sf", "<cmd>Telescope find_files<cr>", { desc = "Fuzzy find files in cwd" })
+-- -- map('n', '<leader>sf', "<cmd>Telescope frecency workspace=CWD<cr>", { desc = "Search files in buffer cwd" })
+-- map("n", "<leader>so", "<cmd>Telescope oldfiles<cr>", { desc = "Fuzzy find recent files" })
+-- map("n", "<leader>so", function() Snacks.picker.recent() end, { desc = "Fuzzy find recent files" })
+-- map("n", "<leader>sg", "<cmd>Telescope live_grep<cr>", { desc = "Search string in cwd (regex)" })
+-- map("n", "<leader>su", "<cmd>Telescope grep_string search=<cr>", { desc = "Search string in cwd (regex)" })
+-- map("n", "<leader>sw", "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", { desc = "Search workspace symbols" })
+-- map("n", "<leader>sb", "<cmd>Telescope buffers<cr>", { desc = "Show open buffers" })
+-- map("n", "<leader>gac", "<cmd>Telescope git_commits<cr>", { desc = "Show git commits" })
+-- map("n", "<leader>gc", "<cmd>Telescope git_bcommits<cr>", { desc = "Show git commits for current buffer" })
+-- map("n", "<leader>gb", "<cmd>Telescope git_branches<cr>", { desc = "Show git branches" })
+-- map("n", "<leader>gs", "<cmd>Telescope git_status<cr>", { desc = "Show current git changes per file" })
+-- map("n", "<leader>st", "<cmd>Telescope<cr>", { desc = "Open Telescope options" })
+-- map("n", "<leader>sr", "<cmd>Telescope lsp_references<cr>", { desc = "Search lsp references" })
+
+-- map("n", "<leader>ss",
+--   function() require("telescope.builtin").live_grep({ additional_args = { "-F" } }) end,
+--   { desc = "Search string in cwd" })
+-- map("n", "<leader>ss", function() require("multigrep").setup() end,
+--   { desc = "Find string in cwd with file filter" })
+--
+-- map('n', '<leader>sps', function()
+--     require("telescope.builtin").grep_string({ search = vim.fn.input("Grep > ") });
+--   end,
+--   { desc = "Search string, then filter with path" })
+--
+-- map('n', '<leader>sc', function()
+--     require("telescope.builtin").find_files({ cwd = require("telescope.utils").buffer_dir() });
+--   end,
+--   { desc = "Search files in buffer cwd" })
+--
+--
+-- map('n', '<leader>sn', function()
+--     require("telescope.builtin").find_files({ cwd = "~/.config/nvim/" });
+--   end,
+--   { desc = "Search files in neovim config" })
+--
+
+-- Conform
+map("n", "<leader>fm", function() require("conform").format() end, { desc = "Format(Conform)" })
+map("n", "<leader>ct", "<cmd>ConformToggle<CR>", { desc = "Toggle Format on save" })
+map("n", "<leader>cb", "<cmd>ConformToggle!<CR>", { desc = "Toggle Format on save in current buffer" })
+map("n", "<leader>ts",
+  function()
+    require("conform").format({ formatters = { "biome-tailwind" } })
+  end,
+  { desc = "Sorts Tailwind classes" }
+)
+
 vim.api.nvim_create_autocmd('LspAttach', {
   callback = function(event)
     map('n', 'K', function()
@@ -238,80 +354,8 @@ vim.api.nvim_create_autocmd('LspAttach', {
   end,
 })
 
--- lsp
-map("n", "gd", "<cmd>Telescope lsp_definitions<cr>", { desc = "[G]oto [D]efinition" })
-map("n", "gr", "<cmd>Telescope lsp_references<cr>", { desc = "[G]oto [R]eferences" })
-map("n", "gI", "<cmd>Telescope lsp_implementations<cr>", { desc = "[G]oto [I]mplementation" })
-map("n", "gt", "<cmd>Telescope lsp_type_definitions<cr>", { desc = "Type [D]efinition" })
--- map("n", "gS", "<cmd>Telescope lsp_document_symbols<cr>", { desc = "[D]ocument [S]ymbols" })
--- map("n", "gs", "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", { desc = '[W]orkspace [S]ymbols' })
--- map("n", "<leader>ca", vim.lsp.buf.code_action, { desc = "[C]ode [A]ction" })
-map("n", "K", vim.lsp.buf.hover, { desc = "Hover Documentation" })
-map("n", 'gD', vim.lsp.buf.declaration, { desc = '[G]oto [D]eclaration' })
-
--- map("n", "gd", "<cmd>lua vim.lsp.buf.definition()<CR>")
-map("i", "<C-t>", "<Cmd>lua vim.lsp.buf.signature_help()<CR>")
-map("n", "]d", "<cmd>lua vim.diagnostic.goto_next()<CR>")
-map("n", "[d", "<cmd>lua vim.diagnostic.goto_prev()<CR>")
-map("n", "<leader>o", "<cmd>lua vim.diagnostic.open_float()<CR>")
-map("n", "<leader>ca", "<cmd>lua vim.lsp.buf.code_action()<CR>")
-map("n", "<leader>rf", "<cmd>lua vim.lsp.buf.references()<CR>")
-map("n", "<leader>rn", "<cmd>lua vim.lsp.buf.rename()<CR>")
-map("n", "<leader>cmd", "<cmd>lua require('cmp').setup.buffer { enabled = false }<CR>")
-map("n", "<leader>cme", "<cmd>lua require('cmp').setup.buffer { enabled = true }<CR>")
-
-map("n", "<leader>sr", "<cmd>Telescope resume<cr>", { desc = "File Browser" })
-map("n", "<leader>sh", "<cmd>Telescope help_tags<cr>", { desc = "File Browser" })
-map("n", "<leader>sf", "<cmd>Telescope find_files<cr>", { desc = "Fuzzy find files in cwd" })
--- map('n', '<leader>sf', "<cmd>Telescope frecency workspace=CWD<cr>", { desc = "Search files in buffer cwd" })
-map("n", "<leader>so", "<cmd>Telescope oldfiles<cr>", { desc = "Fuzzy find recent files" })
--- map("n", "<leader>so", "<cmd>Telescope frecency<cr>", { desc = "Fuzzy find recent files" })
-map("n", "<leader>sg", "<cmd>Telescope live_grep<cr>", { desc = "Search string in cwd (regex)" })
-map("n", "<leader>su", "<cmd>Telescope grep_string search=<cr>", { desc = "Search string in cwd (regex)" })
-map("n", "<leader>sw", "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", { desc = "Search workspace symbols" })
-map("n", "<leader>sb", "<cmd>Telescope buffers<cr>", { desc = "Show open buffers" })
-map("n", "<leader>gac", "<cmd>Telescope git_commits<cr>", { desc = "Show git commits" })
-map("n", "<leader>gc", "<cmd>Telescope git_bcommits<cr>", { desc = "Show git commits for current buffer" })
-map("n", "<leader>gb", "<cmd>Telescope git_branches<cr>", { desc = "Show git branches" })
-map("n", "<leader>gs", "<cmd>Telescope git_status<cr>", { desc = "Show current git changes per file" })
-map("n", "<leader>st", "<cmd>Telescope<cr>", { desc = "Open Telescope options" })
--- map("n", "<leader>sr", "<cmd>Telescope lsp_references<cr>", { desc = "Search lsp references" })
-
--- map("n", "<leader>ss",
---   function() require("telescope.builtin").live_grep({ additional_args = { "-F" } }) end,
---   { desc = "Search string in cwd" })
-map("n", "<leader>ss", function() require("multigrep").setup() end,
-  { desc = "Find string in cwd with file filter" })
-
-map('n', '<leader>sps', function()
-    require("telescope.builtin").grep_string({ search = vim.fn.input("Grep > ") });
-  end,
-  { desc = "Search string, then filter with path" })
-
-map('n', '<leader>sc', function()
-    require("telescope.builtin").find_files({ cwd = require("telescope.utils").buffer_dir() });
-  end,
-  { desc = "Search files in buffer cwd" })
-
-
-map('n', '<leader>sn', function()
-    require("telescope.builtin").find_files({ cwd = "~/.config/nvim/" });
-  end,
-  { desc = "Search files in neovim config" })
-
-
--- Conform
-map("n", "<leader>fm", function() require("conform").format() end, { desc = "Format(Trouble)" })
-map("n", "<leader>ct", "<cmd>ConformToggle<CR>", { desc = "Toggle Format on save" })
-map("n", "<leader>cb", "<cmd>ConformToggle!<CR>", { desc = "Toggle Format on save in current buffer" })
-map("n", "<leader>ts",
-  function()
-    require("conform").format({ formatters = { "biome-tailwind" } })
-  end,
-  { desc = "Sorts Tailwind classes" }
-)
-
 -- automate
+
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "cpp",
   callback = function()

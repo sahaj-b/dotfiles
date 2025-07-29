@@ -1,31 +1,36 @@
 return {
-  {
-    "supermaven-inc/supermaven-nvim",
-    opts = {}
-  },
   -- {
-  --   "zbirenbaum/copilot.lua",
-  --   cmd = "Copilot",
-  --   event = "InsertEnter",
-  --   opts = {
-  --     filetypes = {
-  --       ["*"] = true
-  --     },
-  --     suggestion = {
-  --       auto_trigger = true,
-  --       debounce = 50,
-  --       keymap = {
-  --         accept = "<Tab>",
-  --       }
-  --     },
-  --   }
+  --   "supermaven-inc/supermaven-nvim",
+  --   opts = {}
   -- },
+  {
+    "zbirenbaum/copilot.lua",
+    cmd = "Copilot",
+    event = "InsertEnter",
+    opts = {
+      filetypes = {
+        ["*"] = true
+      },
+      suggestion = {
+        auto_trigger = true,
+        debounce = 50,
+        keymap = {
+          accept = "<Tab>",
+        }
+      },
+    }
+  },
   { "https://github.com/tpope/vim-abolish" },
   {
     'MeanderingProgrammer/render-markdown.nvim',
     dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-tree/nvim-web-devicons' },
     ft = { 'markdown', 'codecompanion', 'Avante' },
     opts = {
+      code = {
+        conceal_delimiters = false,
+        language = false,
+        border = 'none',
+      },
       anti_conceal = {
         enabled = false,
       },
@@ -182,7 +187,7 @@ return {
         -- win_opts = {},
       },
     },
-    cmd = { "Diffviewopen", "Diffviewfilehistory", "Diffviewtogglefiles", "Diffviewfocusfiles" }
+    cmd = { "DiffviewOpen", "DiffviewFileHistory", "DiffviewToggleFiles", "DiffviewFocusFiles" }
   },
   {
     'stevearc/oil.nvim',
@@ -261,26 +266,26 @@ return {
     opts = {}
   },
 
-  {
-    "lukas-reineke/indent-blankline.nvim",
-    main = "ibl",
-    opts = {},
-    -- config = function()
-    --   -- create autocmd when buffenter
-    --   vim.api.nvim_create_autocmd("VimEnter", {
-    --     callback = function()
-    --       require("ibl").setup {
-    --         scope = {
-    --           enabled = true,
-    --           highlight = { "IblScope" },
-    --           show_start = false,
-    --           show_end = false
-    --         },
-    --       }
-    --     end,
-    --   })
-    -- end,
-  },
+  -- {
+  --   "lukas-reineke/indent-blankline.nvim",
+  --   main = "ibl",
+  --   opts = {},
+  --   -- config = function()
+  --   --   -- create autocmd when buffenter
+  --   --   vim.api.nvim_create_autocmd("VimEnter", {
+  --   --     callback = function()
+  --   --       require("ibl").setup {
+  --   --         scope = {
+  --   --           enabled = true,
+  --   --           highlight = { "IblScope" },
+  --   --           show_start = false,
+  --   --           show_end = false
+  --   --         },
+  --   --       }
+  --   --     end,
+  --   --   })
+  --   -- end,
+  -- },
   { "mbbill/undotree" },
   { "catppuccin/nvim", name = "catppuccin", priority = 1000, opts = { integrations = { blink_cmp = true, fidget = true, } } },
   {
