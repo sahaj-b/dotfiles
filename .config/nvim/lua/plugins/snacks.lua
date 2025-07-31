@@ -4,7 +4,7 @@ return {
   lazy = false,
   opts = {
     bigfile = { enabled = true },
-    dashboard = { enabled = true },
+    -- dashboard = { enabled = true },
     explorer = { enabled = true },
     indent = {
       enabled = true,
@@ -42,6 +42,7 @@ return {
             ["<C-d>"] = { "preview_scroll_down", mode = { "i", "n" } },
             ["<C-u>"] = { "preview_scroll_up", mode = { "i", "n" } },
             ["R"] = { "toggle_regex", mode = { "n" } },
+            ["H"] = { "toggle_hidden", mode = { "n" } },
             -- ["<C-d>"] = { "list_scroll_down", mode = { "n" } },
             -- ["<C-u>"] = { "list_scroll_up", mode = { "n" } },
           }

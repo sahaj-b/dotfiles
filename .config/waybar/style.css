@@ -72,6 +72,7 @@ window#waybar {
 #custom-wf-recorder,
 #custom-easyeffects,
 #cpu,
+#custom-wakapi,
 #memory {
   padding: 0px 12px;
   margin: 2px 0px 0px 0px;
@@ -84,20 +85,15 @@ window#waybar {
 #tray,
 /* #cpu, */
 /* #custom-audio.microphone, */
+#temperature,
 #clock.2,
 #custom-cal,
-#custom-wakapi,
 #submap {
   padding: 0px 12px;
   margin: 2px 0px 0px 0px;
   border-radius: 8px;
   color: @blue;
   background: @mantle;
-}
-
-#clock.3,
-#clock.1 {
-  background: @blue;
 }
 
 /* #cpu { */
@@ -266,4 +262,9 @@ window#waybar {
   padding: 0px 12px;
   margin: 2px 0px 0px 0px;
   background: @mantle;
+}
+
+#temperature.critical {
+  background: @red;
+  color: @crust;
 }

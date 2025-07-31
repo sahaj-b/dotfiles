@@ -100,7 +100,7 @@ fi
 
 if [ "$TREE_AVAILABLE" = true ]; then
   echo "--- Workspace Tree ---"
-  tree -aF "${TREE_IGNORE_ARGS[@]}" .
+  tree -aF "${TREE_IGNORE_ARGS[@]}" "$PWD"
   echo -e "\n\n--- File Contents ---"
 else
   echo "--- File Contents ---"

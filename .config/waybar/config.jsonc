@@ -7,6 +7,7 @@
     "clock#1",
     "clock#2",
     "clock#3",
+    "temperature",
     "custom/wakapi",
     "custom/scratchOutput",
     "hyprland/submap"
@@ -61,6 +62,12 @@
     "interval": 600,
     "exec": "~/.wakatime/wakatime-cli --today | awk '{print $1 \"h\", $3 \"m\"}'",
     "on-click": "xdg-open https://wakapi.dev"
+  },
+  "temperature": {
+    "hwmon-path": "/sys/class/hwmon/hwmon6/temp1_input",
+    "interval": 1,
+    "critical-threshold": 90,
+    "format": " {temperatureC}°C"
   },
   "custom/scratchOutput": {
     "return-type": "json",
