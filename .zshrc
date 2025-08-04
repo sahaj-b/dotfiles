@@ -51,6 +51,7 @@ bindkey '^e' end-of-line
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^x^e' edit-command-line
 
+alias ..="cd .."
 alias tok="fd -t d | xargs -I{} sh -c 'printf \"\n\x1b[36m{}\x1b[0m\n\"; tokei {}| grep -v = | tail -n +2'"
 alias scrntime="scrntime -s 2"
 alias mpvo="eza --no-quotes *.mp4 | mpv --playlist=- "
@@ -59,7 +60,7 @@ alias gitl="git log --oneline --graph --decorate"
 alias df="duf"
 alias du="dust"
 alias grep="grep --color=auto"
-alias o="nvim +'Telescope oldfiles'"
+alias o="nvim +'lua Snacks.picker.recent()'"
 alias bp="sudo l2ping -s 200"
 alias neofetch="fastfetch"
 alias ls='eza --no-quotes -a --icons --group-directories-first'
@@ -74,7 +75,7 @@ alias pcn="sudo pacman -Syu --noconfirm --needed"
 # alias nvl='nvim ~/Leetcode/leet.cpp +"lua vim.diagnostic.enable(false)" +"Copilot disable" +":,%d _" +"norm i#include <bits/stdc++.h>" +"norm ousing namespace std;" +"norm o"'
 alias nvl='nvim ~/Leetcode/leet.cpp +"lua vim.diagnostic.enable(false)" +"SupermavenStop" +":,%d _" +"norm i#include <bits/stdc++.h>" +"norm ousing namespace std;" +"norm o"'
 alias dsaq='nvim ~/notes/dsa/dsaq.md +"set nowrap"'
-alias nvn='cd ~/notes && nv -c "norm -"; cd -'
+alias nvn='cd ~/notes && nv +"lua Snacks.picker.files()"'
 alias notesync='cd ~/notes && git add . && git commit -m "notes backup" && git push && cd -'
 alias pymath='python3 -ic "from math import *"'
 alias ts="~/scripts/tmux-sessionizer"
@@ -113,6 +114,8 @@ alias gits="gh copilot suggest -t git"
 function lorem () {shuf -n ${1:-100} /usr/share/dict/cracklib-small | tr '\n' ' ' | fmt }
 function ggl () { links www.google.com/search\?q="$*"; }
 function postmanToHttp() { node ~/projects/postman-collection-gen/node.js --names --short -c "$1" | ~/scripts/curlToHttp }
+
+function alarm() { ~/scripts/countdown $(( $(date -d "$(date +'%Y-%m-%d') $*" +%s) - $(date +%s) )) }
 bindkey -s "^o" "o\n"
 
 
@@ -160,6 +163,7 @@ add-zsh-hook -Uz chpwd chpwd-osc7-pwd
 . "$HOME/.atuin/bin/env"
 
 eval "$(atuin init zsh --disable-up-arrow)"
+eval "$(zoxide init zsh)"
 
 type starship_zle-keymap-select >/dev/null || eval "$(starship init zsh)"
 export STARSHIP_CONFIG="$HOME/.config/starship/starship.toml"

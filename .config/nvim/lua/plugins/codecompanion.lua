@@ -95,7 +95,7 @@ return {
               },
             },
           },
-          inline = { adapter = "copilot" },
+          inline = { adapter = "copilot_gpt" },
         },
         display = {
           chat = {
@@ -112,6 +112,15 @@ return {
               schema = {
                 model = {
                   default = "claude-sonnet-4"
+                }
+              }
+            })
+          end,
+          copilot_gpt = function()
+            return require("codecompanion.adapters").extend("copilot", {
+              schema = {
+                model = {
+                  default = "gpt-4.1"
                 }
               }
             })

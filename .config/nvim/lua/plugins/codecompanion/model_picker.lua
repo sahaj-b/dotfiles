@@ -59,6 +59,7 @@ return function(chat)
       else
         print("No model selected")
       end
+      picker:close()
     end,
   })
 end

@@ -41,8 +41,8 @@ return {
           python = { 'ruff' },
           sql = { 'sql_formatter' },
           html = { 'prettierd', 'prettier', stop_after_first = true },
-          json = { 'fixjson' },
-          jsonc = { 'fixjson' },
+          -- json = { 'fixjson' },
+          -- jsonc = { 'fixjson' },
           css = { 'biome' },
 
           -- without function nesting, this doesn't work

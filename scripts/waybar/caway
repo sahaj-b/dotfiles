@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-# Shamelessly stolen from https://github.com/PROxZIMA/.dotfiles/blob/master/.scripts/caway
+# Shamelessly stolen from https://github.com/PROxZIMA/.dotfiles/blob/master/.scripts/caway (modified)
 
 # Nuke all internal spawns when script dies
 trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM
@@ -8,11 +8,12 @@ trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM
 echo "DEBUG: Killing existing processes..." >&2
 pkill -f "cava.*cava_waybar_config" 2>/dev/null || true
 pkill -f "playerctl.*-F" 2>/dev/null || true
-echo "DEBUG: Starting caway with $BARS bars, $FRAMERATE fps, equilizer=$EQUILIZER" >&2
 
 BARS=8
 FRAMERATE=60
 EQUILIZER=1
+
+echo "DEBUG: Starting caway with $BARS bars, $FRAMERATE fps, equilizer=$EQUILIZER" >&2
 
 # Get script options
 while getopts 'b:f:m:eh' flag; do
@@ -94,8 +95,8 @@ clean_create_pipe $playerctl_waybar_pipe
 
 # playerctl output into playerctl_waybar_pipe
 # playerctl -a metadata --format '{"text": "{{artist}} - {{title}}", "tooltip": "{{playerName}} : {{markup_escape(artist)}} - {{markup_escape(title)}}", "alt": "{{status}}", "class": "{{status}}"}' -F >$playerctl_waybar_pipe &
-echo "DEBUG: Starting playerctl for spotify..." >&2
-playerctl -p 'spotify' metadata --format '{"text": "{{title}}", "tooltip": "{{playerName}} : {{markup_escape(artist)}} - {{markup_escape(title)}}", "alt": "{{status}}", "class": "{{status}}"}' -F >$playerctl_waybar_pipe &
+echo "DEBUG: Starting playerctl" >&2
+playerctl -p 'spotify,firefox,brave' metadata --format '{"text": "{{markup_escape(title)}}", "tooltip": "{{playerName}} : {{markup_escape(title)}} - {{markup_escape(artist)}}", "alt": "{{status}}", "class": "{{status}}", "url": "{{xesam:url}}"}' -F >$playerctl_waybar_pipe &
 
 # Read the playerctl o/p via its fifo pipe
 echo "DEBUG: Starting main loop, reading from playerctl pipe..." >&2
@@ -108,22 +109,31 @@ while read -r line; do
     continue
   fi
 
-  echo "DEBUG: Valid JSON received, processing..." >&2
+  # Check if URL contains spotify or music.youtube
+  url=$(echo "$line" | jq -r '.url // ""')
+  if [[ ! "$url" =~ (spotify|music\.youtube) ]]; then
+    echo "DEBUG: Skipping non-spotify/youtube music URL: $url" >&2
+    continue
+  fi
 
-  # Validate JSON before processing
-  # if ! echo "$line" | jq -r '.text' >/dev/null 2>&1; then
-  #   echo "DEBUG: Invalid JSON, skipping: $line" >&2
-  #   continue
-  # fi
+  echo "DEBUG: Valid JSON received, processing..." >&2
 
   # Kill the cava process to stop the input to cava_waybar_pipe
   kill_pid_file $cava_waybar_pid
 
-  echo "$line" | jq --unbuffered --compact-output
+  # Decode HTML entities from text and tooltip fields using python
+  decoded_text=$(echo "$line" | jq -r '.text' | python -c "import sys, html; print(html.unescape(sys.stdin.read()))")
+  decoded_tooltip=$(echo "$line" | jq -r '.tooltip' | python -c "import sys, html; print(html.unescape(sys.stdin.read()))")
+
+  # Reconstruct the JSON with the decoded values
+  clean_line=$(echo "$line" | jq --arg text "$decoded_text" --arg tooltip "$decoded_tooltip" '.text = $text | .tooltip = $tooltip')
+  echo "DEBUG: Cleaned line: $clean_line" >&2
+
+  echo "$clean_line" | jq --unbuffered --compact-output
 
   # If the class says "Playing" and equilizer is enabled
   # then show the cava equilizer
-  player_status=$(echo $line | jq -r '.class')
+  player_status=$(echo "$line" | jq -r '.class')
   echo "DEBUG: Player status: $player_status, equilizer: $EQUILIZER" >&2
 
   if [[ $EQUILIZER == 1 && "$player_status" == 'Playing' ]]; then
@@ -142,18 +152,15 @@ while read -r line; do
     echo $! >$cava_waybar_pid
 
     # Read the cava o/p via its fifo pipe
-    echo "DEBUG: Reading cava output..." >&2
     while read -r cmd2; do
-      echo "DEBUG: Cava raw output: $cmd2" >&2
       # Skip empty cava output
       if [[ -z "$cmd2" ]]; then
         echo "DEBUG: Skipping empty cava output" >&2
         continue
       fi
 
-      echo "DEBUG: Processing cava bars..." >&2
       # Change the "text" key to bars
-      echo "$line" | jq --arg a $(echo $cmd2 | sed "$dict") '.text = $a' --unbuffered --compact-output
+      echo "$clean_line" | jq --arg a "$(echo $cmd2 | sed "$dict")" '.text = $a' --unbuffered --compact-output
     done <$cava_waybar_pipe & # Do this fifo read in background
 
     # Save the while loop PID into the file as well
