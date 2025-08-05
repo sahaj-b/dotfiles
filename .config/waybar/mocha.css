@@ -1,4 +1,3 @@
-
 @define-color rosewater #f5e0dc;
 @define-color flamingo #f2cdcd;
 @define-color pink #f5c2e7;
@@ -50,6 +49,5 @@
 /* @define-color surface1 rgba(69, 71, 90, 0.8); */
 /* @define-color surface0 rgba(49, 50, 68, 0.5); */
 /* @define-color base rgba(30, 30, 46, 0.8); */
-@define-color mantle rgba(24, 24, 37, 0.5);
+@define-color mantle rgba(24, 24, 37, 0.95);
 /* @define-color crust rgba(17, 17, 27, 1); */
-

@@ -1,9 +1,12 @@
 @import "mocha.css";
+@define-color bg @base;
+@define-color fg @blue;
+@define-color fg2 @mauve;
 
 * {
   font-family: JetBrainsMonoNerd Font;
   font-size: 14px;
-  font-weight: bold;
+  /* font-weight: bold; */
 }
 
 tooltip {
@@ -13,36 +16,29 @@ tooltip {
 }
 
 window#waybar {
-  /* background: @mantle; */
-  /* background: @crust; */
   background: transparent;
   color: @text;
+  padding: 0px;
   border-radius: 50px;
 }
 
 #workspaces {
-  /* background: @crust; */
-  /* background: @mantle; */
-  /* margin: 1px 1px 0px 1px; */
-  /* padding: 0px 0px; */
   border-radius: 15px;
-  background: @mantle;
-  color: @text;
+  background: @bg;
+  color: @fg;
 }
 
 #workspaces button {
   padding: 0px 5px;
-  margin: 1px 4px;
+  margin: 0px 4px;
   border-radius: 15px;
   color: @text;
-  /* background: @mantle; */
-  /* background: transparent; */
-  /* background: @surface1; */
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 #workspaces button.active {
   color: @crust;
+  font-weight: bold;
   /* background: linear-gradient(45deg, @mauve, @sapphire); */
   background: @lavender;
   min-width: 40px;
@@ -51,6 +47,7 @@ window#waybar {
 }
 #workspaces button.urgent {
   color: @crust;
+  font-weight: bold;
   /* background: linear-gradient(45deg, @mauve, @sapphire); */
   background: @red;
   /* min-width: 40px; */
@@ -59,6 +56,7 @@ window#waybar {
 
 #workspaces button:hover {
   color: @crust;
+  font-weight: bold;
   /* background: linear-gradient(45deg, @mauve, @sapphire); */
   background: @lavender;
 }
@@ -66,8 +64,6 @@ window#waybar {
 #bluetooth,
 #clock.1,
 #clock.3,
-#battery,
-#custom-audio,
 #custom-dunst,
 #custom-wf-recorder,
 #custom-easyeffects,
@@ -75,75 +71,144 @@ window#waybar {
 #custom-wakapi,
 #memory {
   padding: 0px 12px;
-  margin: 2px 0px 0px 0px;
-  border-radius: 8px;
-  color: @crust;
-  background: @blue;
+    margin: 1px 0px;
+  border-radius: 6px;
+  background: @bg;
+  color: @fg;
 }
 
 #custom-scratchOutput,
 #tray,
-/* #cpu, */
-/* #custom-audio.microphone, */
+#battery,
 #temperature,
 #clock.2,
 #custom-cal,
+#custom-audio,
 #submap {
   padding: 0px 12px;
-  margin: 2px 0px 0px 0px;
-  border-radius: 8px;
-  color: @blue;
-  background: @mantle;
+    margin: 1px 0px;
+  border-radius: 6px;
+  background: @bg;
+  color: @fg2;
 }
 
-/* #cpu { */
-/*   background: @lavender; */
-/* } */
-
-#custom-audio {
-  /* background: @lavender; */
-  background: @blue;
-}
 #custom-audio.muted {
-  background: @mantle;
-  color: @lavender;
+  background: @bg;
+  color: @overlay2;
 }
 
-#memory {
-  color: @lavender;
-  background: @mantle;
-  border-radius: 8px;
-}
-#memory.cool {
-  /* background: @lavender; */
-  background: @blue;
-  color: @crust;
-}
 #memory.warning {
   background: @maroon;
   color: @crust;
+  font-weight: bold;
 }
+
 #memory.critical {
   background: @red;
   color: @crust;
+  font-weight: bold;
 }
 
-#cpu {
-  color: @blue;
-  background: @mantle;
-  border-radius: 8px;
-}
-#cpu.cool {
-  background: @blue;
-  color: @crust;
-}
 #cpu.warning {
   background: @maroon;
   color: @crust;
+  font-weight: bold;
 }
+
 #cpu.critical {
   background: @red;
   color: @crust;
+  font-weight: bold;
+}
+
+#custom-scratchOutput.urgent {
+  animation: blinker 1s ease-in-out infinite;
+}
+
+#battery.warning {
+  background: @maroon;
+  color: @crust;
+  font-weight: bold;
+}
+#battery.critical {
+  background: @red;
+  color: @crust;
+  font-weight: bold;
+}
+#battery.plugged {
+  background: @bg;
+  color: @teal;
+}
+#battery.charging {
+  background: @green;
+  color: @crust;
+  font-weight: bold;
+}
+#battery.full {
+  background: @green;
+  color: @crust;
+  font-weight: bold;
+}
+
+#bluetooth.disabled
+#bluetooth.off {
+  background: @bg;
+  color: @overlay2;
+}
+
+#bluetooth.connected,
+#bluetooth.connected-battery {
+  background: @fg;
+  color: @crust;
+  font-weight: bold;
+}
+
+#custom-wf-recorder{
+  padding-right: 10px;
+}
+#custom-dunst {
+  padding-right: 15px;
+}
+#custom-dunst.enabled {
+  background: @bg;
+  color: @fg;
+}
+#custom-dunst.disabled {
+  background: @red;
+  color: @crust;
+  font-weight: bold;
+}
+
+#custom-easyeffects.enabled {
+  background: @fg;
+  color: @crust;
+  font-weight: bold;
+}
+
+#custom-music.Playing {
+  background: @transparent;
+  color: @fg;
+  animation: rgb 20s linear infinite;
+}
+
+#custom-music.Paused,
+#custom-music.Stopped {
+  background: @bg;
+  color: @fg;
+}
+
+#custom-music {
+  color: @fg;
+  border-radius: 6px;
+  padding: 0px 12px;
+    margin: 1px 0px;
+  background: @bg;
+}
+
+#temperature.critical {
+  background: @red;
+  color: @crust;
+  font-weight: bold;
 }
 
 @keyframes rgb {
@@ -166,7 +231,7 @@ window#waybar {
     color: @sapphire;
   }
   48% {
-    color: @blue;
+    color: @fg;
   }
   56% {
     color: @sapphire;
@@ -192,79 +257,8 @@ window#waybar {
   50% {
     /* opacity: 0.1; */
     color: @crust;
+    font-weight: bold;
     background: @red;
   }
 }
-#custom-scratchOutput.urgent {
-  animation: blinker 1s ease-in-out infinite;
-}
 
-#battery.discharging {
-  background: @blue;
-}
-#battery.warning {
-  background: @maroon;
-}
-#battery.critical {
-  background: @red;
-}
-#battery.plugged {
-  background: @teal;
-}
-#battery.charging {
-  background: @green;
-}
-#battery.full {
-  background: @green;
-}
-
-#bluetooth.off,
-#bluetooth.disabled {
-  background: @mantle;
-  color: @blue;
-}
-
-#custom-wf-recorder{
-  padding-right: 10px;
-}
-#custom-dunst {
-  padding-right: 15px;
-}
-#custom-dunst.enabled {
-  background: @mantle;
-  color: @blue;
-}
-#custom-dunst.disabled {
-  background: @red;
-  /* color: @blue; */
-}
-
-#custom-easyeffects.disabled {
-  background: @mantle;
-  color: @blue;
-}
-
-#custom-music.Playing {
-  background: @transparent;
-  color: @blue;
-  animation: rgb 20s linear infinite;
-}
-
-#custom-music.Paused,
-#custom-music.Stopped {
-  background: @mantle;
-  color: @blue;
-}
-
-#custom-music {
-  color: @blue;
-  border-radius: 8px;
-  padding: 0px 12px;
-  margin: 2px 0px 0px 0px;
-  background: @mantle;
-}
-
-#temperature.critical {
-  background: @red;
-  color: @crust;
-}
