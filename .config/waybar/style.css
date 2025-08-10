@@ -150,12 +150,7 @@ window#waybar {
   font-weight: bold;
 }
 
-#bluetooth.disabled
-#bluetooth.off {
-  background: @bg;
-  color: @overlay2;
-}
-
+#bluetooth.on,
 #bluetooth.connected,
 #bluetooth.connected-battery {
   background: @fg;
@@ -195,6 +190,7 @@ window#waybar {
 #custom-music.Stopped {
   background: @bg;
   color: @fg;
+  /* animation: rgb 20s linear infinite; */
 }
 
 #custom-music {

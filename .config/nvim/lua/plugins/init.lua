@@ -1,12 +1,17 @@
 return {
-  -- {
-  --   "dmtrKovalenko/fff.nvim",
-  --   build = "cargo build --release",
-  --   opts = {},
-  --   keys = {
-  --     { "ff", function() require("fff").find_files() end, desc = "Open file picker" },
-  --   },
-  -- },
+  {
+    "dmtrKovalenko/fff.nvim",
+    build = "cargo build --release",
+    opts = {},
+    keys = {
+      { "ff", function() require("fff").find_files() end, desc = "Open file picker" },
+    },
+  },
+  {
+    "dmmulroy/ts-error-translator.nvim",
+    opts = {},
+    filetypes = { "typescript", "typescriptreact", "javascript", "javascriptreact" },
+  },
   {
     "sphamba/smear-cursor.nvim",
     opts = {
@@ -19,7 +24,7 @@ return {
       trailing_stiffness = 0.6,             -- 0.4      [0, 1]
       stiffness_insert_mode = 0.7,          -- 0.5      [0, 1]
       trailing_stiffness_insert_mode = 0.6, -- 0.5      [0, 1]
-      damping = 0.8,                        -- 0.65     [0, 1]
+      damping = 1,                          -- 0.65     [0, 1]
       damping_insert_mode = 0.8,            -- 0.7      [0, 1]
       distance_stop_animating = 1,          -- 0.1      > 0
       delay_event_to_smear = 1
@@ -163,16 +168,16 @@ return {
     ft = "lua",
     opts = {},
   },
-  {
-    'vyfor/cord.nvim',
-    event = "VeryLazy",
-    build = ':Cord update',
-    opts = {
-      text = {
-        workspace = "",
-      }
-    }
-  },
+  -- {
+  --   'vyfor/cord.nvim',
+  --   event = "VeryLazy",
+  --   build = ':Cord update',
+  --   opts = {
+  --     text = {
+  --       workspace = "",
+  --     }
+  --   }
+  -- },
   {
     "rest-nvim/rest.nvim",
     ft = { "http" },
@@ -272,13 +277,13 @@ return {
         desc =
         "Flash Treesitter"
       },
-      {
-        "<c-g>",
-        mode = { "c" },
-        function() require("flash").toggle() end,
-        desc =
-        "Toggle Flash Search"
-      },
+      -- {
+      --   "<c-g>",
+      --   mode = { "c" },
+      --   function() require("flash").toggle() end,
+      --   desc =
+      --   "Toggle Flash Search"
+      -- },
     },
 
   },
