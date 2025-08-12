@@ -25,6 +25,11 @@ map("n", "z7", function() CloseLevel(7) end)
 map("n", "z8", function() CloseLevel(8) end)
 map("n", "z9", function() CloseLevel(9) end)
 
+NavigateClosedFold = require("fold-navigate")
+vim.keymap.set('n', ']z', function() NavigateClosedFold('next') end, { desc = 'Next closed fold' })
+vim.keymap.set('n', '[z', function() NavigateClosedFold('prev') end, { desc = 'Prev closed fold' })
+
+
 map("n", "<leader>lt", "<cmd>!xdg-open https://leetcode.com/problems/<cword><CR>")
 map("n", "<leader>tr", "<cmd>lua Transparent()<CR>", { silent = true })
 map("n", "<leader>to", "<cmd>lua Opaque()<CR>", { silent = true })
@@ -232,7 +237,7 @@ map("n", "<leader>cc", "<cmd>CccPick<CR>")
 map("n", "<leader>u", "<cmd>UndotreeToggle<CR>")
 
 -- Snacks.picker ---
-map("n", "<leader>sf", function() Snacks.picker.smart() end, { desc = "Smart Find Files" })
+map("n", "<leader>ff", function() Snacks.picker.smart() end, { desc = "Smart Find Files" })
 map("n", "<leader>sb", function() Snacks.picker.buffers() end, { desc = "Buffers" })
 map("n", "<leader>s:", function() Snacks.picker.command_history() end, { desc = "Command History" })
 -- map("n", "<leader>e", function() Snacks.explorer() end, { desc = "File Explorer" })

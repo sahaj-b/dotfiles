@@ -2,9 +2,17 @@ return {
   {
     "dmtrKovalenko/fff.nvim",
     build = "cargo build --release",
-    opts = {},
+    opts = {
+      prompt = ' ',
+      layout = {
+        prompt_position = 'left',
+        preview_position = 'right',
+        height = 0.9,
+        width = 0.9,
+      },
+    },
     keys = {
-      { "ff", function() require("fff").find_files() end, desc = "Open file picker" },
+      { "sf", function() require("fff").find_files() end, desc = "Open file picker" },
     },
   },
   {
@@ -51,12 +59,21 @@ return {
       },
     }
   },
-  { "https://github.com/tpope/vim-abolish" },
+  { "https://github.com/tpope/vim-abolish", cmd = { "Abolish", "S", "Subvert" } },
   {
     'MeanderingProgrammer/render-markdown.nvim',
     dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-tree/nvim-web-devicons' },
     ft = { 'markdown', 'codecompanion', 'Avante' },
     opts = {
+      checkbox = {
+        unchecked = {
+          icon = '  󰄱'
+        },
+        checked = {
+          icon = '  󰄲',
+        },
+        right_pad = 2
+      },
       code = {
         conceal_delimiters = false,
         language = false,
@@ -80,8 +97,6 @@ return {
   --   config = function()
   --     require("markview").setup({
   --       highlight_groups = {
-  --         -- Customize the highlight group used for bold text
-  --         -- You may need to identify which specific group is used for bold
   --         MarkviewPalette1Fg = { fg = "#ff6b6b", bold = true },
   --       },
   --       preview = {
@@ -93,9 +108,9 @@ return {
   --       },
   --       markdown_inline = {
   --         checkboxes = {
-  --           checked = { text = "" },
-  --           unchecked = { text = "", hl = "Normal", scope_hl = "Normal" },
-  --           ["/"] = { text = "󰡖" }
+  --           checked = { text = "    " },
+  --           unchecked = { text = "    ", hl = "Normal", scope_hl = "Normal" },
+  --           ["/"] = { text = "  󰡖  " }
   --         }
   --       },
   --       markdown = {
@@ -113,9 +128,6 @@ return {
   --     })
   --   end,
   -- },
-  {
-    "hiphish/rainbow-delimiters.nvim",
-  },
   {
     "j-hui/fidget.nvim",
     opts = {
@@ -161,8 +173,8 @@ return {
   --   dependencies = { "nvim-lua/plenary.nvim" },
   --   opts = {}
   -- },
-  { "williamboman/mason.nvim",             opts = {},                          cmd = "Mason" },
-  { 'glacambre/firenvim',                  build = ":call firenvim#install(0)" },
+  { "williamboman/mason.nvim",              opts = {},                          cmd = "Mason" },
+  { 'glacambre/firenvim',                   build = ":call firenvim#install(0)" },
   {
     "folke/lazydev.nvim",
     ft = "lua",
@@ -297,50 +309,32 @@ return {
     opts = {}
   },
 
-  -- {
-  --   "lukas-reineke/indent-blankline.nvim",
-  --   main = "ibl",
-  --   opts = {},
-  --   -- config = function()
-  --   --   -- create autocmd when buffenter
-  --   --   vim.api.nvim_create_autocmd("VimEnter", {
-  --   --     callback = function()
-  --   --       require("ibl").setup {
-  --   --         scope = {
-  --   --           enabled = true,
-  --   --           highlight = { "IblScope" },
-  --   --           show_start = false,
-  --   --           show_end = false
-  --   --         },
-  --   --       }
-  --   --     end,
-  --   --   })
-  --   -- end,
-  -- },
   { "mbbill/undotree" },
   { "catppuccin/nvim", name = "catppuccin", priority = 1000, opts = { integrations = { blink_cmp = true, fidget = true, } } },
-  {
-    'windwp/nvim-autopairs',
-    event = "InsertEnter",
-    opts = {},
-  },
   -- {
-  --   'saghen/blink.pairs',
-  --   version = '*',
-  --   dependencies = 'saghen/blink.download',
-  --   opts = {
-  --     highlights = {
-  --       enabled = true,
-  --       groups = {
-  --         '',
-  --         'DiagnosticHint',
-  --         'DiagnosticWarn',
-  --         'DiagnosticOk',
-  --         'DiagnosticError',
-  --       },
-  --     },
-  --   }
+  --   'windwp/nvim-autopairs',
+  --   event = "InsertEnter",
+  --   opts = {},
   -- },
+  {
+    'saghen/blink.pairs',
+    version = '*',
+    dependencies = 'saghen/blink.download',
+    opts = {
+      highlights = {
+        enabled = true,
+        groups = {
+          '',
+          '@markup.heading.1.markdown',
+          '@markup.heading.3.markdown',
+          '@markup.heading.4.markdown',
+          '@markup.heading.2.markdown',
+          '@markup.heading.5.markdown',
+          '@markup.heading.6.markdown',
+        },
+      },
+    }
+  },
   { 'kylechui/nvim-surround', event = "VeryLazy", opts = { keymaps = { visual = "Y" }, }, },
   {
     "aserowy/tmux.nvim",
@@ -381,50 +375,4 @@ return {
 
     }
   },
-  -- { 'echasnovski/mini.cursorword', opts = {} },
-
-  -- inconsistent
-  -- {
-  --   "zbirenbaum/neodim",
-  --   event = "LspAttach",
-  --   opts = {
-  --     alpha = 0.75,
-  --     blend_color = "#000000",
-  --     hide = { underline = true, virtual_text = false, signs = true },
-  --   }
-  -- },
-  -- {
-  --   'linrongbin16/lsp-progress.nvim',
-  --   config = function()
-  --     require("lsp-progress").setup()
-  --   end
-  -- },
-  -- {
-  --   "epwalsh/obsidian.nvim",
-  --   version = "*",
-  --   lazy = true,
-  --   ft = "markdown",
-  --   dependencies = { "nvim-lua/plenary.nvim", },
-  --   opts = {
-  --     workspaces = { { name = "notes", path = "~/notes", }, },
-  --     disable_frontmatter = true,
-  --     -- daily_notes = {
-  --     --     folder = "journal/daily",
-  --     --     template = "daily.md",
-  --     -- },
-  --     templates = {
-  --       subdir = "templates",
-  --     },
-  --   },
-  -- },
-  -- {
-  --   "Exafunction/codeium.vim",
-  --   cmd = "CodeiumEnable",
-  --   config = function()
-  --     vim.keymap.set('i', '<Tab>', function() return vim.fn['codeium#Accept']() end,
-  --       { expr = true, silent = true })
-  --     vim.keymap.set('i', '<C-x>', function() return vim.fn['codeium#Clear']() end,
-  --       { expr = true, silent = true })
-  --   end
-  -- },
 }
