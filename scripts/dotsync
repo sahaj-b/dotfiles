@@ -10,6 +10,8 @@ dotfiles=(
   "/etc/systemd/system/powermgmt.service"
   "/etc/systemd/system/fix-mic.service"
   # "/etc/udev/rules.d/90-power.rules"
+  "$HOME/.config/opencode/"
+  "$HOME/.opencode/plugin/"
   "$HOME/.clang-format"
   "$HOME/scripts/"
   "$HOME/.gitconfig"

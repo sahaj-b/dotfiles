@@ -1,4 +1,4 @@
-local prompt_path = vim.fn.expand("~/notes/.prompt.md")
+local prompt_path = vim.fn.expand("~/notes/prompts/codeCC.md")
 local prompt_content = ""
 
 local file, err = io.open(prompt_path, "r")

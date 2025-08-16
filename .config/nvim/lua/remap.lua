@@ -178,8 +178,9 @@ vim.fn.setreg("t", [[_f"ý5r`ý5f"ý5r`ý5a}hF`ý5i{]]) -- JS/TS: co
 --Plugins keymaps
 
 -- CodeCompanion
-map({ 'n', 'v' }, "<leader>aa", "<cmd>CodeCompanionActions<cr>")
-map('n', "<leader><leader>a", "<cmd>CodeCompanionChat Toggle<cr>")
+map({ "n", "v" }, "<leader>ai", ":CodeCompanion<cr>", { noremap = true, silent = true })
+map({ "n", "v" }, "<leader>aa", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
+map("n", "<leader><leader>a", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true })
 map('ca', "cc", "CodeCompanion")
 map('ca', "cch", "CodeCompanionHistory")
 

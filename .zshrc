@@ -51,6 +51,11 @@ bindkey '^e' end-of-line
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^x^e' edit-command-line
 
+alias oc = "opencode run -m github-copilot/gpt-4.1"
+alias rgb="sed -i '194s/^ *\/\* *//;194s/ *\*\/ *$//' ~/.config/waybar/style.css && pkill waybar && waybar&>/dev/null &disown"
+alias norgb="sed -i '194s/^/\/*/;194s/$/*\//' ~/.config/waybar/style.css && pkill waybar && waybar&>/dev/null &disown"
+alias tt="~/timetable"
+alias att="go-attend"
 alias ..="cd .."
 alias tok="fd -t d | xargs -I{} sh -c 'printf \"\n\x1b[36m{}\x1b[0m\n\"; tokei {}| grep -v = | tail -n +2'"
 alias scrntime="scrntime -s 2"
@@ -184,3 +189,6 @@ export FZF_DEFAULT_OPTS="--bind 'ctrl-u:preview-page-up,ctrl-d:preview-page-down
 --color=marker:#B4BEFE,fg+:#CDD6F4,prompt:#CBA6F7,hl+:#F38BA8 \
 --color=selected-bg:#45475A \
 --color=border:#313244,label:#CDD6F4"
+
+# opencode
+export PATH=/home/sahaj/.opencode/bin:$PATH

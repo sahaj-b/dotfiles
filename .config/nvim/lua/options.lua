@@ -4,7 +4,8 @@ vim.o.shada = "!,'500,<50,s10,h"
 vim.g.blink_cmp = true
 vim.opt.showmode = false
 vim.opt.breakindent = true
-vim.opt.signcolumn = 'auto'
+-- vim.opt.signcolumn = 'auto'
+vim.opt.signcolumn = 'yes'
 vim.g.tailwindSortOnSave = false
 vim.opt.guicursor = {
   "n-v-c:block-Cursor",
@@ -20,6 +21,9 @@ vim.opt.magic = false
 vim.o.laststatus = 3
 -- vim.opt.conceallevel = 2
 -- vim.opt.concealcursor = 'nc'
+
+
+vim.opt.statuscolumn = "%s %l "
 
 vim.opt.inccommand = 'split'
 
@@ -51,7 +55,6 @@ vim.opt.incsearch = true
 vim.opt.termguicolors = true
 
 vim.opt.scrolloff = 8
-vim.opt.signcolumn = "yes"
 vim.opt.isfname:append("@-@")
 
 vim.opt.updatetime = 500

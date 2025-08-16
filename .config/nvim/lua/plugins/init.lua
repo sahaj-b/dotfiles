@@ -67,11 +67,15 @@ return {
     opts = {
       checkbox = {
         unchecked = {
-          icon = '  󰄱'
+          icon = '   󰄱'
         },
         checked = {
-          icon = '  󰄲',
+          icon = '   󰄲',
         },
+        custom = {
+          todo = { raw = '[-]', rendered = '   󰡖', highlight = '@number' },
+        },
+
         right_pad = 2
       },
       code = {
@@ -97,6 +101,8 @@ return {
   --   config = function()
   --     require("markview").setup({
   --       highlight_groups = {
+  --         -- Customize the highlight group used for bold text
+  --         -- You may need to identify which specific group is used for bold
   --         MarkviewPalette1Fg = { fg = "#ff6b6b", bold = true },
   --       },
   --       preview = {
@@ -108,9 +114,9 @@ return {
   --       },
   --       markdown_inline = {
   --         checkboxes = {
-  --           checked = { text = "    " },
-  --           unchecked = { text = "    ", hl = "Normal", scope_hl = "Normal" },
-  --           ["/"] = { text = "  󰡖  " }
+  --           checked = { text = "" },
+  --           unchecked = { text = "", hl = "Normal", scope_hl = "Normal" },
+  --           ["/"] = { text = "󰡖" }
   --         }
   --       },
   --       markdown = {
@@ -311,30 +317,34 @@ return {
 
   { "mbbill/undotree" },
   { "catppuccin/nvim", name = "catppuccin", priority = 1000, opts = { integrations = { blink_cmp = true, fidget = true, } } },
-  -- {
-  --   'windwp/nvim-autopairs',
-  --   event = "InsertEnter",
-  --   opts = {},
-  -- },
   {
-    'saghen/blink.pairs',
-    version = '*',
-    dependencies = 'saghen/blink.download',
-    opts = {
-      highlights = {
-        enabled = true,
-        groups = {
-          '',
-          '@markup.heading.1.markdown',
-          '@markup.heading.3.markdown',
-          '@markup.heading.4.markdown',
-          '@markup.heading.2.markdown',
-          '@markup.heading.5.markdown',
-          '@markup.heading.6.markdown',
-        },
-      },
-    }
+    'windwp/nvim-autopairs',
+    event = "InsertEnter",
+    opts = {},
   },
+  {
+    "hiphish/rainbow-delimiters.nvim",
+  },
+  -- {
+  --   -- this opens spaces out [  ] which is annoying when making checkboxes
+  --   'saghen/blink.pairs',
+  --   version = '*',
+  --   dependencies = 'saghen/blink.download',
+  --   opts = {
+  --     highlights = {
+  --       enabled = true,
+  --       groups = {
+  --         '',
+  --         '@markup.heading.1.markdown',
+  --         '@markup.heading.3.markdown',
+  --         '@markup.heading.4.markdown',
+  --         '@markup.heading.2.markdown',
+  --         '@markup.heading.5.markdown',
+  --         '@markup.heading.6.markdown',
+  --       },
+  --     },
+  --   }
+  -- },
   { 'kylechui/nvim-surround', event = "VeryLazy", opts = { keymaps = { visual = "Y" }, }, },
   {
     "aserowy/tmux.nvim",

@@ -7,7 +7,7 @@ format-text:
 # List of predefined system messages that can be used as roles.
 roles:
   "default":
-    - file:///home/sahaj/notes/.genPrompt.md
+    - file:///home/sahaj/notes/prompts/genN.md
     - MAKE SURE YOUR RESPONSES ARE CONCISE AF
 
   shell:

@@ -135,7 +135,8 @@ window#waybar {
   color: @crust;
   font-weight: bold;
 }
-#battery.plugged {
+#battery.plugged,
+#battery.not-charging {
   background: @bg;
   color: @teal;
 }
@@ -190,7 +191,7 @@ window#waybar {
 #custom-music.Stopped {
   background: @bg;
   color: @fg;
-  /* animation: rgb 20s linear infinite; */
+/*animation: rgb 20s linear infinite;*/
 }
 
 #custom-music {
