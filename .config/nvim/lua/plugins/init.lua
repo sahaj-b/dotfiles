@@ -12,7 +12,7 @@ return {
       },
     },
     keys = {
-      { "sf", function() require("fff").find_files() end, desc = "Open file picker" },
+      { "<leader>sf", function() require("fff").find_files() end, desc = "Open file picker" },
     },
   },
   {

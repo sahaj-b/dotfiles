@@ -51,7 +51,8 @@ bindkey '^e' end-of-line
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^x^e' edit-command-line
 
-alias oc = "opencode run -m github-copilot/gpt-4.1"
+alias co="cd -"
+alias oc="opencode run -m github-copilot/gpt-4.1"
 alias rgb="sed -i '194s/^ *\/\* *//;194s/ *\*\/ *$//' ~/.config/waybar/style.css && pkill waybar && waybar&>/dev/null &disown"
 alias norgb="sed -i '194s/^/\/*/;194s/$/*\//' ~/.config/waybar/style.css && pkill waybar && waybar&>/dev/null &disown"
 alias tt="~/timetable"
@@ -121,7 +122,23 @@ function ggl () { links www.google.com/search\?q="$*"; }
 function postmanToHttp() { node ~/projects/postman-collection-gen/node.js --names --short -c "$1" | ~/scripts/curlToHttp }
 
 function alarm() { ~/scripts/countdown $(( $(date -d "$(date +'%Y-%m-%d') $*" +%s) - $(date +%s) )) }
-bindkey -s "^o" "o\n"
+
+if [[ -f ~/scripts/zf ]]; then
+  source ~/scripts/zf # the sexy zf script
+fi
+zf-widget() {
+  zf
+  zle reset-prompt
+}
+zle -N zf-widget
+bindkey "^@" zf-widget # Ctrl+space
+
+nvim-picker-widget() {
+  nvim +'lua Snacks.picker.recent()'
+  zle reset-prompt
+}
+zle -N nvim-picker-widget
+bindkey "^o" nvim-picker-widget
 
 
 function ffss(){
@@ -184,6 +201,7 @@ case ":$PATH:" in
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
 export FZF_DEFAULT_OPTS="--bind 'ctrl-u:preview-page-up,ctrl-d:preview-page-down' \
+--cycle \
 --color=bg+:#313244,spinner:#F5E0DC,hl:#F38BA8 \
 --color=fg:#CDD6F4,header:#F38BA8,info:#CBA6F7,pointer:#F5E0DC \
 --color=marker:#B4BEFE,fg+:#CDD6F4,prompt:#CBA6F7,hl+:#F38BA8 \

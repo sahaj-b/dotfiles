@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# zf - A smart and fast directory jumper
+# prioritizes zoxide, then home, cwd, extra directories
+
+zf() {
+  # CONFIG
+
+  local extra_dirs=(
+    /usr/local /etc /opt /var/log /var/www /var/lib /srv /mnt /media
+  )
+
+  local fd_ignores=(
+    .git node_modules .cache .venv .vscode __pycache__ .DS_Store
+    .idea .mypy_cache .pytest_cache .next dist build target .gradle
+    .terraform .egg-info .env .history .svn .hg .Trash .local/share/Trash
+  )
+
+  previewCmd='eza --color always --oneline "$(echo {3..} | sed "s|^~|$HOME|")"'
+  # previewCmd='ls --color=always -1 "$(echo {3..} | sed "s|^~|$HOME|")"'
+
+  local fd_excludes=()
+  for pat in "${fd_ignores[@]}"; do
+    fd_excludes+=(--exclude "$pat")
+  done
+
+  selected_output_with_prefix=$(
+    {
+      # Priority 0: Zoxide
+      zoxide query --list --score |
+        awk '{
+          # Invert score for ascending sort (higher zoxide score = smaller number)
+          score = 10000 - $1
+          path = substr($0, index($0,$2))
+          printf "0\t%05d\t%s\n", int(score), path
+        }'
+
+      # Priority 1: Home and CWD, with a placeholder secondary key
+      fd -t d --hidden -d 10 "${fd_excludes[@]}" . . ~ 2>/dev/null | sed 's/^/1\t0\t/'
+
+      # Priority 2: Extra Dirs
+      fd -t d -d 8 "${fd_excludes[@]}" . "${extra_dirs[@]}" 2>/dev/null | sed 's/^/2\t0\t/'
+
+      # Priority 3: Root Dirs
+      fd -t d -d 1 "${fd_excludes[@]}" . / 2>/dev/null | sed 's/^/3\t0\t/'
+
+    } |
+      sed -E "s|^([0-9]+\t[0-9]+\t)$HOME|\1~|" |
+      fzf --height 50% --layout reverse --info=inline \
+        --scheme=path --query "'" --tiebreak=index \
+        --cycle --ansi --preview-window 'right:40%' \
+        --delimiter='\t' --with-nth=3.. \
+        --preview $previewCmd
+  )
+
+  if [[ -n "$selected_output_with_prefix" ]]; then
+    # Cut the first TWO fields to get just the path
+    target_dir=$(echo "$selected_output_with_prefix" | cut -f3- -d$'\t' | sed "s|^~|$HOME|")
+    cd "$target_dir" || exit
+  fi
+}
