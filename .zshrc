@@ -123,9 +123,10 @@ function postmanToHttp() { node ~/projects/postman-collection-gen/node.js --name
 
 function alarm() { ~/scripts/countdown $(( $(date -d "$(date +'%Y-%m-%d') $*" +%s) - $(date +%s) )) }
 
-if [[ -f ~/scripts/zf ]]; then
-  source ~/scripts/zf # the sexy zf script
+if [[ -f ~/scripts/zf.sh ]]; then
+  source ~/scripts/zf.sh # the sexy zf script
 fi
+
 zf-widget() {
   zf
   zle reset-prompt

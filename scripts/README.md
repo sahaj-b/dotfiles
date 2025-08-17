@@ -2,7 +2,7 @@
 
 | Script                                    | Description                                                                            |
 | ---------------                           | -------------                                                                          |
-| `zf`                                      | fzf with combined zoxide and fd results with prioritization, cool replacement for `zi` |
+| `zf.sh`                                      | shell function for combined zoxide and fd results with prioritization, better `zi`     |
 | `pcs`, `ycs <query>`                      | Search for packages on `pacman`, `yay`                                                 |
 | `picker <type> [--float] [--prefix CODE]` | Emoji/Unicode/NerdFonts/ANSI_codes picker using `fzf`, optionally in floating terminal |
 | `tmux-sessionizer`                        | Edited version of tmux-sessionizer by primeagen                                        |
