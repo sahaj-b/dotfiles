@@ -12,10 +12,12 @@ echo $filename
 
 if [ -z $(pgrep wf-recorder) ]; then
   if [ "$1" == "-s" ]; then
-    # wf-recorder -f ~/Videos/Recordings/$filename -a -g "$(slurp -c "#FFFFFF")" >/dev/null 2>&1 &
-    wf-recorder -f ~/Videos/Recordings/$filename -a="$active" -g "$(slurp -c "#FFFFFF")" >/dev/null 2>&1 &
+    # wf-recorder -f ~/Videos/Recordings/$filename -a -g "$(slurp)" >/dev/null 2>&1 &
+    wf-recorder -f ~/Videos/Recordings/$filename -a="$active" -g "$(slurp)" >/dev/null 2>&1 &
+    while [ -n "$(pgrep -x slurp)" ]; do
+      sleep 0.5
+    done
     sleep 2
-    while [ -n "$(pgrep -x slurp)" ]; do wait; done
     pkill -RTMIN+8 waybar
   else
     # wf-recorder -f ~/Videos/Recordings/$filename -a >/dev/null 2>&1 &

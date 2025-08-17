@@ -26,9 +26,10 @@ zf() {
   )
 
   local fd_ignores=(
-    .git node_modules .cache .venv .vscode __pycache__ .DS_Store
-    .idea .mypy_cache .pytest_cache .next dist build target .gradle
-    .terraform .egg-info .env .history .svn .hg .Trash .local/share/Trash
+    '**/.git/**' '**/node_modules/**' '**/.cache/**' '**/.venv/**' '**/.vscode/**' '**/__pycache__/**' '**/.DS_Store'
+    '**/.idea/**' '**/.mypy_cache/**' '**/.pytest_cache/**' '**/.next/**' '**/dist/**' '**/build/**' '**/target/**' '**/.gradle/**'
+    '**/.terraform/**' '**/.egg-info/**' '**/.env' '**/.history' '**/.svn/**' '**/.hg/**' '**/.Trash/**'
+    "**/.local/share/Trash/**" "**/.local/share/nvim/**"
   )
 
   local previewCmd
@@ -55,7 +56,7 @@ zf() {
         }'
 
       # Priority 1: Home and CWD
-      fd -t d --hidden -d 10 "${fd_excludes[@]}" . . ~ 2>/dev/null | sed "s/^/1\t0\t$homeIcon /"
+      fd -t d -H -d 10 "${fd_excludes[@]}" . . ~ 2>/dev/null | sed "s/^/1\t0\t$homeIcon /"
 
       # Priority 2: Extra Dirs
       fd -t d -d 8 "${fd_excludes[@]}" . "${extra_dirs[@]}" 2>/dev/null | sed "s/^/2\t0\t$extraIcon /"
@@ -78,6 +79,6 @@ zf() {
       cut -f3- -d$'\t' |
       sed 's/^..//' | # remove prefix
       sed "s|^~|$HOME|")
-    z "$target_dir" || exit
+    z "$target_dir"
   fi
 }
