@@ -123,17 +123,6 @@ function postmanToHttp() { node ~/projects/postman-collection-gen/node.js --name
 
 function alarm() { ~/scripts/countdown $(( $(date -d "$(date +'%Y-%m-%d') $*" +%s) - $(date +%s) )) }
 
-if [[ -f ~/scripts/zf.sh ]]; then
-  source ~/scripts/zf.sh # the sexy zf script
-fi
-
-zf-widget() {
-  zf
-  zle reset-prompt
-}
-zle -N zf-widget
-bindkey "^@" zf-widget # Ctrl+space
-
 nvim-picker-widget() {
   nvim +'lua Snacks.picker.recent()'
   zle reset-prompt
@@ -211,3 +200,25 @@ export FZF_DEFAULT_OPTS="--bind 'ctrl-u:preview-page-up,ctrl-d:preview-page-down
 
 # opencode
 export PATH=/home/sahaj/.opencode/bin:$PATH
+alias wakafetch=projects/wakafetch/wakafetch
+
+# ----- ZF SETUP -----
+if [[ -f ~/scripts/zf.sh ]]; then
+  source ~/scripts/zf.sh
+fi
+
+# Directory jumper widget
+zf-widget() {
+  zf
+  zle reset-prompt
+}
+zle -N zf-widget
+bindkey "^@" zf-widget # Ctrl+space
+
+# Directory INSERTER
+zfi-widget() {
+  zfi
+  zle redisplay
+}
+zle -N zfi-widget
+bindkey '^T' zfi-widget

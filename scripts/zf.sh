@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
+
 # zf - A smart and fast directory jumper
 # prioritizes zoxide, then home, cwd, extra directories
+
+# This script provides:
+# 1. zf: A function to jump to a directory.
+# 2. An inserter bound to Ctrl+T (in Bash) or a `zfi` function (for Zsh widgets).
 
 # requirements: fzf, zoxide, fd, eza (optional)
 # to use zf, paste this into your .bashrc or .zshrc
@@ -8,29 +13,32 @@
 #   source /path/to/zf.sh
 # fi
 
-# real ones bind this to a key(using widget). My .zshrc has the sauce.
+# real ones bind these functoins to a keybind (using widget in zsh). My .zshrc has the sauce.
+
+# to change/disable keybind for inserter in Bash, modify the BASH SETUP section below
 
 # heads-up: I'm forcing an exact search by default. Just backspace the single quote if you wanna get fuzzy
 # to change this behavior, remove the --query "'" from the fzf command below
 
-zf() {
+_zf_selector() {
   # -------- CONFIG --------
   # PLEAAAASE use 1 byte chars for icons ,so no emojies (script too dumb to handle that shi)
-  zoxideIcon='󱐌'
-  homeIcon='󰚡'
-  extraIcon=' '
-  rootIcon=' '
+  local zoxideIcon='󱐌'
+  local homeIcon='󰚡'
+  local extraIcon=' '
+  local rootIcon=' '
 
   local extra_dirs=(
     /usr/local /etc /opt /var/log /var/www /var/lib /srv /mnt /media
   )
 
   local fd_ignores=(
-    '**/.git/**' '**/node_modules/**' '**/.cache/**' '**/.venv/**' '**/.vscode/**' '**/__pycache__/**' '**/.DS_Store'
+    '**/.git/**' '**/node_modules/**' '**/.cache/**' '**/.venv/**' '**/.vscode/**' '**/.pycache__/**' '**/.DS_Store'
     '**/.idea/**' '**/.mypy_cache/**' '**/.pytest_cache/**' '**/.next/**' '**/dist/**' '**/build/**' '**/target/**' '**/.gradle/**'
     '**/.terraform/**' '**/.egg-info/**' '**/.env' '**/.history' '**/.svn/**' '**/.hg/**' '**/.Trash/**'
     "**/.local/share/Trash/**" "**/.local/share/nvim/**"
   )
+  # ------------------------
 
   local previewCmd
   if command -v eza &>/dev/null; then
@@ -44,41 +52,72 @@ zf() {
     fd_excludes+=(--exclude "$pat")
   done
 
-  selected_output_with_prefix=$(
-    {
-      # Priority 0: Zoxide
-      zoxide query --list --score |
-        awk -v icon="$zoxideIcon" '{
-          # invert score for ascending sort
-          score = 10000 - $1
-          path = substr($0, index($0,$2))
-          printf "0\t%05d\t%s %s\n", int(score), icon, path
-        }'
+  {
+    # Priority 0: Zoxide
+    zoxide query --list --score |
+      awk -v icon="$zoxideIcon" '{
+        score = 10000 - $1
+        path = substr($0, index($0,$2))
+        printf "0\t%05d\t%s %s\n", int(score), icon, path
+      }'
 
-      # Priority 1: Home and CWD
-      fd -t d -H -d 10 "${fd_excludes[@]}" . . ~ 2>/dev/null | sed "s/^/1\t0\t$homeIcon /"
+    # Priority 1: Home and CWD
+    fd -t d -H -d 10 "${fd_excludes[@]}" . . ~ 2>/dev/null | sed "s/^/1\t0\t$homeIcon /"
 
-      # Priority 2: Extra Dirs
-      fd -t d -d 8 "${fd_excludes[@]}" . "${extra_dirs[@]}" 2>/dev/null | sed "s/^/2\t0\t$extraIcon /"
+    # Priority 2: Extra Dirs
+    fd -t d -d 8 "${fd_excludes[@]}" . "${extra_dirs[@]}" 2>/dev/null | sed "s/^/2\t0\t$extraIcon /"
 
-      # Priority 3: Root Dirs
-      fd -t d -d 1 "${fd_excludes[@]}" . / 2>/dev/null | sed "s/^/3\t0\t$rootIcon /"
+    # Priority 3: Root Dirs
+    fd -t d -d 1 "${fd_excludes[@]}" . / 2>/dev/null | sed "s/^/3\t0\t$rootIcon /"
 
-    } |
-      sed -E "s|^([0-9]+\t[0-9]+\t.[^ ]* )$HOME|\1~|" |
-      fzf --height 50% --layout reverse --info=inline \
-        --scheme=path --tiebreak=index \
-        --cycle --ansi --preview-window 'right:40%' \
-        --delimiter='\t' --with-nth=3.. \
-        --query "'" \
-        --preview $previewCmd
-  )
+  } |
+    sed -E "s|^([0-9]+\t[0-9]+\t.[^ ]* )$HOME|\1~|" |
+    fzf --height 50% --layout reverse --info=inline \
+      --scheme=path --tiebreak=index \
+      --cycle --ansi --preview-window 'right:40%' \
+      --delimiter='\t' --with-nth=3.. \
+      --query "'" \
+      --preview "$previewCmd" |
+    cut -f3- -d$'\t' |
+    sed 's/^..//' | # remove prefix
+    sed "s|^~|$HOME|" # expand tilde
+}
 
-  if [[ -n "$selected_output_with_prefix" ]]; then
-    target_dir=$(echo "$selected_output_with_prefix" |
-      cut -f3- -d$'\t' |
-      sed 's/^..//' | # remove prefix
-      sed "s|^~|$HOME|")
+# function for JUMPING
+zf() {
+  local target_dir
+  target_dir=$(_zf_selector)
+  if [[ -n "$target_dir" ]]; then
     z "$target_dir"
   fi
 }
+
+# --- setup for the INSERTER ---
+# ZSH
+if [[ -n "$ZSH_VERSION" ]]; then
+  zfi() {
+    local target_dir
+    target_dir=$(_zf_selector)
+    if [[ -n "$target_dir" ]]; then
+      # shellcheck disable=SC2296
+      LBUFFER+="${(q)target_dir} "
+    fi
+  }
+
+# BASH setup
+elif [[ -n "$BASH_VERSION" && $- == *i* ]]; then
+  _zfi_bash_inserter() {
+    local selected
+    selected=$(_zf_selector < /dev/tty)
+
+    if [[ -n "$selected" ]]; then
+      local quoted_path
+      quoted_path=$(printf %q "$selected")
+
+      READLINE_LINE="${READLINE_LINE:0:$READLINE_POINT}${quoted_path} ${READLINE_LINE:$READLINE_POINT:}"
+      ((READLINE_POINT += ${#quoted_path} + 1))
+    fi
+  }
+  # Comment this line to disable the keybind, or change it to another key
+  bind -x '"\C-t": _zfi_bash_inserter'
+fi
