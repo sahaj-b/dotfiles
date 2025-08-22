@@ -201,23 +201,43 @@ export FZF_DEFAULT_OPTS="--bind 'ctrl-u:preview-page-up,ctrl-d:preview-page-down
 export PATH=/home/sahaj/.opencode/bin:$PATH
 alias wakafetch=projects/wakafetch/wakafetch
 
+# --------- ZFF SETUP ------------
+# Hybrid widget: if something is typed, insert path. If empty prompt, jump to directory
+zff-widget() {
+  if [[ -n "$BUFFER" ]]; then
+    # Insert path if typed smth
+    zffi
+  else
+    # Empty prompt: open file
+    zff
+    zle reset-prompt
+  fi
+}
+zle -N zff-widget
+bindkey '^@' zff-widget # Ctrl+Space
+
+
 # ----- ZF SETUP -----
 if [[ -f ~/scripts/zf.sh ]]; then
   source ~/scripts/zf.sh
 fi
 
-# Directory jumper widget
+# Hybrid widget: if something is typed, insert path. If empty prompt, jump to directory
 zf-widget() {
-  zf
-  zle reset-prompt
+  if [[ -n "$BUFFER" ]]; then
+    # Insert path if typed smth
+    zfi
+    zle redisplay
+  else
+    # Empty prompt? Jump to directory
+    zf
+    zle reset-prompt
+  fi
 }
 zle -N zf-widget
-bindkey "^@" zf-widget # Ctrl+space
+bindkey "^o" zf-widget # Ctrl+o
 
-# Directory INSERTER
-zfi-widget() {
-  zfi
-  zle redisplay
-}
-zle -N zfi-widget
-bindkey '^T' zfi-widget
+if [[ -f ~/projects/zff/zff.sh ]]; then
+  source ~/projects/zff/zff.sh
+fi
+

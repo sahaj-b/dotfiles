@@ -13,7 +13,7 @@
 #   source /path/to/zf.sh
 # fi
 
-# real ones bind these functoins to a keybind (using widget in zsh). My .zshrc has the sauce.
+# real ones bind these functoins to a single keybind (using hybrid widget in zsh). My .zshrc has the sauce.
 
 # to change/disable keybind for inserter in Bash, modify the BASH SETUP section below
 
@@ -40,11 +40,12 @@ _zf_selector() {
   )
   # ------------------------
 
-  local previewCmd
+local previewCmd
+  local path_extractor="cut -d' ' -f2-"
   if command -v eza &>/dev/null; then
-    previewCmd='eza --color always --oneline "$(echo {3..} | sed "s/^..//" | sed "s|^~|'"$HOME"'|")"'
+    previewCmd="eza --color=always --oneline \$({} | $path_extractor)"
   else
-    previewCmd='ls --color=always -1 "$(echo {3..} | sed "s/^..//" | sed "s|^~|'"$HOME"'|")"'
+    previewCmd="ls --color=always -1 \$({} | $path_extractor)"
   fi
 
   local fd_excludes=()
@@ -52,35 +53,27 @@ _zf_selector() {
     fd_excludes+=(--exclude "$pat")
   done
 
-  {
-    # Priority 0: Zoxide
-    zoxide query --list --score |
-      awk -v icon="$zoxideIcon" '{
-        score = 10000 - $1
-        path = substr($0, index($0,$2))
-        printf "0\t%05d\t%s %s\n", int(score), icon, path
-      }'
+{
+    # Priority 0: Zoxide (already sorted by frecency)
+    zoxide query -l | sed "s/^/$zoxideIcon /"
 
     # Priority 1: Home and CWD
-    fd -t d -H -d 10 "${fd_excludes[@]}" . . ~ 2>/dev/null | sed "s/^/1\t0\t$homeIcon /"
+    fd -t d -H -d 10 "${fd_excludes[@]}" . ~ 2>/dev/null | sed "s/^/$homeIcon /"
 
     # Priority 2: Extra Dirs
-    fd -t d -d 8 "${fd_excludes[@]}" . "${extra_dirs[@]}" 2>/dev/null | sed "s/^/2\t0\t$extraIcon /"
+    fd -t d -d 8 "${fd_excludes[@]}" "${extra_dirs[@]}" 2>/dev/null | sed "s/^/$extraIcon /"
 
     # Priority 3: Root Dirs
-    fd -t d -d 1 "${fd_excludes[@]}" . / 2>/dev/null | sed "s/^/3\t0\t$rootIcon /"
+    fd -t d -d 1 "${fd_excludes[@]}" / 2>/dev/null | sed "s/^/$rootIcon /"
 
-  } |
-    sed -E "s|^([0-9]+\t[0-9]+\t.[^ ]* )$HOME|\1~|" |
+  } | sed "s|$HOME|~|" |
     fzf --height 50% --layout reverse --info=inline \
       --scheme=path --tiebreak=index \
       --cycle --ansi --preview-window 'right:40%' \
-      --delimiter='\t' --with-nth=3.. \
-      --query "'" \
-      --preview "$previewCmd" |
-    cut -f3- -d$'\t' |
-    sed 's/^..//' | # remove prefix
-    sed "s|^~|$HOME|" # expand tilde
+      --query "'" --preview "$previewCmd" |
+    cut -d' ' -f2- |    # cut icon
+    sed "s|^~|$HOME|"   # Expand tilde just in case zoxide has it
+
 }
 
 # function for JUMPING
