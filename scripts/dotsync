@@ -21,6 +21,7 @@ dotfiles=(
   "$HOME/.config/swaylock/config"
   "$HOME/.config/waybar/"
   "$HOME/.config/dunst/"
+  "$HOME/.config/mako/"
   "$HOME/.config/wofi/"
   "$HOME/.config/mpv/"
   "$HOME/.config/nvim/"
