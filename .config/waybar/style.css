@@ -64,7 +64,7 @@ window#waybar {
 #bluetooth,
 #clock.1,
 #clock.3,
-#custom-dunst,
+#custom-notif,
 #custom-wf-recorder,
 #custom-easyeffects,
 #cpu,
@@ -162,14 +162,14 @@ window#waybar {
 #custom-wf-recorder{
   padding-right: 10px;
 }
-#custom-dunst {
+#custom-notif {
   padding-right: 15px;
 }
-#custom-dunst.enabled {
+#custom-notif.enabled {
   background: @bg;
   color: @fg;
 }
-#custom-dunst.disabled {
+#custom-notif.disabled {
   background: @red;
   color: @crust;
   font-weight: bold;
@@ -191,7 +191,7 @@ window#waybar {
 #custom-music.Stopped {
   background: @bg;
   color: @fg;
-animation: rgb 20s linear infinite;
+/*animation: rgb 20s linear infinite;*/
 }
 
 #custom-music {

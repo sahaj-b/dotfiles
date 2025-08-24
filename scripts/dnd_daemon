@@ -11,7 +11,7 @@
 #    - Takes commands (add, sub, toggle) and sends signals here.
 #    - autostart daemon if dead.
 #
-# 3. DISPLAY (`waybar/scripts/dunst_display.sh`):
+# 3. DISPLAY (`waybar/scripts/notif_display.sh`):
 #    - Just reads state and prints JSON for Waybar
 #
 # FLOW: Controller sends signal to Daemon -> Daemon updates state & tells Waybar to refresh -> Waybar runs Display script.
@@ -22,6 +22,11 @@ readonly TIMER_FILE="/tmp/waybar_dnd_timer"
 readonly PID_FILE="/tmp/waybar_dnd.pid"
 readonly CMD_FILE="/tmp/waybar_dnd_cmd"
 
+if [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+  echo "Daemon already running with PID $(cat "$PID_FILE")"
+  exit 1
+fi
+
 # storing PID for signal targeting
 echo $$ >"$PID_FILE"
 
@@ -31,22 +36,26 @@ timer_end=0
 timer_active=false
 
 update_state() {
-  if [[ -f "$TIMER_FILE" ]] && [[ "$(dunstctl is-paused)" == "true" ]]; then
+  # if [[ -f "$TIMER_FILE" ]] && [[ "$(dunstctl is-paused)" == "true" ]]; then
+  if [[ -f "$TIMER_FILE" ]] && [[ "$(makoctl mode)" == "dnd" ]]; then
     timer_end=$(cat "$TIMER_FILE")
     if ((timer_end > $(date +%s))); then
       timer_active=true
     else
       # Timer expired
-      dunstctl set-paused false
+      # dunstctl set-paused false
+      makoctl mode -r dnd
       rm -f "$TIMER_FILE"
       timer_active=false
     fi
   else
     timer_active=false
-    if [[ "$(dunstctl is-paused)" == "false" ]]; then
+    # if [[ "$(dunstctl is-paused)" == "false" ]]; then
+    if [[ "$(makoctl mode)" != "dnd" ]]; then
       rm -f "$TIMER_FILE"
     fi
   fi
+
 }
 
 handle_scroll_up() {
@@ -57,7 +66,8 @@ handle_scroll_up() {
   fi
 
   if [[ $timer_active == false ]]; then
-    dunstctl set-paused true
+    # dunstctl set-paused true
+    makoctl mode -s dnd
     timer_end=$(($(date +%s) + add_time))
   else
     timer_end=$((timer_end + add_time))
@@ -84,15 +94,16 @@ trap 'handle_scroll_down' USR2
 trap 'update_state' SIGRTMIN+9
 
 # monitor notifications
-(dbus-monitor path='/org/freedesktop/Notifications',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged' --profile |
+# (dbus-monitor path='/org/freedesktop/Notifications',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged' --profile |
+(dbus-monitor "interface='org.freedesktop.Notifications',member='Notify'" --profile |
   while read -r _; do
     pkill -RTMIN+8 waybar
   done) &
 
 while true; do
   update_state
+  pkill -RTMIN+8 waybar
   if [[ $timer_active == true ]]; then
-    pkill -RTMIN+8 waybar
     sleep 10 &      # sleep is blocking (cant trap signals), so using &
     wait $! || true # wait for sleep. ''|| true' coz signals intercept wait and errors out script(set -e)
   else

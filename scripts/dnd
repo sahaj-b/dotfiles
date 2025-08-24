@@ -46,7 +46,8 @@ sub)
   ;;
 
 stop)
-  dunstctl set-paused false
+  # dunstctl set-paused false
+  makoctl mode -r dnd
   rm -f "$TIMER_FILE"
   kill -RTMIN+9 "$DAEMON_PID" # daemon update
   pkill -RTMIN+8 waybar       # waybar update
@@ -54,14 +55,20 @@ stop)
   ;;
 
 toggle)
-  dunstctl set-paused toggle
+  if [[ $(makoctl mode) == "dnd" ]]; then
+    makoctl mode -r dnd
+    echo "DND disabled"
+  else
+    makoctl mode -s dnd
+    echo "DND enabled"
+  fi
   kill -RTMIN+9 "$DAEMON_PID"
   pkill -RTMIN+8 waybar
-  echo "DND toggled."
   ;;
 
 status)
-  if dunstctl is-paused | grep -q "true"; then
+  # if dunstctl is-paused | grep -q "true"; then
+  if [[ $(makoctl mode) == "dnd" ]]; then
     if [[ -f "$TIMER_FILE" ]]; then
       timer_end=$(cat "$TIMER_FILE")
       remaining=$((timer_end - $(date +%s)))

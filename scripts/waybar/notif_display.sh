@@ -5,11 +5,11 @@ readonly ENABLED=''
 readonly DISABLED='󰂛'
 readonly TIMER_FILE="/tmp/waybar_dnd_timer"
 
-PAUSED="$(dunstctl is-paused)"
+PAUSED=$([[ $(makoctl mode) == "dnd" ]] && echo 1 || echo 0)
 CLASS="disabled"
 TEXT="$DISABLED"
 
-if [[ "$PAUSED" == 'false' ]]; then
+if [[ $PAUSED -eq 0 ]]; then
   CLASS="enabled"
   TEXT="$ENABLED"
 else
@@ -20,7 +20,8 @@ else
     if ((remaining > 0)); then
       hours=$((remaining / 3600))
       minutes=$(((remaining % 3600) / 60))
-      count="$(dunstctl count waiting)"
+      count="$(makoctl list | grep -c Notification 2>/dev/null || true)"
+      count="${count:-0}"
 
       if [[ $hours -gt 0 ]]; then
         time_display="${hours}h ${minutes}m"
@@ -32,12 +33,15 @@ else
       if [[ "$count" != '0' ]]; then
         TEXT+=" ($count)"
       fi
+    else
+      rm -f "$TIMER_FILE"
     fi
   fi
 
   # show notif count only, if timer is inactive
   if [[ "$TEXT" == "$DISABLED" ]]; then
-    COUNT="$(dunstctl count waiting)"
+    COUNT="$(makoctl list | grep -c Notification 2>/dev/null || true)"
+    COUNT="${COUNT:-0}"
     if [ "$COUNT" != '0' ]; then
       TEXT="$DISABLED $COUNT"
     fi

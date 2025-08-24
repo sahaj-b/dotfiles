@@ -22,7 +22,7 @@
     "custom/audio",
     "bluetooth",
     "battery",
-    "custom/dunst",
+    "custom/notif",
     "custom/easyeffects",
     "tray"
   ],
@@ -65,7 +65,7 @@
   },
   "temperature": {
     "hwmon-path": "/sys/class/hwmon/hwmon6/temp1_input",
-    "interval": 1,
+    "interval": 5,
     "critical-threshold": 95,
     "format": " {temperatureC}°C"
   },
@@ -186,13 +186,14 @@
     "tooltip-format-plugged": "Using {power:4.1f}W",
     "tooltip-format-charging": "Charging {power:4.1f}W"
   },
-  "custom/dunst": {
-    "exec": "~/scripts/waybar/dunst_display.sh",
+  "custom/notif": {
+    "exec": "~/scripts/waybar/notif_display.sh",
     "return-type": "json",
     "format": "{}",
     "interval": "once",
     "signal": 8,
     "on-click": "~/scripts/dnd toggle",
+    "on-click-right": "makoctl restore",
     "on-scroll-up": "~/scripts/dnd add 5",
     "on-scroll-down": "~/scripts/dnd sub 5"
   },
