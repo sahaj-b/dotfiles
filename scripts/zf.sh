@@ -17,9 +17,6 @@
 
 # to change/disable keybind for inserter in Bash, modify the BASH SETUP section below
 
-# heads-up: I'm forcing an exact search by default. Just backspace the single quote if you wanna get fuzzy
-# to change this behavior, remove the --query "'" from the fzf command below
-
 _zf_selector() {
   # -------- CONFIG --------
   # PLEAAAASE use 1 byte chars for icons ,so no emojies (script too dumb to handle that shi)
@@ -41,11 +38,11 @@ _zf_selector() {
   # ------------------------
 
 local previewCmd
-  local path_extractor="cut -d' ' -f2-"
+  local path_extractor="cut -d' ' -f2- | sed 's|^~|$HOME|'"
   if command -v eza &>/dev/null; then
-    previewCmd="eza --color=always --oneline \$({} | $path_extractor)"
+    previewCmd="eza --color=always --oneline \$(echo {} | $path_extractor)"
   else
-    previewCmd="ls --color=always -1 \$({} | $path_extractor)"
+    previewCmd="ls --color=always -1 \$(echo {} | $path_extractor)"
   fi
 
   local fd_excludes=()
@@ -70,9 +67,9 @@ local previewCmd
     fzf --height 50% --layout reverse --info=inline \
       --scheme=path --tiebreak=index \
       --cycle --ansi --preview-window 'right:40%' \
-      --query "'" --preview "$previewCmd" |
+      --preview "$previewCmd" |
     cut -d' ' -f2- |    # cut icon
-    sed "s|^~|$HOME|"   # Expand tilde just in case zoxide has it
+    sed "s|^~|$HOME|"   # expand tilde
 
 }
 

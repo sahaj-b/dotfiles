@@ -7,7 +7,7 @@ else
     (
       find ~/projects -mindepth 1 -maxdepth 1 -type d
       find ~/projects -mindepth 2 -maxdepth 2 -type d \( -name frontend -o -name backend \)
-    ) | fzf
+    ) | sed "s|$HOME|~|" | fzf | sed "s|~|$HOME|"
   )
 fi
 

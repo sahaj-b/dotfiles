@@ -121,6 +121,8 @@ function ggl () { links www.google.com/search\?q="$*"; }
 function postmanToHttp() { node ~/projects/postman-collection-gen/node.js --names --short -c "$1" | ~/scripts/curlToHttp }
 
 function alarm() { ~/scripts/countdown $(( $(date -d "$(date +'%Y-%m-%d') $*" +%s) - $(date +%s) )) }
+# function rmaudio() { alias rmaudio="ffmpeg -i  -an -c:v copy zff_noaudio.mp4" }
+function rmaudio() { ffmpeg -i "$1" -an -c:v copy "${2:-noaudio.mp4}"; }
 
 nvim-picker-widget() {
   nvim +'lua Snacks.picker.recent()'
@@ -199,7 +201,6 @@ export FZF_DEFAULT_OPTS="--bind 'ctrl-u:preview-page-up,ctrl-d:preview-page-down
 
 # opencode
 export PATH=/home/sahaj/.opencode/bin:$PATH
-alias wakafetch=projects/wakafetch/wakafetch
 
 # --------- ZFF SETUP ------------
 # Hybrid widget: if something is typed, insert path. If empty prompt, jump to directory
