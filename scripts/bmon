@@ -14,7 +14,8 @@ percent=$(acpi -b | grep -oP '\d+%' | tr -d '%')
 state=$(acpi -b | grep -oP "Discharging|Charging|Full|Unknown|Not charging")
 if [[ $state == "Charging" ]] || [[ $state == "Not charging" ]] || [[ $state == "Full" ]]; then
   if [[ $(cat /tmp/bmon_closed) == "0" ]]; then
-    dunstctl close $(dunstctl history | jq -r '.data[] | select(.[].message.data == "<b>Battery is Discharging</b>") | .[].id.data' | tail -1)
+    # dunstctl close $(dunstctl history | jq -r '.data[] | select(.[].message.data == "<b>Battery is Discharging</b>") | .[].id.data' | tail -1)
+    makoctl list | awk '/Notification/ {id=$2} /Battery is Discharging/ {print id}' | tail -1 | head -c -2 | xargs -I{} makoctl dismiss -n {}
     echo 1 >/tmp/bmon_closed
   fi
 

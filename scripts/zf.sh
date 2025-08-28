@@ -89,9 +89,19 @@ if [[ -n "$ZSH_VERSION" ]]; then
     local target_dir
     target_dir=$(_zf_selector)
     if [[ -n "$target_dir" ]]; then
-      # shellcheck disable=SC2296
-      LBUFFER+="${(q)target_dir} "
+      # If path contains a space, use full, quoted path.
+      if [[ "$target_dir" =~ \  ]]; then
+        # shellcheck disable=SC2296
+        LBUFFER+="${(q)target_file} "
+      else
+        # use tilde if no spaces coz its cool
+        if [[ "$target_dir" == "$HOME"* ]]; then
+          target_dir="~${target_dir#$HOME}"
+        fi
+        LBUFFER+="$target_dir "
+      fi
     fi
+    zle redisplay
   }
 
 # BASH setup

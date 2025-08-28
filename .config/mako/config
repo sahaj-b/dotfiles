@@ -9,7 +9,7 @@ max-icon-size=52
 background-color=#1e1e2e
 text-color=#cdd6f4
 border-color=#cba6f7
-progress-color=over #313244
+progress-color=over #585b70
 
 default-timeout=50000
 

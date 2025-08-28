@@ -33,6 +33,18 @@ return {
             stdin = true,
             description = "biome tailwind classes sorter",
           },
+          ["biome-with-assist"] = {
+            command = require("conform.util").from_node_modules("biome"),
+            stdin = true,
+            args = {
+              "check",
+              "--write",
+              "--linter-enabled=false",
+              "--assist-enabled=true",
+              "--stdin-file-path",
+              "$FILENAME",
+            },
+          }
         },
         formatters_by_ft = {
           cpp = { 'clangd' },
@@ -87,7 +99,7 @@ return {
         -- Third priority: biome
         -- use biome-check if you wanna also apply 'safe' code actions
         if require("conform").get_formatter_info("biome", bufnr).available then
-          return { "biome" }
+          return { "biome-with-assist" }
         end
 
         -- Fallback: global prettierd then prettier

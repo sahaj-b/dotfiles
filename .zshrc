@@ -203,7 +203,12 @@ export FZF_DEFAULT_OPTS="--bind 'ctrl-u:preview-page-up,ctrl-d:preview-page-down
 export PATH=/home/sahaj/.opencode/bin:$PATH
 
 # --------- ZFF SETUP ------------
+if [[ -f ~/projects/zff/zff.sh ]]; then
+  source ~/projects/zff/zff.sh
+fi
+
 # Hybrid widget: if something is typed, insert path. If empty prompt, jump to directory
+
 zff-widget() {
   if [[ -n "$BUFFER" ]]; then
     # Insert path if typed smth
@@ -226,11 +231,8 @@ fi
 # Hybrid widget: if something is typed, insert path. If empty prompt, jump to directory
 zf-widget() {
   if [[ -n "$BUFFER" ]]; then
-    # Insert path if typed smth
     zfi
-    zle redisplay
   else
-    # Empty prompt? Jump to directory
     zf
     zle reset-prompt
   fi
@@ -238,7 +240,19 @@ zf-widget() {
 zle -N zf-widget
 bindkey "^o" zf-widget # Ctrl+o
 
-if [[ -f ~/projects/zff/zff.sh ]]; then
-  source ~/projects/zff/zff.sh
+# ----- ZCF SETUP -----
+if [[ -f ~/scripts/zcf.sh ]]; then
+  source ~/scripts/zcf.sh
 fi
 
+zcf-widget() {
+  if [[ -n "$BUFFER" ]]; then
+    zcfi
+  else
+    zcf
+    zle reset-prompt
+  fi
+}
+
+zle -N zcf-widget
+bindkey '^t' zcf-widget # Ctrl+t
