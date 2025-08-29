@@ -28,7 +28,7 @@
 - [Tmux](.config/tmux/tmux.conf) - Terminal multiplexer  
 - [OpenCode](.config/opencode/) - AI assistant in terminal
 - [VSCode](.config/Code/User/) - I tried to replicate my nvim workflow
-- [Cursor](.config/Cusror/User) - I tried to replicate my nvim workflow
+- [Cursor](.config/Cursor/User) - I tried to replicate my nvim workflow
 - [MCPHub](.config/mcphub/servers.json) - MCP servers config for mcphub.nvim
 
 ### Applications & Misc
@@ -46,7 +46,7 @@
 ### Archived / Not Longer in Use
 - [Dunst](.config/dunst/dunstrc) - Notification daemon
 - [Wofi](.config/wofi/) - Application launcher
-- [Alacritty](.config/alacritty/) - Terminal emulator
-- [Ghostty](.config/ghostty/) - Terminal emulator
+- [Alacritty](.config/alacritty/alacritty.toml) - Terminal emulator
+- [Ghostty](.config/ghostty/config) - Terminal emulator
 
 *Feel free to steal whatever you want from this setup 🏴‍☠️*

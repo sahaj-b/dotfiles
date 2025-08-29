@@ -410,7 +410,7 @@ for ft, cmd in pairs(filetypes) do
 end
 
 local show_only_errors = false
-function ToggleDiagnostics()
+function ToggleWarnings()
   if show_only_errors then
     vim.diagnostic.config({
       virtual_text = { severity = { min = vim.diagnostic.severity.WARN }, prefix = '•' }
@@ -426,7 +426,7 @@ function ToggleDiagnostics()
   end
 end
 
-map("n", "<leader>tw", ToggleDiagnostics, { desc = "Toggle warnings+errors/errors" })
+map("n", "<leader>tw", ToggleWarnings, { desc = "Toggle lsp warnings" })
 
 -- -- trouble
 --
