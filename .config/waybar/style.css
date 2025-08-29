@@ -68,6 +68,7 @@ window#waybar {
 #custom-wf-recorder,
 #custom-easyeffects,
 #cpu,
+#custom-scratchOutput,
 #memory {
   padding: 0px 12px;
     margin: 1px 0px;
@@ -76,7 +77,6 @@ window#waybar {
   color: @fg;
 }
 
-#custom-scratchOutput,
 #custom-wakapi,
 #tray,
 #battery,
@@ -190,12 +190,12 @@ window#waybar {
 #custom-music.Paused,
 #custom-music.Stopped {
   background: @bg;
-  color: @fg;
+  color: @fg2;
 /*animation: rgb 20s linear infinite;*/
 }
 
 #custom-music {
-  color: @fg;
+  color: @fg2;
   border-radius: 6px;
   padding: 0px 12px;
     margin: 1px 0px;

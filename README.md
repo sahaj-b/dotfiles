@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="setup_ss.png" alt="Screenshot" />
+  <img src="setup_ss.jpg" alt="Screenshot" />
 </div>
 
 ## Checkout my cool scripts in [scripts directory](scripts)
