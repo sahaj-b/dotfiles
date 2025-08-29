@@ -47,7 +47,7 @@ bindkey -v '^?' backward-delete-char
 bindkey '^a' beginning-of-line
 bindkey '^e' end-of-line
 
-# Edit line in vim with ctrl-e:
+# Edit line in EDITOR with ctrl-x ctrl-e:
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^x^e' edit-command-line
 
@@ -124,14 +124,6 @@ function alarm() { ~/scripts/countdown $(( $(date -d "$(date +'%Y-%m-%d') $*" +%
 # function rmaudio() { alias rmaudio="ffmpeg -i  -an -c:v copy zff_noaudio.mp4" }
 function rmaudio() { ffmpeg -i "$1" -an -c:v copy "${2:-noaudio.mp4}"; }
 
-nvim-picker-widget() {
-  nvim +'lua Snacks.picker.recent()'
-  zle reset-prompt
-}
-zle -N nvim-picker-widget
-bindkey "^o" nvim-picker-widget
-
-
 function ffss(){
   # trim video
   duration=$(ffprobe -i $1 -show_entries format=duration -v quiet -of csv="p=0")
@@ -185,12 +177,14 @@ export STARSHIP_CONFIG="$HOME/.config/starship/starship.toml"
 # export DRI_PRIME=0 (default) TO USE INTEGRATED GPU (iris xe)
 
 export PATH=$PATH:/home/sahaj/.spicetify
+
 # pnpm
 export PNPM_HOME="/home/sahaj/.local/share/pnpm"
 case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
+
 export FZF_DEFAULT_OPTS="--bind 'ctrl-u:preview-page-up,ctrl-d:preview-page-down' \
 --cycle \
 --color=bg+:#313244,spinner:#F5E0DC,hl:#F38BA8 \
@@ -256,3 +250,10 @@ zcf-widget() {
 
 zle -N zcf-widget
 bindkey '^t' zcf-widget # Ctrl+t
+
+# bun completions
+[ -s "/home/sahaj/.bun/_bun" ] && source "/home/sahaj/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"

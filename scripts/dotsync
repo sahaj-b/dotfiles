@@ -10,6 +10,7 @@ dotfiles=(
   "/etc/systemd/system/powermgmt.service"
   "/etc/systemd/system/fix-mic.service"
   # "/etc/udev/rules.d/90-power.rules"
+  "$HOME/README.md"
   "$HOME/.config/opencode/"
   "$HOME/.opencode/plugin/"
   "$HOME/.clang-format"
@@ -24,6 +25,8 @@ dotfiles=(
   "$HOME/.config/mako/"
   "$HOME/.config/wofi/"
   "$HOME/.config/mpv/"
+  "$HOME/.config/fuzzel/"
+  "$HOME/.config/yazi/"
   "$HOME/.config/nvim/"
   # i had to do this :(
   "$HOME/.config/Code/User/keybindings.json"
@@ -33,8 +36,8 @@ dotfiles=(
   "$HOME/.config/yay/config.json"
   "$HOME/.config/gtk-3.0/"
   "$HOME/.config/gtk-4.0/"
-  "$HOME/.config/easyeffects/"
-  # "$HOME/.config/alacritty/alacritty.toml"
+  "$HOME/.config/alacritty/alacritty.toml"
+  "$HOME/.config/ghostty/"
   "$HOME/.config/dconf/"
   "$HOME/.config/tmux/tmux.conf"
   "$HOME/.config/foot/"
@@ -170,7 +173,6 @@ fi
 
 if [ -w "$data_dir" ]; then
   rm -rf "$data_dir" || exit
-  echo -n "  Copying dotfiles to $data_dir"
   spinnerRun "copyDots \"$data_dir\"" "Copying dotfiles to $data_dir" "🚚 Copied dotfiles to $data_dir" "Copying dotfiles to $data_dir failed"
 else
   warn "\nSkipping copying to $data_dir"

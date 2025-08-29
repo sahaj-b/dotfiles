@@ -37,8 +37,20 @@ for pat in "${fd_ignores[@]}"; do
   fd_excludes+=(--exclude "$pat")
 done
 
+get_search_dir() {
+  local git_root
+  git_root=$(git rev-parse --show-toplevel 2>/dev/null)
+  if [[ $? -eq 0 && -n "$git_root" ]]; then
+    echo "$git_root"
+  else
+    echo "."
+  fi
+}
+
 _zcf_selector() {
-  fd --type f --hidden --max-depth 12 "${fd_excludes[@]}" . |
+  local search_dir
+  search_dir=$(get_search_dir)
+  fd --type f --hidden --max-depth 12 . "${fd_excludes[@]}" "$search_dir" |
     fzf --height 40% --layout=reverse --info=inline --preview 'bat {}'
 }
 
@@ -60,7 +72,7 @@ zcf() {
 
 zcfi() {
   local selected_file
-  selected_file=$(_dff_selector)
+  selected_file=$(_zcf_selector)
   if [[ -n "$selected_file" ]]; then
     LBUFFER+="$selected_file "
     zle redisplay
