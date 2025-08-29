@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="setup_ss.png" alt="Screenshot" />
+</div>
+
 ## Checkout my cool scripts in [scripts directory](scripts)
 
 ## Setup Overview
@@ -27,9 +31,9 @@
 - [Neovim](.config/nvim/) - Editor. Fully customized beast
 - [Tmux](.config/tmux/tmux.conf) - Terminal multiplexer  
 - [OpenCode](.config/opencode/) - AI assistant in terminal
+- [MCPHub](.config/mcphub/servers.json) - MCP servers config for mcphub.nvim
 - [VSCode](.config/Code/User/) - I tried to replicate my nvim workflow
 - [Cursor](.config/Cursor/User) - I tried to replicate my nvim workflow
-- [MCPHub](.config/mcphub/servers.json) - MCP servers config for mcphub.nvim
 
 ### Applications & Misc
 - [MPV](.config/mpv/) - Media player with uosc interface
@@ -43,7 +47,7 @@
 - [Zsh](.zshrc) - Shell configuration
 - [Starship](.config/starship/starship.toml) - Cross-shell prompt
 
-### Archived / Not Longer in Use
+### Archived / No Longer in Use
 - [Dunst](.config/dunst/dunstrc) - Notification daemon
 - [Wofi](.config/wofi/) - Application launcher
 - [Alacritty](.config/alacritty/alacritty.toml) - Terminal emulator

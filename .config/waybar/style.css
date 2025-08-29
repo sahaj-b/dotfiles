@@ -68,7 +68,6 @@ window#waybar {
 #custom-wf-recorder,
 #custom-easyeffects,
 #cpu,
-#custom-wakapi,
 #memory {
   padding: 0px 12px;
     margin: 1px 0px;
@@ -78,6 +77,7 @@ window#waybar {
 }
 
 #custom-scratchOutput,
+#custom-wakapi,
 #tray,
 #battery,
 #temperature,

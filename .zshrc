@@ -67,7 +67,7 @@ alias du="dust"
 alias grep="grep --color=auto"
 alias o="nvim +'lua Snacks.picker.recent()'"
 alias bp="sudo l2ping -s 200"
-alias neofetch="fastfetch"
+alias neofetch="fastfetch -c neofetch.jsonc"
 alias ls='eza --no-quotes -a --icons --group-directories-first'
 alias nv='nvim'
 alias v='vim'

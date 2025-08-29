@@ -4,7 +4,7 @@
 | ---------------                           | -------------                                                                                    |
 | `zf.sh`                                   | dir jumper with combined zoxide and fd results with prioritization; better `zi`                  |
 | `zcf.sh`                                  | file opener/inserter for CWD or current git repo (see [zff](https://github.com/sahaj-b/zff) too) |
-| `pcs`, `ycs <query>`                      | Search for packages on `pacman`, `yay`                                                           |
+| `pcs`, `ycs <query>`                      | FZF Search for packages on `pacman`, `yay`                                                           |
 | `picker <type> [--float] [--prefix CODE]` | Emoji/Unicode/NerdFonts/ANSI_codes picker using `fzf`, optionally in floating terminal           |
 | `tmux-sessionizer`                        | Modified version of tmux-sessionizer by primeagen                                                |
 | `mkcontext [-e/--exclude PATHS]`          | Generates context (workspace tree and all files content in current dir) for AIs                  |
@@ -28,7 +28,7 @@
 | `bmon`                                    | Battery monitor with pango markup output and notifications                                       |
 | `waybar/cal.py`                           | Displays current event from Google Calendar                                                      |
 | `waybar/getScratchOutput.sh`              | Gets last line output of scratchpad terminal with urgent(prompt) state support                   |
-| `waybar/caway-go`                         | Port of [caway](https://github.com/PROxZIMA/caway) in Go with imporvements                       |
+| `waybar/caway-go`                         | Port of [caway](https://github.com/PROxZIMA/caway) in Go with bugfixes and improvements          |
 | `waybar/notif_display.sh`                 | Frontend for dnd_daemon and makoctl state for waybar                                             |
 | `dualmonitor/`                            | Scripts to configure an external HDMI monitor (for Xorg)                                         |
 

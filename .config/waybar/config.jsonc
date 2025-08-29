@@ -7,8 +7,8 @@
     "clock#1",
     "clock#2",
     "clock#3",
-    "temperature",
-    "custom/wakapi",
+    // "temperature",
+    "custom/music",
     "custom/scratchOutput",
     "hyprland/submap"
   ],
@@ -17,7 +17,7 @@
   ],
   "modules-right": [
     "custom/wf-recorder",
-    "custom/music",
+    "custom/wakapi",
     "memory",
     "custom/audio",
     "bluetooth",
