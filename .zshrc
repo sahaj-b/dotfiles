@@ -52,7 +52,7 @@ autoload edit-command-line; zle -N edit-command-line
 bindkey '^x^e' edit-command-line
 
 alias co="cd -"
-alias oc="opencode run -m github-copilot/gpt-4.1"
+alias oc="opencode run -m github-copilot/gpt-4.1 --agent build"
 alias rgb="sed -i '194s/^ *\/\* *//;194s/ *\*\/ *$//' ~/.config/waybar/style.css && pkill waybar && waybar&>/dev/null &disown"
 alias norgb="sed -i '194s/^/\/*/;194s/$/*\//' ~/.config/waybar/style.css && pkill waybar && waybar&>/dev/null &disown"
 alias tt="~/timetable"

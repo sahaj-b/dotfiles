@@ -11,7 +11,7 @@ dotfiles=(
   "/etc/systemd/system/fix-mic.service"
   # "/etc/udev/rules.d/90-power.rules"
   "$HOME/README.md"
-  "$HOME/setup_ss.png"
+  "$HOME/setup_ss.jpg"
   "$HOME/.config/opencode/"
   "$HOME/.opencode/plugin/"
   "$HOME/.clang-format"

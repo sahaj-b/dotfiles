@@ -19,8 +19,8 @@ timetable = {
         ("3:30-5:30", "Comp Org and Arch (ECR-110, PC-201)")
     ],
     "Wednesday": [
-        ("9:00-11:00", "DBMS Lab (PC-251) ETL312"),
-        ("11:00-1:00", "DAA Lab (PC-255) ETL313"),
+        ("9:00-11:00", "DAA Lab (PC-255) ETL313"),
+        ("11:00-1:00", "DBMS Lab (PC-251) ETL312"),
         ("1:30-3:30", "DBMS (ECR-110, PC-203)"),
         ("3:30-5:30", "Java Theory (ECR-110, PC-205)")
     ],
@@ -29,8 +29,8 @@ timetable = {
         ("3:30-5:30", "COA Theory (ECR-110, PC-207)")
     ],
     "Friday": [
-        ("9:00-11:00", "Java Lab (PC-253) DTL219"),
-        ("11:00-1:00", "OS Lab (PC-257) DTL217"),
+        ("9:00-11:00", "OS Lab (PC-257) DTL217"),
+        ("11:00-1:00", "Java Lab (PC-253) DTL219"),
         ("1:30-3:30", "DAA Theory (ECR-110, PC-207)"),
         ("3:30-5:30", "Java Theory (ECR-110, PC-205)")
     ]

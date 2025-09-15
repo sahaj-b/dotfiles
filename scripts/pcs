@@ -3,11 +3,17 @@ package_list=$(pacman -Ss | awk -F '/' '{print $2}' | awk '{print $1}' | sort)
 packages=$(echo "$package_list" | fzf --multi --preview 'pacman -Si {}' --layout=reverse --query="'")
 packages=$(echo "$packages" | tr '\n' ' ' | sed 's/[[:space:]]*$//')
 if [ "$packages" != "" ]; then
-  echo -ne "sudo pacman -Syu --needed $packages\nExecute?(Y/n/no(c)onfirm)"
+  echo -ne "sudo pacman -Syu --needed $packages\nExecute?(Y/n/no(c)onfirm/no(u)pdate)"
   read -r yn
   if [[ "$yn" == "y" ]] || [[ "$yn" == "" ]]; then
     sudo pacman -Syu --needed $(echo $packages)
   elif [[ "$yn" == "c" ]]; then
     sudo pacman -Syu --needed --noconfirm $(echo $packages)
+  elif [[ "$yn" == "u" ]]; then
+    sudo pacman -S --needed $(echo $packages)
+  elif [[ "$yn" == "uc" ]] || [[ "$yn" == "cu" ]]; then
+    sudo pacman -S --needed --noconfirm $(echo $packages)
+  else
+    echo "Invalid input"
   fi
 fi

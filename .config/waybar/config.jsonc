@@ -7,7 +7,7 @@
     "clock#1",
     "clock#2",
     "clock#3",
-    // "temperature",
+    "temperature",
     "custom/music",
     "custom/scratchOutput",
     "hyprland/submap"
@@ -65,7 +65,7 @@
   },
   "temperature": {
     "hwmon-path": "/sys/class/hwmon/hwmon6/temp1_input",
-    "interval": 5,
+    "interval": 1,
     "critical-threshold": 95,
     "format": " {temperatureC}°C"
   },

@@ -2,8 +2,10 @@
 # modified version of https://gist.github.com/gingkapls/33f7567900a32ceed4b27f0eae1ffcd8
 
 # active=$(pamixer --list-sources | grep -v "Suspended" | head -n1 | awk '{print $2}' | tr -d '"')
+
+videoDir=~/Videos
 active=$(pactl get-default-sink).monitor
-mkdir -p ~/Videos/Recordings
+mkdir -p $videoDir
 
 filename=$(date +%F_%T.mp4)
 
@@ -12,16 +14,16 @@ echo $filename
 
 if [ -z $(pgrep wf-recorder) ]; then
   if [ "$1" == "-s" ]; then
-    # wf-recorder -f ~/Videos/Recordings/$filename -a -g "$(slurp)" >/dev/null 2>&1 &
-    wf-recorder -f ~/Videos/Recordings/$filename -a="$active" -g "$(slurp)" >/dev/null 2>&1 &
+    # wf-recorder -f $videoDir/$filename -a -g "$(slurp)" >/dev/null 2>&1 &
+    wf-recorder -f $videoDir/$filename -a="$active" -g "$(slurp)" >/dev/null 2>&1 &
     while [ -n "$(pgrep -x slurp)" ]; do
       sleep 0.5
     done
     sleep 2
     pkill -RTMIN+8 waybar
   else
-    # wf-recorder -f ~/Videos/Recordings/$filename -a >/dev/null 2>&1 &
-    wf-recorder -f ~/Videos/Recordings/$filename -a="$active" >/dev/null 2>&1 &
+    # wf-recorder -f $videoDir/$filename -a >/dev/null 2>&1 &
+    wf-recorder -f $videoDir/$filename -a="$active" >/dev/null 2>&1 &
     pkill -RTMIN+8 waybar
   fi
 else
@@ -33,14 +35,14 @@ else
   case $? in
   0)
     if [ -n "$name" ]; then
-      latest_file=$(ls -t ~/Videos/Recordings/*.mp4 | head -n1)
+      latest_file=$(ls -t $videoDir/*.mp4 | head -n1)
       extension="${latest_file##*.}"
       dir_path=$(dirname "$latest_file")
       mv "$latest_file" "$dir_path/${name}.${extension}"
     fi
     ;;
   1)
-    latest_file=$(ls -t ~/Videos/Recordings/*.mp4 | head -n1)
+    latest_file=$(ls -t $videoDir/*.mp4 | head -n1)
     trash-put "$latest_file"
     notify-send -t 2000 "Recording Trashed"
     ;;
