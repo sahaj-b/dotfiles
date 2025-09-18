@@ -1,5 +1,10 @@
 package main
 
+// you can add your browser on line 101 in the playerctl command
+
+// Note for chromium-based browsers(chrome, brave, vivaldi, etc):
+// The xesam:url property isn't available, so it won't work, so change the checkUrl variable to false on line 43
+
 import (
 	"bufio"
 	"context"
@@ -35,6 +40,7 @@ type Config struct {
 
 var (
 	bars            = []rune("▁▂▃▄▅▆▇█")
+	checkUrl        = true // change this to false for chromium-based browsers
 	validURLPattern = regexp.MustCompile(`(spotify|music\.youtube)`)
 )
 
@@ -78,7 +84,7 @@ func setupSignalHandler(cancel context.CancelFunc) {
 	}()
 }
 
-func debugLog(config *Config, format string, args ...interface{}) {
+func debugLog(config *Config, format string, args ...any) {
 	if config.Debug {
 		fmt.Fprintf(os.Stderr, "DEBUG: "+format+"\n", args...)
 	}
@@ -92,7 +98,7 @@ func run(ctx context.Context, config *Config) error {
 	debugLog(config, "Starting caway with %d bars, %d fps, equalizer=%t", config.Bars, config.Framerate, config.Equilizer)
 
 	cmd := exec.CommandContext(ctx, "playerctl",
-		"-p", "spotify,firefox,brave",
+		"-p", "spotify,firefox,chrome,brave,thorium",
 		"metadata",
 		"--format", `{"text": "{{markup_escape(title)}}", "tooltip": "{{playerName}} : {{markup_escape(title)}} - {{markup_escape(artist)}}", "alt": "{{status}}", "class": "{{status}}", "url": "{{xesam:url}}"}`,
 		"-F")
@@ -131,7 +137,7 @@ func run(ctx context.Context, config *Config) error {
 			continue
 		}
 
-		if !validURLPattern.MatchString(output.URL) {
+		if checkUrl && !validURLPattern.MatchString(output.URL) {
 			debugLog(config, "Skipping non-spotify/youtube music URL: %s", output.URL)
 			continue
 		}

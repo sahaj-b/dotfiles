@@ -173,8 +173,8 @@ eval "$(zoxide init zsh)"
 type starship_zle-keymap-select >/dev/null || eval "$(starship init zsh)"
 export STARSHIP_CONFIG="$HOME/.config/starship/starship.toml"
 
-# export DRI_PRIME=1 TO USE DEDICATED GPU (ARC A350M)
-# export DRI_PRIME=0 (default) TO USE INTEGRATED GPU (iris xe)
+# export DRI_PRIME=1 # TO USE DEDICATED GPU (ARC A350M)
+# export DRI_PRIME=0  # (default) TO USE INTEGRATED GPU (iris xe)
 
 export PATH=$PATH:/home/sahaj/.spicetify
 

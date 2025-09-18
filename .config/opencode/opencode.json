@@ -5,5 +5,16 @@
   "keybinds": {
     "messages_half_page_up": "ctrl+u",
     "messages_half_page_down": "ctrl+d"
+  },
+  "agent": {
+    "my": {
+      "mode": "subagent",
+      "prompt": "",
+      "tools": {
+        "write": true,
+        "edit": true,
+        "bash": true,
+      }
+    },
   }
 }

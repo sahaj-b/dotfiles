@@ -52,10 +52,10 @@ map("n", "<M-f>", "<C-w>|")
 
 map("n", "<leader>co", "<cmd>CodeiumToggle<CR>")
 
--- map("n", "<leader>cpd", "<cmd>Copilot disable<CR>")
--- map("n", "<leader>cpe", "<cmd>Copilot enable<CR>")
-map("n", "<leader>cpd", "<cmd>SupermavenStop<CR>")
-map("n", "<leader>cpe", "<cmd>SupermavenStart<CR>")
+map("n", "<leader>cpd", "<cmd>Copilot disable<CR>")
+map("n", "<leader>cpe", "<cmd>Copilot enable<CR>")
+-- map("n", "<leader>cpd", "<cmd>SupermavenStop<CR>")
+-- map("n", "<leader>cpe", "<cmd>SupermavenStart<CR>")
 
 map("n", "<leader>p", '"0p')
 
