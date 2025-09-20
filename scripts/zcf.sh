@@ -3,7 +3,7 @@
 # like zff, but only for CWD files
 
 # ignore patterns
-fd_ignores=(
+zcf_fd_ignores=(
   # VCS, project folders, misc
   '**/.git/**' '**/node_modules/**' '**/.cache/**' '**/.venv/**' '**/.vscode/**' '**/.pycache__/**' '**/.DS_Store' '**/.idea/**' '**/.mypy_cache/**' '**/.pytest_cache/**' '**/.next/**' '**/dist/**' '**/build/**' '**/target/**' '**/.gradle/**' '**/.terraform/**' '**/.egg-info/**' '**/.env' '**/.history' '**/.svn/**' '**/.hg/**' '**/.Trash/**' '**/bin/**' '**/.bin/**' "**/.local/share/Trash/**" "**/.local/share/nvim/**" "**/pkg/**" "oil:*"
 
@@ -32,9 +32,9 @@ fd_ignores=(
   '**/.pytest_cache/**' '**/.coverage' '**/coverage/**' '**/.nyc_output/**' '**/junit.xml'
 )
 
-fd_excludes=()
-for pat in "${fd_ignores[@]}"; do
-  fd_excludes+=(--exclude "$pat")
+zcf_fd_excludes=()
+for pat in "${zcf_fd_ignores[@]}"; do
+  zcf_fd_excludes+=(--exclude "$pat")
 done
 
 get_search_dir() {
@@ -50,7 +50,7 @@ get_search_dir() {
 _zcf_selector() {
   local search_dir
   search_dir=$(get_search_dir)
-  fd --type f --hidden --max-depth 12 . "${fd_excludes[@]}" "$search_dir" |
+  fd --type f --hidden --max-depth 12 . "${zcf_fd_excludes[@]}" "$search_dir" |
     fzf --height 40% --layout=reverse --info=inline --preview 'bat {}'
 }
 
