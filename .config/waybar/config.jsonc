@@ -7,7 +7,7 @@
     "clock#1",
     "clock#2",
     "clock#3",
-    // "temperature",
+    "temperature",
     "custom/music",
     "custom/scratchOutput",
     "hyprland/submap"
@@ -65,7 +65,7 @@
   },
   "temperature": {
     "hwmon-path": "/sys/class/hwmon/hwmon6/temp1_input",
-    "interval": 1,
+    "interval": 0.5,
     "critical-threshold": 95,
     "format": " {temperatureC}°C"
   },
@@ -102,7 +102,7 @@
     "on-click": "playerctl play-pause -p 'spotify, %any'",
     "on-scroll-up": "playerctl next -p 'spotify, %any'",
     "on-scroll-down": "playerctl previous -p 'spotify, %any'",
-    "on-click-right": "spotify",
+    "on-click-right": "hyprctl dispatch exec '[float] spotify'",
     "on-click-middle": "pkill spotify; pkill waybar; waybar",
     "max-length": 15
   },

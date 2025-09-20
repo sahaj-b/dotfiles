@@ -7,7 +7,7 @@ if [[ "$output" == *"❯"* ]] || [[ "$(hyprctl activewindow | grep initialClass)
   # if [[ "$output" == *"❯"* ]] || [[ "$(hyprctl activewindow | grep initialClass)" == *"scratch" ]] || [[ "$output" == *""* ]]; then
   true
 else
-  n=30
+  n=23
   string_length=${#output}
 
   if [ "$string_length" -gt "$n" ]; then

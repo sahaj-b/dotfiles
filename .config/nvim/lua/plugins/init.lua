@@ -20,28 +20,6 @@ return {
     opts = {},
     filetypes = { "typescript", "typescriptreact", "javascript", "javascriptreact" },
   },
-  -- {
-  --   "sphamba/smear-cursor.nvim",
-  --   opts = {
-  --     -- smear_between_neighbor_lines = false,
-  --     legacy_computing_symbols_support = true,
-  --     smear_insert_mode = true,
-  --     cursor_color = "#f5e0dc",
-  --
-  --     stiffness = 0.8,                      -- 0.6      [0, 1]
-  --     trailing_stiffness = 0.6,             -- 0.4      [0, 1]
-  --     stiffness_insert_mode = 0.7,          -- 0.5      [0, 1]
-  --     trailing_stiffness_insert_mode = 0.6, -- 0.5      [0, 1]
-  --     damping = 1,                          -- 0.65     [0, 1]
-  --     damping_insert_mode = 0.8,            -- 0.7      [0, 1]
-  --     distance_stop_animating = 1,          -- 0.1      > 0
-  --     delay_event_to_smear = 1
-  --   },
-  -- },
-  -- {
-  --   "supermaven-inc/supermaven-nvim",
-  --   opts = {}
-  -- },
   {
     "zbirenbaum/copilot.lua",
     cmd = "Copilot",
@@ -60,80 +38,82 @@ return {
     }
   },
   { "https://github.com/tpope/vim-abolish", cmd = { "Abolish", "S", "Subvert" } },
-  {
-    'MeanderingProgrammer/render-markdown.nvim',
-    dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-tree/nvim-web-devicons' },
-    ft = { 'markdown', 'codecompanion', 'Avante' },
-    opts = {
-      checkbox = {
-        unchecked = {
-          icon = '   󰄱'
-        },
-        checked = {
-          icon = '   󰄲',
-        },
-        custom = {
-          todo = { raw = '[-]', rendered = '   󰡖', highlight = '@number' },
-        },
-
-        right_pad = 2
-      },
-      code = {
-        conceal_delimiters = false,
-        language = false,
-        border = 'none',
-      },
-      anti_conceal = {
-        enabled = false,
-      },
-      win_options = {
-        conceallevel = {
-          rendered = 2,
-        },
-        concealcursor = {
-          rendered = 'n',
-        },
-      }
-    },
-  },
   -- {
-  --   "OXY2DEV/markview.nvim",
-  --   config = function()
-  --     require("markview").setup({
-  --       highlight_groups = {
-  --         -- Customize the highlight group used for bold text
-  --         -- You may need to identify which specific group is used for bold
-  --         MarkviewPalette1Fg = { fg = "#ff6b6b", bold = true },
+  --   'MeanderingProgrammer/render-markdown.nvim',
+  --   dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-mini/mini.icons' },
+  --   ft = { 'markdown', 'codecompanion', 'Avante' },
+  --   opts = {
+  --     checkbox = {
+  --       unchecked = {
+  --         icon = '   󰄱'
   --       },
-  --       preview = {
-  --         filetypes = { "markdown", "codecompanion", "Avante" },
-  --         ignore_buftypes = {},
-  --         --   enable_hybrid_mode = true,
-  --         --   hybrid_modes = { "i" },
-  --         --   ignore_previews = {}
+  --       checked = {
+  --         icon = '   󰄲',
   --       },
-  --       markdown_inline = {
-  --         checkboxes = {
-  --           checked = { text = "" },
-  --           unchecked = { text = "", hl = "Normal", scope_hl = "Normal" },
-  --           ["/"] = { text = "󰡖" }
-  --         }
+  --       custom = {
+  --         todo = { raw = '[-]', rendered = '   󰡖', highlight = '@number' },
   --       },
-  --       markdown = {
-  --         list_items = {
-  --           shift_width = 0,
-  --           marker_minus = { add_padding = false },
-  --           marker_plus = { add_padding = false },
-  --           marker_star = { add_padding = false },
-  --           marker_dot = { add_padding = false },
-  --           marker_parenthesis = { add_padding = false },
-  --         }
+  --
+  --       right_pad = 2
+  --     },
+  --     code = {
+  --       conceal_delimiters = false,
+  --       language = false,
+  --       border = 'none',
+  --     },
+  --     anti_conceal = {
+  --       enabled = false,
+  --     },
+  --     win_options = {
+  --       conceallevel = {
+  --         rendered = 2,
   --       },
-  --       ft = { "markdown", "codecompanion", "avante" },
-  --       cmd = "Markview"
-  --     })
-  --   end,
+  --       concealcursor = {
+  --         rendered = 'n',
+  --       },
+  --     }
+  --   },
   -- },
+
+  {
+    "OXY2DEV/markview.nvim",
+    config = function()
+      require("markview").setup({
+        experimental = { check_rtp_message = false },
+        highlight_groups = {
+          -- Customize the highlight group used for bold text
+          -- You may need to identify which specific group is used for bold
+          MarkviewPalette1Fg = { fg = "#ff6b6b", bold = true },
+        },
+        preview = {
+          filetypes = { "markdown", "codecompanion", "Avante" },
+          ignore_buftypes = {},
+          --   enable_hybrid_mode = true,
+          --   hybrid_modes = { "i" },
+          --   ignore_previews = {}
+        },
+        markdown_inline = {
+          checkboxes = {
+            checked = { text = "    " },
+            unchecked = { text = "    ", hl = "Normal", scope_hl = "Normal" },
+            ["-"] = { text = "  󰡖  " }
+          }
+        },
+        markdown = {
+          list_items = {
+            shift_width = 0,
+            marker_minus = { add_padding = false },
+            marker_plus = { add_padding = false },
+            marker_star = { add_padding = false },
+            marker_dot = { add_padding = false },
+            marker_parenthesis = { add_padding = false },
+          }
+        },
+        ft = { "markdown", "codecompanion", "avante" },
+        cmd = "Markview"
+      })
+    end,
+  },
   {
     "j-hui/fidget.nvim",
     opts = {
@@ -161,24 +141,7 @@ return {
     event = "VeryLazy",
     opts = {}
   },
-  -- {
-  --   "kevinhwang91/nvim-bqf",
-  --   ft = "qf",
-  --   opts = {
-  --     auto_resize_height = true,
-  --     preview = {
-  --       win_height = 12,
-  --     }
-  --   }
-  -- },
   { 'AndreM222/copilot-lualine' },
-  -- {
-  --   "Davidyz/VectorCode",
-  --   version = "*",                        -- optional, depending on whether you're on nightly or release
-  --   build = "uv tool upgrade vectorcode", -- optional but recommended if you set `version = "*"`
-  --   dependencies = { "nvim-lua/plenary.nvim" },
-  --   opts = {}
-  -- },
   { "williamboman/mason.nvim",              opts = {},                          cmd = "Mason" },
   { 'glacambre/firenvim',                   build = ":call firenvim#install(0)" },
   {
@@ -186,16 +149,6 @@ return {
     ft = "lua",
     opts = {},
   },
-  -- {
-  --   'vyfor/cord.nvim',
-  --   event = "VeryLazy",
-  --   build = ':Cord update',
-  --   opts = {
-  --     text = {
-  --       workspace = "",
-  --     }
-  --   }
-  -- },
   {
     "rest-nvim/rest.nvim",
     ft = { "http" },
@@ -216,7 +169,7 @@ return {
   },
   {
     'crispgm/nvim-tabline',
-    dependencies = { 'nvim-tree/nvim-web-devicons' },
+    dependencies = { 'nvim-mini/mini.icons' },
     lazy = true,
     opts = {
       show_icon = true,         -- show file extension icon
@@ -325,26 +278,6 @@ return {
   {
     "hiphish/rainbow-delimiters.nvim",
   },
-  -- {
-  --   -- this opens spaces out [  ] which is annoying when making checkboxes
-  --   'saghen/blink.pairs',
-  --   version = '*',
-  --   dependencies = 'saghen/blink.download',
-  --   opts = {
-  --     highlights = {
-  --       enabled = true,
-  --       groups = {
-  --         '',
-  --         '@markup.heading.1.markdown',
-  --         '@markup.heading.3.markdown',
-  --         '@markup.heading.4.markdown',
-  --         '@markup.heading.2.markdown',
-  --         '@markup.heading.5.markdown',
-  --         '@markup.heading.6.markdown',
-  --       },
-  --     },
-  --   }
-  -- },
   { 'kylechui/nvim-surround', event = "VeryLazy", opts = { keymaps = { visual = "Y" }, }, },
   {
     "aserowy/tmux.nvim",
@@ -386,3 +319,77 @@ return {
     }
   },
 }
+
+-- {
+--   "sphamba/smear-cursor.nvim",
+--   opts = {
+--     -- smear_between_neighbor_lines = false,
+--     legacy_computing_symbols_support = true,
+--     smear_insert_mode = true,
+--     cursor_color = "#f5e0dc",
+--
+--     stiffness = 0.8,                      -- 0.6      [0, 1]
+--     trailing_stiffness = 0.6,             -- 0.4      [0, 1]
+--     stiffness_insert_mode = 0.7,          -- 0.5      [0, 1]
+--     trailing_stiffness_insert_mode = 0.6, -- 0.5      [0, 1]
+--     damping = 1,                          -- 0.65     [0, 1]
+--     damping_insert_mode = 0.8,            -- 0.7      [0, 1]
+--     distance_stop_animating = 1,          -- 0.1      > 0
+--     delay_event_to_smear = 1
+--   },
+-- },
+
+-- {
+--   "supermaven-inc/supermaven-nvim",
+--   opts = {}
+-- },
+
+-- {
+--   "A7Lavinraj/fyler.nvim",
+--   dependencies = { "nvim-mini/mini.icons" },
+--   branch = "stable",
+--   opts = {}
+-- },
+
+-- {
+--   -- this opens spaces out [  ] which is annoying when making checkboxes
+--   'saghen/blink.pairs',
+--   version = '*',
+--   dependencies = 'saghen/blink.download',
+--   opts = {
+--     highlights = {
+--       enabled = true,
+--       groups = {
+--         '',
+--         '@markup.heading.1.markdown',
+--         '@markup.heading.3.markdown',
+--         '@markup.heading.4.markdown',
+--         '@markup.heading.2.markdown',
+--         '@markup.heading.5.markdown',
+--         '@markup.heading.6.markdown',
+--       },
+--     },
+--   }
+-- },
+
+-- {
+--   "kevinhwang91/nvim-bqf",
+--   ft = "qf",
+--   opts = {
+--     auto_resize_height = true,
+--     preview = {
+--       win_height = 12,
+--     }
+--   }
+-- },
+
+-- {
+--   'vyfor/cord.nvim',
+--   event = "VeryLazy",
+--   build = ':Cord update',
+--   opts = {
+--     text = {
+--       workspace = "",
+--     }
+--   }
+-- },
