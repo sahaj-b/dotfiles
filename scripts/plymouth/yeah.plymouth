@@ -1,8 +1,8 @@
 [Plymouth Theme]
-Name=ASCII Rain
-Description=Animated ASCII rain effect from TerminalTextEffects
+Name=ASCII effect
+Description=Animated ASCII effect from TerminalTextEffects
 ModuleName=script
 
 [script]
-ImageDir=/usr/share/plymouth/themes/ascii_burst
-ScriptFile=/usr/share/plymouth/themes/ascii_burst/ascii_burst.script
+ImageDir=/usr/share/plymouth/themes/ascii_effect
+ScriptFile=/usr/share/plymouth/themes/ascii_effect/ascii_effect.script

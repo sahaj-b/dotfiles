@@ -1,5 +1,9 @@
 from terminaltexteffects.effects.effect_blackhole import Blackhole
 
+# change blackhole to your effect of choice
+# my faviourites for plymouth:
+# blackhole bubbles burn fireworks pour rain scattered spotlights spray unstable vhstape waves
+
 # Load ASCII art from art.txt
 try:
     with open("art.txt", "r") as f:

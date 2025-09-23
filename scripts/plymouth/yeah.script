@@ -20,6 +20,8 @@ flyingman_sprite.SetX(Window.GetX() + (Window.GetWidth(0) / 2 - flyingman_image[
 flyingman_sprite.SetY(Window.GetY() + (Window.GetHeight(0) / 2 - flyingman_image[1].GetHeight() / 2));
 
 progress = 0;
+
+# fps you can say
 frame_interval = 2;
 
 fun refresh_callback ()
