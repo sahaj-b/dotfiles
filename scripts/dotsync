@@ -119,13 +119,13 @@ cd "${dotfiles_dir}" || {
 git add .
 git diff --staged --quiet || git commit -m "Updated" &>/dev/null
 
-echo "Checking for remote changes..."
-git fetch --quiet
-if git status -sb | grep -q 'behind'; then
-  git pull origin main --rebase
-fi
+# echo "Checking for remote changes..."
+# git fetch --quiet
+# if git status -sb | grep -q 'behind'; then
+#   git pull origin main --rebase
+# fi
 
-echo
+# echo
 spinnerRun "git rm -rf . >/dev/null" "Nuking $dotfiles_dir" "💥 Nuked $dotfiles_dir" "Git rm failed"
 
 function push() {
