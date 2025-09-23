@@ -42,13 +42,12 @@ Example: `./process 10 6` starts from frame 10, keeps every 6th frame.
   sudo plymouth-set-default-theme ascii_effect -R
   ```
 
-
-> [!NOTE]
+> ![NOTE]
 > It is assumed you have Plymouth setted up on your system. If not, see your distro's documentation for it
 
 ## Customization
 
-- **Animation Effect**: In `generator/generate.py`, you can change `Blackhole` for other effects from the `terminaltexteffects` package
+- **Animation Effect**: In `generator/generate.py`, you can change `Blackhole` for other effects from the `terminaltexteffects` package:
 - **Animation FPS**: In the Plymouth script (`yeah.script`), change `frame_interval = 2` to speed up/slow down.
 - **Frame Processing**:
   - Increase `thinning_factor` for smoother but longer animations (bloats initramfs, may cause boot delay)
