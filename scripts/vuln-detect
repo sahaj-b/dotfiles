@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+# Purpose: detect if builtin keyboard pressed since boot by watching i8042 irq line
+# coz my lappy has a hardware problem where it goes into a vulnerable state(freezes on big apps startup) if the builtin keyboard is pressed
+
+irq_line="i8042"
+state_file="/tmp/vuln"
+
+baseline=$(awk -v irq="$irq_line" '$0 ~ irq {s=0; for(i=2;i<NF;i++) if($i~/^[0-9]+$/) s+=$i; print s}' /proc/interrupts)
+
+while :; do
+  cur=$(awk -v irq="$irq_line" '$0 ~ irq {s=0; for(i=2;i<NF;i++) if($i~/^[0-9]+$/) s+=$i; print s}' /proc/interrupts)
+  if ((cur > baseline)); then
+    touch "$state_file"
+    exit 0
+  fi
+  sleep 1
+done

@@ -1,0 +1,22 @@
+#!/bin/bash
+# Usage: ./process [start_frame] [thinning_factor]
+# Defaults: start_frame=1 (all), thinning_factor=1 (no thinning)
+
+start_frame=${1:-1}
+thinning_factor=${2:-1}
+output_dir="processed_frames"
+mkdir -p "$output_dir"
+
+i=0
+new_num=1
+ls frame_*.txt | sort -V | tail -n +$start_frame | while read -r f; do
+  if ((i % thinning_factor == 0)); then
+    new_name="frame-${new_num}.txt"
+    cp "$f" "$output_dir/$new_name"
+    ((new_num++))
+  fi
+  ((i++))
+done
+
+echo "Processed: Kept $((($(ls frame_*.txt | wc -l) - start_frame + 1 + thinning_factor - 1) / thinning_factor)) frames in $output_dir"
+echo "Play: cd $output_dir; for f in $(ls frame-*.txt | sort -V); do cat \"$f\"; sleep 0.15; clear; done"

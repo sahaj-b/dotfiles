@@ -77,6 +77,7 @@ window#waybar {
   color: @fg;
 }
 
+#custom-vuln,
 #custom-wakapi,
 #tray,
 #battery,
@@ -173,6 +174,14 @@ window#waybar {
   background: @red;
   color: @crust;
   font-weight: bold;
+}
+
+#custom-vuln {
+  background: @red;
+  color: @crust;
+  font-weight: bold;
+  padding-right: 12px;
+  padding-left: 10px;
 }
 
 #custom-easyeffects.enabled {

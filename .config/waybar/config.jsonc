@@ -7,7 +7,7 @@
     "clock#1",
     "clock#2",
     "clock#3",
-    "temperature",
+    // "temperature",
     "custom/music",
     "custom/scratchOutput",
     "hyprland/submap"
@@ -16,6 +16,7 @@
     "hyprland/workspaces"
   ],
   "modules-right": [
+    "custom/vuln",
     "custom/wf-recorder",
     "custom/wakapi",
     "memory",
@@ -74,6 +75,13 @@
     "format": "{}",
     "interval": 1,
     "exec": "~/scripts/waybar/getScratchOutput.sh"
+  },
+  "custom/vuln": {
+    "exec": "[ -f /tmp/vuln ] && echo 󰚌",
+    "format": "{}",
+    "interval": 1,
+    "on-click": "rm /tmp/vuln"
+    // "on-click-right": "~/scripts/vuln-detect"
   },
   "custom/cal": {
     "interval": 120,
