@@ -142,7 +142,7 @@ return {
     opts = {}
   },
   { 'AndreM222/copilot-lualine' },
-  { "williamboman/mason.nvim",              opts = {},                          cmd = "Mason" },
+  { "williamboman/mason.nvim",              cmd = "Mason" },
   { 'glacambre/firenvim',                   build = ":call firenvim#install(0)" },
   {
     "folke/lazydev.nvim",
@@ -275,9 +275,6 @@ return {
     event = "InsertEnter",
     opts = {},
   },
-  {
-    "hiphish/rainbow-delimiters.nvim",
-  },
   { 'kylechui/nvim-surround', event = "VeryLazy", opts = { keymaps = { visual = "Y" }, }, },
   {
     "aserowy/tmux.nvim",
@@ -318,78 +315,133 @@ return {
 
     }
   },
+
+  -- Cosmetics plugins ooh yeah
+  {
+    "hiphish/rainbow-delimiters.nvim",
+  },
+
+  {
+    "rachartier/tiny-glimmer.nvim",
+    event = "VeryLazy",
+    priority = 10,
+    opts = {
+      overwrite = {
+        paste = {
+          default_animation = {
+            name = "fade",
+            settings = { to_color = "CursorLine", min_duration = 350, max_duration = 350 }
+          }
+        },
+        undo = {
+          enabled = true,
+          default_animation = {
+            name = "fade",
+            settings = {
+              to_color = "CursorLine",
+            },
+          },
+        },
+        redo = {
+          enabled = true,
+          default_animation = {
+            name = "fade",
+            settings = {
+              to_color = "CursorLine",
+            },
+          },
+        },
+        yank = {
+          enabled = true,
+          default_animation = {
+            name = "fade",
+
+            settings = {
+              from_color = "DiffAdd",
+              to_color = "CursorLine",
+
+              max_duration = 500,
+              min_duration = 500,
+            },
+          },
+        }
+      }
+    },
+  },
+
+  {
+    "sphamba/smear-cursor.nvim",
+    opts = {
+      -- smear_between_neighbor_lines = false,
+      legacy_computing_symbols_support = true,
+      smear_insert_mode = true,
+      cursor_color = "#f5e0dc",
+
+      stiffness = 0.8,                      -- 0.6      [0, 1]
+      trailing_stiffness = 0.6,             -- 0.4      [0, 1]
+      stiffness_insert_mode = 0.7,          -- 0.5      [0, 1]
+      trailing_stiffness_insert_mode = 0.6, -- 0.5      [0, 1]
+      damping = 1,                          -- 0.65     [0, 1]
+      damping_insert_mode = 0.8,            -- 0.7      [0, 1]
+      distance_stop_animating = 1,          -- 0.1      > 0
+      delay_event_to_smear = 1
+    },
+  },
+
+  -- The Grave
+
+  -- {
+  --   "A7Lavinraj/fyler.nvim",
+  --   dependencies = { "nvim-mini/mini.icons" },
+  --   branch = "stable",
+  --   opts = {}
+  -- },
+
+  -- {
+  --   "supermaven-inc/supermaven-nvim",
+  --   opts = {}
+  -- },
+
+  -- {
+  --   -- this opens spaces out [  ] which is annoying when making checkboxes
+  --   'saghen/blink.pairs',
+  --   version = '*',
+  --   dependencies = 'saghen/blink.download',
+  --   opts = {
+  --     highlights = {
+  --       enabled = true,
+  --       groups = {
+  --         '',
+  --         '@markup.heading.1.markdown',
+  --         '@markup.heading.3.markdown',
+  --         '@markup.heading.4.markdown',
+  --         '@markup.heading.2.markdown',
+  --         '@markup.heading.5.markdown',
+  --         '@markup.heading.6.markdown',
+  --       },
+  --     },
+  --   }
+  -- },
+
+  -- {
+  --   "kevinhwang91/nvim-bqf",
+  --   ft = "qf",
+  --   opts = {
+  --     auto_resize_height = true,
+  --     preview = {
+  --       win_height = 12,
+  --     }
+  --   }
+  -- },
+
+  -- {
+  --   'vyfor/cord.nvim',
+  --   event = "VeryLazy",
+  --   build = ':Cord update',
+  --   opts = {
+  --     text = {
+  --       workspace = "",
+  --     }
+  --   }
+  -- },
 }
-
--- {
---   "sphamba/smear-cursor.nvim",
---   opts = {
---     -- smear_between_neighbor_lines = false,
---     legacy_computing_symbols_support = true,
---     smear_insert_mode = true,
---     cursor_color = "#f5e0dc",
---
---     stiffness = 0.8,                      -- 0.6      [0, 1]
---     trailing_stiffness = 0.6,             -- 0.4      [0, 1]
---     stiffness_insert_mode = 0.7,          -- 0.5      [0, 1]
---     trailing_stiffness_insert_mode = 0.6, -- 0.5      [0, 1]
---     damping = 1,                          -- 0.65     [0, 1]
---     damping_insert_mode = 0.8,            -- 0.7      [0, 1]
---     distance_stop_animating = 1,          -- 0.1      > 0
---     delay_event_to_smear = 1
---   },
--- },
-
--- {
---   "supermaven-inc/supermaven-nvim",
---   opts = {}
--- },
-
--- {
---   "A7Lavinraj/fyler.nvim",
---   dependencies = { "nvim-mini/mini.icons" },
---   branch = "stable",
---   opts = {}
--- },
-
--- {
---   -- this opens spaces out [  ] which is annoying when making checkboxes
---   'saghen/blink.pairs',
---   version = '*',
---   dependencies = 'saghen/blink.download',
---   opts = {
---     highlights = {
---       enabled = true,
---       groups = {
---         '',
---         '@markup.heading.1.markdown',
---         '@markup.heading.3.markdown',
---         '@markup.heading.4.markdown',
---         '@markup.heading.2.markdown',
---         '@markup.heading.5.markdown',
---         '@markup.heading.6.markdown',
---       },
---     },
---   }
--- },
-
--- {
---   "kevinhwang91/nvim-bqf",
---   ft = "qf",
---   opts = {
---     auto_resize_height = true,
---     preview = {
---       win_height = 12,
---     }
---   }
--- },
-
--- {
---   'vyfor/cord.nvim',
---   event = "VeryLazy",
---   build = ':Cord update',
---   opts = {
---     text = {
---       workspace = "",
---     }
---   }
--- },

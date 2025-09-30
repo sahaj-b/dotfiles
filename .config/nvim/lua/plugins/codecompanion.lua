@@ -32,6 +32,7 @@ return {
     cmd = { "CodeCompanion", "CodeCompanionChat", "CodeCompanionActions", "CodeCompanionCmd", "CodeCompanionHistory" },
     config = function()
       require("codecompanion").setup {
+        provider = 'mini_diff',
         extensions = {
           history = {
             enabled = true,

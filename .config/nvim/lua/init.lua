@@ -33,12 +33,12 @@ else
   })
 end
 
-vim.api.nvim_create_autocmd("TextYankPost", {
-  group = vim.api.nvim_create_augroup("highlight_yank", { clear = true }),
-  callback = function()
-    vim.highlight.on_yank({ higroup = "Search", timeout = 150 })
-  end,
-})
+-- vim.api.nvim_create_autocmd("TextYankPost", {
+--   group = vim.api.nvim_create_augroup("highlight_yank", { clear = true }),
+--   callback = function()
+--     vim.highlight.on_yank({ higroup = "Search", timeout = 150 })
+--   end,
+-- })
 
 vim.g.augment_workspace_folders = { '~/projects/binge-meter/' }
 
@@ -260,6 +260,8 @@ vim.api.nvim_create_autocmd("FileType", {
     vim.opt_local.softtabstop = 2
   end,
 })
+
+vim.deprecate = function() end
 
 -- require("rest-nvim-extract")
 

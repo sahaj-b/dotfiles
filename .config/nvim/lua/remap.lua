@@ -356,6 +356,12 @@ map("n", "<leader>ts",
   end,
   { desc = "Sorts Tailwind classes" }
 )
+map("n", "<leader>bf",
+  function()
+    require("conform").format({ formatters = { "biome-assist-linter" } })
+  end,
+  { desc = "Format with linter fixes (biome)" }
+)
 
 vim.api.nvim_create_autocmd('LspAttach', {
   callback = function(event)
@@ -391,8 +397,8 @@ local filetypes = {
   javascript = "node %",
   typescript = "npx tsx %",
   python = "python3 %",
-  c = "gcc % -o %:r && %:r",
-  cpp = "g++ % -o %:r && %:r",
+  c = "gcc % -o %:r && ./%:r",
+  cpp = "g++ % -o %:r && ./%:r",
   qml = "qmlscene %",
   go = "if [ -f go.mod ]; then go run .; else go run %; fi",
   markdown = "go-grip %"

@@ -16,5 +16,25 @@
         "bash": true,
       }
     },
-  }
+  },
+  "mcp": {
+    "tavily": {
+      "type": "local",
+      "enabled": true,
+      "command": [
+        "pnpm",
+        "dlx",
+        "tavily-mcp@latest"
+      ]
+    },
+    "context7": {
+      "type": "local",
+      "enabled": true,
+      "command": [
+        "pnpm",
+        "dlx",
+        "@upstash/context7-mcp@latest"
+      ]
+    }
+  },
 }

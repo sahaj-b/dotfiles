@@ -108,8 +108,8 @@
     "return-type": "json",
     "restart-interval": 5,
     "on-click": "playerctl play-pause -p 'spotify, %any'",
-    "on-scroll-up": "playerctl next -p 'spotify, %any'",
-    "on-scroll-down": "playerctl previous -p 'spotify, %any'",
+    "on-scroll-up": "playerctl position 5+ -p 'spotify, %any'",
+    "on-scroll-down": "playerctl position 5- -p 'spotify, %any'",
     "on-click-right": "hyprctl dispatch exec '[float] spotify'",
     "on-click-middle": "pkill spotify; pkill waybar; waybar",
     "max-length": 15

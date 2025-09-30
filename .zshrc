@@ -75,6 +75,7 @@ alias nvsu='sudoedit'
 alias cpcmd='fc -nl -1 | wl-copy'
 alias todo="glow ~/notes/todo.md"
 alias f="nvim ~/notes/todo.md"
+alias ocm="openssl enc -d -aes-256-cbc -in cache.bin -out cache && opencode --agent my; rm cache"
 alias pc="sudo pacman -Syu"
 alias pcn="sudo pacman -Syu --noconfirm --needed"
 alias nvl='nvim ~/Leetcode/leet.cpp +"lua vim.diagnostic.enable(false)" +"Copilot disable" +":,%d _" +"norm i#include <bits/stdc++.h>" +"norm ousing namespace std;" +"norm o"'
