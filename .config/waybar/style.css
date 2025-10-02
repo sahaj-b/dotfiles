@@ -197,6 +197,7 @@ window#waybar {
 }
 
 #custom-music.Paused,
+#custom-music.NoVisualizer,
 #custom-music.Stopped {
   background: @bg;
   color: @fg2;

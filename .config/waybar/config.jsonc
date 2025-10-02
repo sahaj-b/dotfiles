@@ -157,7 +157,8 @@
     "tooltip-format-connected": "{num_connections} connected\n{device_enumerate}",
     "tooltip-format-enumerate-connected": "{device_alias}\t{device_address}",
     "tooltip-format-enumerate-connected-battery": "{device_alias}\t{device_address}\t{device_battery_percentage}%",
-    "on-click": "bluetoothctl <<< $(bluetoothctl show | awk '/Powered:/ {print ($2 ~ /yes|on/) ? \"power off\" : \"power on\"; exit}')",
+    // "on-click": "bluetoothctl <<< $(bluetoothctl show | awk '/Powered:/ {print ($2 ~ /yes|on/) ? \"power off\" : \"power on\"; exit}')",
+    "on-click": "~/scripts/blu toggle",
     "on-click-right": "blueman-manager"
   },
   "cpu": {

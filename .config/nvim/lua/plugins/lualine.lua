@@ -12,6 +12,21 @@ return {
       -- end
       -- local spinner = require("plugins.codecompanion.lualine-spinner")
       local lualine = require('lualine')
+      copilot = {
+        function()
+          return " "
+        end,
+        color = function()
+          local status = require("sidekick.status").get()
+          if status then
+            return status.kind == "Error" and "DiagnosticError" or status.busy and "DiagnosticWarn" or "Special"
+          end
+        end,
+        cond = function()
+          local status = require("sidekick.status")
+          return status.get() ~= nil
+        end,
+      }
       lualine.setup {
         options = {
           globalstatus = true,
@@ -37,11 +52,12 @@ return {
             -- end,
             -- }
           },
-          lualine_c = { 'diagnostics' },
+          lualine_c = { 'diagnostics',
+          },
           -- lualine_x = { spinner, 'diff', 'filetype' },
-          lualine_x = { 'diff', 'filetype' },
+          lualine_x = { 'diff', 'filetype', copilot },
           -- lualine_y = { function() return "{.}%3{codeium#GetStatusString()}" end, 'progress' },
-          lualine_y = { 'copilot', 'progress' },
+          lualine_y = { 'progress' },
           lualine_z = { 'location' }
         },
       }

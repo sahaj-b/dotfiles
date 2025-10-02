@@ -48,8 +48,8 @@ elif [[ $1 == list ]]; then
 elif [[ $1 == f ]]; then
   bluetoothctl disconnect && sleep 0.5 && bluetoothctl connect 44:C0:03:C3:36:0C && sleep 3 && dunstctl close && dunstctl close
   exit
-elif [[ $1 == o ]]; then
-  bluetoothctl power off
+elif [[ $1 == toggle ]]; then
+  rfkill list bluetooth | awk '/Soft blocked:/{s=$3} END{print s=="yes"?"unblock":"block"}' | xargs -I{} rfkill {} bluetooth
   exit
 elif [[ $1 == on ]]; then
   bluetoothctl power on

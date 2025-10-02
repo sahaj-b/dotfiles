@@ -3,7 +3,12 @@ package main
 // you can add your browser on line 101 in the playerctl command
 
 // Note for chromium-based browsers(chrome, brave, vivaldi, etc):
-// The xesam:url property isn't available, so it won't work, so change the checkUrl variable to false on line 43
+// The xesam:url property isn't available, so it won't work, so change the checkUrl variable to false on line 48
+
+// Toggle visualizer on/off:
+// Send SIGUSR1 signal to toggle: pkill -SIGUSR1 caway
+// When off, shows song name without visualizer bars (class: NoVisualizer)
+// When on, shows visualizer bars when music is playing (You gotta manually play->pause once to see cava after toggling on)
 
 import (
 	"bufio"
@@ -74,14 +79,49 @@ func parseFlags() *Config {
 	return config
 }
 
+var (
+	cavaCancelGlobal  context.CancelFunc
+	cavaStoppedGlobal bool
+	lastOutputGlobal  WaybarOutput
+)
+
 func setupSignalHandler(cancel context.CancelFunc) {
 	c := make(chan os.Signal, 1)
+	usr1 := make(chan os.Signal, 1)
+
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(usr1, syscall.SIGUSR1)
 
 	go func() {
-		<-c
-		cancel()
+		for {
+			select {
+			case <-c:
+				cancel()
+				return
+			case <-usr1:
+				toggleCava()
+			}
+		}
 	}()
+}
+
+func toggleCava() {
+	cavaStoppedGlobal = !cavaStoppedGlobal
+
+	if cavaStoppedGlobal {
+		exec.Command("pkill", "-f", "cava.*cava_waybar_config").Run()
+
+		if cavaCancelGlobal != nil {
+			cavaCancelGlobal()
+			cavaCancelGlobal = nil
+		}
+
+		if lastOutputGlobal.Text != "" {
+			lastOutputGlobal.Class = "NoVisualizer"
+			outputJSON, _ := json.Marshal(lastOutputGlobal)
+			fmt.Println(string(outputJSON))
+		}
+	}
 }
 
 func debugLog(config *Config, format string, args ...any) {
@@ -153,20 +193,26 @@ func run(ctx context.Context, config *Config) error {
 		output.Text = html.UnescapeString(output.Text)
 		output.Tooltip = html.UnescapeString(output.Tooltip)
 
+		if cavaStoppedGlobal && output.Class == "Playing" {
+			output.Class = "NoVisualizer"
+		}
+
+		lastOutputGlobal = output
+
 		outputJSON, _ := json.Marshal(output)
 		debugLog(config, "Cleaned line: %s", string(outputJSON))
 		fmt.Println(string(outputJSON))
 
 		debugLog(config, "Player status: %s, equalizer: %t", output.Class, config.Equilizer)
 
-		if config.Equilizer && output.Class == "Playing" {
+		if config.Equilizer && output.Class == "Playing" && !cavaStoppedGlobal {
 			debugLog(config, "Starting equalizer mode...")
 
 			var cavaCtx context.Context
 			cavaCtx, cavaCancel = context.WithCancel(ctx)
+			cavaCancelGlobal = cavaCancel
 			go func() {
 				debugLog(config, "Goroutine started, beginning sleep...")
-				// Show the playing title for 2 seconds
 				time.Sleep(2 * time.Second)
 				debugLog(config, "Sleep finished, calling runCavaVisualizer")
 				runCavaVisualizer(cavaCtx, config, output)

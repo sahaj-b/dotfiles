@@ -3,12 +3,12 @@ if [[ $1 = "yt" ]]; then
   # for inverting youtube video
 
   # firefox
-  # consoleOpen="key ctrl+shift+k"
-  # consoleClose="key f12"
+  consoleOpen="key ctrl+shift+k"
+  consoleClose="key f12"
 
   # chromium
-  consoleOpen="key ctrl+shift+j"
-  consoleClose="key ctrl+shift+j"
+  # consoleOpen="key ctrl+shift+j"
+  # consoleClose="key ctrl+shift+j"
 
   echo "\$('video').style.filter = 'invert(1)'" | wl-copy
   echo 'key super+space' | dotoolc
@@ -27,13 +27,13 @@ if [[ $1 = "yt" ]]; then
 
 elif [[ $1 = pdf ]]; then
   # for inverting pdf colors(firefox)
-  echo "document.getElementsByTagName('embed')[0].style.filter = 'invert(1)'" | wl-copy
+  echo "document.getElementById('viewer').style.filter = 'invert(1)'" | wl-copy
   echo "key super+space" | dotoolc
-  echo "key ctrl+shift+j" | dotoolc
-  sleep 0.5
+  echo "key $consoleOpen" | dotoolc
+  sleep 1
   echo "key ctrl+v" | dotoolc
   echo "key enter" | dotoolc
-  echo "key ctrl+shift+j" | dotoolc
+  echo "key $consoleClose" | dotoolc
 
 elif [[ $1 = db ]]; then
   # for dbdiagram.io
