@@ -53,8 +53,8 @@ bindkey '^x^e' edit-command-line
 
 alias co="cd -"
 alias oc="opencode run -m github-copilot/gpt-4.1 --agent build"
-alias rgb="sed -i '194s/^ *\/\* *//;194s/ *\*\/ *$//' ~/.config/waybar/style.css && pkill waybar && waybar&>/dev/null &disown"
-alias norgb="sed -i '194s/^/\/*/;194s/$/*\//' ~/.config/waybar/style.css && pkill waybar && waybar&>/dev/null &disown"
+alias rgb="sed -i '204s/^ *\/\* *//;204s/ *\*\/ *$//' ~/.config/waybar/style.css && pkill waybar && waybar&>/dev/null &disown"
+alias norgb="sed -i '204s/^/\/*/;204s/$/*\//' ~/.config/waybar/style.css && pkill waybar && waybar&>/dev/null &disown"
 alias tt="~/timetable"
 alias att="go-attend"
 alias ..="cd .."
@@ -117,6 +117,7 @@ alias gcs="gh copilot suggest -t shell"
 alias gce="gh copilot explain"
 alias gits="gh copilot suggest -t git"
 
+function fan() { echo $1 | sudo tee cat /sys/devices/platform/asus-nb-wmi/hwmon/hwmon5/pwm1_enable }
 function lorem () {shuf -n ${1:-100} /usr/share/dict/cracklib-small | tr '\n' ' ' | fmt }
 function ggl () { links www.google.com/search\?q="$*"; }
 function postmanToHttp() { node ~/projects/postman-collection-gen/node.js --names --short -c "$1" | ~/scripts/curlToHttp }

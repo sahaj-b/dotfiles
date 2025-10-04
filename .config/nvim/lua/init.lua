@@ -164,6 +164,8 @@ end
 vim.cmd [[
   hi SnacksIndentScope guifg=#9f9f9f
   hi SnacksIndent guifg=#585b70
+  " snippet sometimes stuck in highlight like in className="stuff"
+  hi SnippetTabstop guibg=none guifg=none
 ]]
 
 vim.api.nvim_create_autocmd({ 'UIEnter' }, {
