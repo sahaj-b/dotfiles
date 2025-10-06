@@ -57,7 +57,7 @@ return {
         markdown_inline = {
           checkboxes = {
             checked = { text = "    " },
-            unchecked = { text = "    ", hl = "Normal", scope_hl = "Normal" },
+            unchecked = { text = "    ", hl = "@markup", scope_hl = "@markup" },
             ["-"] = { text = "  󰡖  ", hl = "@comment", scope_hl = "@comment" }
           }
         },

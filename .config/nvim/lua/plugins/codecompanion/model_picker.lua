@@ -4,6 +4,7 @@ return function(chat)
   local models = {
     "gpt-4.1 0",
     "gpt-5 1",
+    "claude-4.5-sonnet 1",
     "claude-sonnet-4 1",
     "o4-mini 0.33",
     "gpt-4o 0",

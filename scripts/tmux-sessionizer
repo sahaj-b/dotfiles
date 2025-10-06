@@ -6,7 +6,7 @@ else
   selected=$(
     (
       find ~/projects -mindepth 1 -maxdepth 1 -type d
-      find ~/projects -mindepth 2 -maxdepth 2 -type d \( -name frontend -o -name backend \)
+      find ~/projects -mindepth 2 -maxdepth 2 -type d \( -name frontend -o -name backend -o -name shared \)
     ) | sed "s|$HOME|~|" | fzf | sed "s|~|$HOME|"
   )
 fi
