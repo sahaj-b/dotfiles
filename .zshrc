@@ -51,6 +51,7 @@ bindkey '^e' end-of-line
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^x^e' edit-command-line
 
+alias htspt="while true;do nmcli dev wifi rescan; if nmcli dev wifi connect \\?; then break; fi; sleep 0.5;done"
 alias co="cd -"
 alias oc="opencode run -m github-copilot/gpt-4.1 --agent build"
 alias rgb="sed -i '204s/^ *\/\* *//;204s/ *\*\/ *$//' ~/.config/waybar/style.css && pkill waybar && waybar&>/dev/null &disown"
@@ -117,7 +118,14 @@ alias gcs="gh copilot suggest -t shell"
 alias gce="gh copilot explain"
 alias gits="gh copilot suggest -t git"
 
-function fan() { echo $1 | sudo tee cat /sys/devices/platform/asus-nb-wmi/hwmon/hwmon5/pwm1_enable }
+function ntui() {
+  wifi=$(nmcli dev wifi list | fzf --bind 'ctrl-r:reload(nmcli dev wifi list)' --header-lines=1)
+  if [[ -n $wifi ]]; then
+    ssid=$(echo $wifi | awk '{print $2}')
+    nmcli dev wifi connect "$ssid" --ask
+  fi
+}
+function fan() { echo $1 | sudo tee /sys/devices/platform/asus-nb-wmi/hwmon/hwmon5/pwm1_enable }
 function lorem () {shuf -n ${1:-100} /usr/share/dict/cracklib-small | tr '\n' ' ' | fmt }
 function ggl () { links www.google.com/search\?q="$*"; }
 function postmanToHttp() { node ~/projects/postman-collection-gen/node.js --names --short -c "$1" | ~/scripts/curlToHttp }

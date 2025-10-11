@@ -7,7 +7,7 @@ return {
         function()
           local Nes = require("sidekick.nes")
           if next(Nes._requests) then
-            return "󰗮" -- loading (waiting on API)
+            return "󱋊 " -- loading (waiting on API)
           end
           if Nes.have() then
             return " "
@@ -29,6 +29,9 @@ return {
       }
       local copilot = {
         function()
+          if (require("sidekick.status").get().busy) then
+            return " "
+          end
           return " "
         end,
         color = function()

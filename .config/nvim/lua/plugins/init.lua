@@ -18,7 +18,8 @@ return {
   {
     "dmmulroy/ts-error-translator.nvim",
     opts = {},
-    filetypes = { "typescript", "typescriptreact", "javascript", "javascriptreact" },
+    lazy = true,
+    ft = { "typescript", "typescriptreact", "javascript", "javascriptreact" },
   },
   {
     "zbirenbaum/copilot.lua",
@@ -79,17 +80,6 @@ return {
     config = function()
       require("rest-nvim-extract")
     end
-  },
-  {
-    "ThePrimeagen/refactoring.nvim",
-    dependencies = {
-      "nvim-lua/plenary.nvim",
-      "nvim-treesitter/nvim-treesitter",
-    },
-    lazy = false,
-    config = function()
-      require("refactoring").setup({})
-    end,
   },
   {
     'crispgm/nvim-tabline',
@@ -223,7 +213,7 @@ return {
   },
   {
     "m4xshen/hardtime.nvim",
-    dependencies = { "MunifTanjim/nui.nvim" },
+    -- dependencies = { "MunifTanjim/nui.nvim" },
     opts = {
       disable_mouse = false,
       disabled_keys = {
@@ -313,6 +303,18 @@ return {
   -- },
 
   -- The Grave
+
+  -- {
+  --   "ThePrimeagen/refactoring.nvim",
+  --   dependencies = {
+  --     "nvim-lua/plenary.nvim",
+  --     "nvim-treesitter/nvim-treesitter",
+  --   },
+  --   lazy = false,
+  --   config = function()
+  --     require("refactoring").setup({})
+  --   end,
+  -- },
 
   -- {
   --   "A7Lavinraj/fyler.nvim",

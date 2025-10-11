@@ -12,5 +12,5 @@ while [ "$start" -ge $(date +%s) ]; do
   printf '%s\r' "$(date -u -d "@$time" +%H:%M:%S)"
   sleep 0.5
 done
-notify-send "Time's up"
+notify-send -u critical "Time's up"
 /usr/bin/paplay /usr/share/sounds/freedesktop/stereo/complete.oga

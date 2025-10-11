@@ -2,9 +2,9 @@
 return {
   {
     'saghen/blink.cmp',
-    dependencies = { 'rafamadriz/friendly-snippets',
-      -- 'Kaiser-Yang/blink-cmp-avante',
-    },
+    -- dependencies = { 'rafamadriz/friendly-snippets',
+    -- 'Kaiser-Yang/blink-cmp-avante',
+    -- },
     version = '1.*',
     opts = {
       enabled = function() return vim.g.blink_cmp ~= false end,
