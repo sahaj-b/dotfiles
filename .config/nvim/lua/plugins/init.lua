@@ -125,7 +125,7 @@ return {
     name = "tailwind-tools",
     build = ":updateremoteplugins",
     dependencies = {
-      "nvim-treesitter/nvim-treesitter",
+      -- "nvim-treesitter/nvim-treesitter",
     },
     opts = {
       -- document_color = { enabled = false },

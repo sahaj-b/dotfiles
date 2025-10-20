@@ -264,7 +264,7 @@ vim.api.nvim_create_autocmd("FileType", {
 })
 
 vim.deprecate = function() end
-require("boom")
+-- require("boom")
 
 -- require("rest-nvim-extract")
 

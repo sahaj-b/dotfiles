@@ -6,7 +6,8 @@ local function playBoom()
 end
 
 local function get_diag_key(diag)
-  return string.format("%d:%d:%s:%s:%s", diag.lnum, diag.col, diag.code or '', diag.source or '', diag.message or '')
+  return string.format("%s:%s:%s", diag.code or '', diag.source or '', diag.message or '')
+  -- return string.format("%d:%d:%s:%s:%s", diag.lnum, diag.col, diag.code or '', diag.source or '', diag.message or '')
 end
 
 local function update_prev_errors()

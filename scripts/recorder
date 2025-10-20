@@ -7,7 +7,7 @@ checkIfFailed() {
   sleep 1
   if ! kill -0 "$1" 2>/dev/null; then
     pkill -RTMIN+8 waybar
-    echo "wf-recorder failed"
+    echo "wl-screenrec failed"
     exit 1
   fi
 }
@@ -21,10 +21,11 @@ filename=$(date +%F_%T.mp4)
 echo active sink: $active
 echo $filename
 
-if [ -z $(pgrep wf-recorder) ]; then
+if [ -z $(pgrep wl-screenrec) ]; then
   if [ "$1" == "-s" ]; then
     # wf-recorder -f $videoDir/$filename -a -g "$(slurp)" >/dev/null 2>&1 &
-    wf-recorder -f $videoDir/$filename -a="$active" -g "$(slurp)" >/dev/null &
+    # wf-recorder -f $videoDir/$filename -a="$active" -g "$(slurp)" >/dev/null &
+    wl-screenrec -f $videoDir/$filename --audio --audio-device="$active" -g "$(slurp)" >/dev/null &
     checkIfFailed $! &
     while [ -n "$(pgrep -x slurp)" ]; do
       sleep 0.5
@@ -33,14 +34,15 @@ if [ -z $(pgrep wf-recorder) ]; then
     pkill -RTMIN+8 waybar
   else
     # wf-recorder -f $videoDir/$filename -a >/dev/null 2>&1 &
-    wf-recorder -f $videoDir/$filename -a="$active" >/dev/null &
+    # wf-recorder -f $videoDir/$filename -a="$active" >/dev/null &
+    wl-screenrec -f $videoDir/$filename --audio --audio-device="$active" >/dev/null &
     checkIfFailed $! &
     pkill -RTMIN+8 waybar
   fi
 else
-  killall -s SIGINT wf-recorder
+  killall -s SIGINT wl-screenrec
   notify-send -t 1000 "Recording Stopped"
-  while [ -n "$(pgrep -x wf-recorder)" ]; do wait; done
+  while [ -n "$(pgrep -x wl-screenrec)" ]; do wait; done
   pkill -RTMIN+8 waybar
   name="$(zenity --entry --text "enter recording filename" --cancel-label="Delete")"
   case $? in

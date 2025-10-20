@@ -17,7 +17,7 @@
   ],
   "modules-right": [
     "custom/vuln",
-    "custom/wf-recorder",
+    "custom/recorder",
     "custom/wakapi",
     "memory",
     "custom/audio",
@@ -88,13 +88,13 @@
     "exec": "python3 ~/scripts/waybar/cal.py",
     "on-click": "xdg-open https://calendar.google.com/calendar/u/0/r"
   },
-  "custom/wf-recorder": {
+  "custom/recorder": {
     "format": "{}",
     "interval": "once",
     "exec": "echo ' '",
     "tooltip": "false",
-    "exec-if": "pgrep 'wf-recorder'",
-    "on-click": "exec ~/scripts/wfrecord",
+    "exec-if": "pgrep 'wl-screenrec'",
+    "on-click": "exec ~/scripts/recorder",
     "signal": 8
   },
   "custom/music": {

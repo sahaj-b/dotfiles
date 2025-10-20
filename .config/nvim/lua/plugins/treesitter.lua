@@ -1,73 +1,74 @@
 return {
   {
     "nvim-treesitter/nvim-treesitter",
-    dependencies = { "nvim-treesitter/nvim-treesitter-textobjects" },
+    branch = "main",
+    dependencies = { { "nvim-treesitter/nvim-treesitter-textobjects", branch = "main" } },
     event = { "BufReadPre", "BufNewFile" },
+    lazy = false,
     build = ":TSUpdate",
     config = function()
-      -- import nvim-treesitter plugin
-      local treesitter = require("nvim-treesitter.configs")
-
-      -- configure treesitter
-      treesitter.setup({ -- enable syntax highlighting
-        highlight = {
-          enable = true,
-        },
-        -- enable indentation
-        indent = { enable = true, disable = { "cpp" } },
-        -- ensure these language parsers are installed
-        ensure_installed = {
-          "javascript",
-          "typescript",
-          "html",
-          "css",
-          "markdown",
-          "markdown_inline",
-          "bash",
-          "lua",
-          "vim",
-          "dockerfile",
-          "gitignore",
-          "vimdoc",
-          "query",
-          "python",
-          "c",
-          "cpp",
-          -- "jsx",
-          "tsx"
-        },
-        -- auto install above language parsers
-        incremental_selection = {
-          enable = true,
-          keymaps = {
-            init_selection = "<C-space>",
-            node_incremental = "<C-space>",
-            scope_incremental = false,
-            node_decremental = "<bs>",
-          },
-          auto_install = true,
-        },
-        textobjects = {
-          select = {
-            enable = true,
-
-            -- Automatically jump forward to textobj, similar to targets.vim
-            lookahead = true,
-
-            keymaps = {
-              -- You can use the capture groups defined in textobjects.scm
-              ["af"] = "@function.outer",
-              ["if"] = "@function.inner",
-              ["ac"] = "@class.outer",
-              -- You can optionally set descriptions to the mappings (used in the desc parameter of
-              -- nvim_buf_set_keymap) which plugins like which-key display
-              ["ic"] = { query = "@class.inner", desc = "Select inner part of a class region" },
-              -- You can also use captures from other query groups like `locals.scm`
-              ["as"] = { query = "@local.scope", query_group = "locals", desc = "Select language scope" },
-            },
-          },
-        },
+      local treesitter = require("nvim-treesitter")
+      treesitter.setup({})
+      local parsers = {
+        "javascript",
+        "typescript",
+        "tsx",
+        "jsx",
+        "html",
+        "css",
+        "markdown",
+        "markdown_inline",
+        "bash",
+        "lua",
+        "vim",
+        "dockerfile",
+        "gitignore",
+        "vimdoc",
+        "query",
+        "python",
+        "c",
+        "cpp",
+      }
+      treesitter.install(parsers)
+      local filetypes = {}
+      for _, parser in ipairs(parsers) do
+        local ft = vim.treesitter.language.get_lang(parser)
+        if ft == "tsx" then
+          ft = "typescriptreact"
+        elseif ft == "jsx" then
+          ft = "javascriptreact"
+        end
+        table.insert(filetypes, ft)
+      end
+      vim.api.nvim_create_autocmd("FileType", {
+        pattern = filetypes,
+        callback = function()
+          vim.treesitter.start()
+        end,
       })
+
+      require("nvim-treesitter-textobjects").setup({
+        select = {
+          lookahead = true,
+        },
+      });
+
+      vim.keymap.set({ "x", "o" }, "af", function()
+        require "nvim-treesitter-textobjects.select".select_textobject("@function.outer", "textobjects")
+      end)
+      vim.keymap.set({ "x", "o" }, "if", function()
+        require "nvim-treesitter-textobjects.select".select_textobject("@function.inner", "textobjects")
+      end)
+      vim.keymap.set({ "x", "o" }, "ac", function()
+        require "nvim-treesitter-textobjects.select".select_textobject("@class.outer", "textobjects")
+      end)
+      vim.keymap.set({ "x", "o" }, "ic", function()
+        require "nvim-treesitter-textobjects.select".select_textobject("@class.inner", "textobjects")
+      end)
+      -- You can also use captures from other query groups like `locals.scm`
+      vim.keymap.set({ "x", "o" }, "as", function()
+        require "nvim-treesitter-textobjects.select".select_textobject("@local.scope", "locals")
+      end)
     end
-  },
+  }
 }

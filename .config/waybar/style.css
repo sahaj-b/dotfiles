@@ -29,8 +29,8 @@ window#waybar {
 }
 
 #workspaces button {
-  padding: 0px 5px;
-  margin: 0px 4px;
+  padding: 0px 6px;
+  margin: 0px 2px;
   border-radius: 15px;
   color: @text;
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -38,6 +38,7 @@ window#waybar {
 
 #workspaces button.active {
   color: @crust;
+  padding: 0px 5px;
   font-weight: bold;
   /* background: linear-gradient(45deg, @mauve, @sapphire); */
   background: @lavender;
@@ -65,7 +66,7 @@ window#waybar {
 #clock.1,
 #clock.3,
 #custom-notif,
-#custom-wf-recorder,
+#custom-recorder,
 #custom-easyeffects,
 #cpu,
 #custom-scratchOutput,
@@ -160,7 +161,7 @@ window#waybar {
   font-weight: bold;
 }
 
-#custom-wf-recorder{
+#custom-recorder{
   padding-right: 10px;
 }
 #custom-notif {
