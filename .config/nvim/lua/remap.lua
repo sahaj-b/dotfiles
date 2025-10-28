@@ -39,6 +39,8 @@ map("x", "Q", "<cmd>norm @q<CR>")
 map("n", "Q", "@q")
 
 map("n", "<leader>w", "<cmd>w<CR>")
+-- map("n", "<leader>w", "<cmd>silent w<CR>", { silent = true })
+
 
 --windows
 map("n", "<M-h>", "<C-w>h")
@@ -51,6 +53,7 @@ map("n", "<leader>co", "<cmd>CodeiumToggle<CR>")
 
 map("n", "<leader>cpd", "<cmd>Copilot disable<CR>")
 map("n", "<leader>cpe", "<cmd>Copilot enable<CR>")
+map("n", "<leader>cn", "<cmd>Sidekick nes toggle<CR>")
 -- map("n", "<leader>cpd", "<cmd>SupermavenStop<CR>")
 -- map("n", "<leader>cpe", "<cmd>SupermavenStart<CR>")
 
@@ -299,7 +302,7 @@ map("n", "<leader>s:", function() Snacks.picker.command_history() end, { desc = 
 map("n", "<leader>sb", function() Snacks.picker.buffers() end, { desc = "Buffers" })
 map("n", "<leader>sc", function() Snacks.picker.files({ cwd = vim.fn.stdpath("config") }) end,
   { desc = "Find Config File" })
--- map("n", "<leader>sf", function() Snacks.picker.files() end, { desc = "Find Files" })
+map("n", "<leader>sf", function() Snacks.picker.files() end, { desc = "Find Files" })
 map("n", "<leader>sg", function() Snacks.picker.git_files() end, { desc = "Find Git Files" })
 -- map("n", "<leader>sp", function() Snacks.picker.projects() end, { desc = "Projects" })
 map("n", "<leader>so", function() Snacks.picker.recent() end, { desc = "Recent" })

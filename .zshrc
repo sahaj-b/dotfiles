@@ -51,6 +51,7 @@ bindkey '^e' end-of-line
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^x^e' edit-command-line
 
+alias ghostty="ghostty --gtk-single-instance=true"
 alias htspt="while true;do nmcli dev wifi rescan; if nmcli dev wifi connect \\?; then break; fi; sleep 0.5;done"
 alias co="cd -"
 alias oc="opencode run -m github-copilot/gpt-4.1 --agent build"
@@ -92,7 +93,8 @@ alias tp="trash-put"
 # alias rm="echo hell naw bro"
 alias dunstHist="dunstctl history | jq '.data[0][] | .summary.data + \": \" + .body.data' -r"
 alias refl="sudo reflector -c India --save /etc/pacman.d/mirrorlist"
-alias scratch="hyprctl dispatch exec '[workspace special:term silent] foot -a scratch -e tmux new-session -A -s scratch'"
+# alias scratch="hyprctl dispatch exec '[workspace special:term silent] foot -a scratch -e tmux new-session -A -s scratch'"
+alias scratch="hyprctl dispatch exec '[workspace special:term silent] ghostty --gtk-single-instance=true --class=scratch -e tmux new-session -A -s scratch'"
 alias oscratch="hyprctl dispatch exec '[workspace special:term silent] foot -o colors.alpha=1 -a scratch -e tmux new-session -A -s scratch' & disown; exit"
 alias vibes='~/wayvibes/main ~/Downloads/creamy -v 5 > /dev/null 2>&1 &'
 alias unimatrix='unimatrix -n -s 96 -l o'

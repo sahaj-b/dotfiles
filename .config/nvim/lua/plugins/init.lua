@@ -1,20 +1,45 @@
 return {
   {
-    "dmtrKovalenko/fff.nvim",
-    build = "cargo build --release",
+    dir = '/home/sahaj/projects/brainrot.nvim',
     opts = {
-      prompt = ' ',
-      layout = {
-        prompt_position = 'left',
-        preview_position = 'right',
-        height = 0.9,
-        width = 0.9,
-      },
-    },
-    keys = {
-      { "<leader>sf", function() require("fff").find_files() end, desc = "Open file picker" },
+      phonk_time = 1,
+      disable_phonk = false,
+      block_input = false,
+      min_error_duration = 2,
+      lsp_wide = false,
+      dim_level = 30,
     },
   },
+  {
+    "3rd/image.nvim",
+    build = false,
+    opts = {
+      processor = "magick_cli",
+      -- backend = "sixel"
+      integrations = {
+        markdown = {
+          enabled = false,
+        },
+      }
+    }
+  },
+
+  -- {
+  --   "dmtrKovalenko/fff.nvim",
+  --   build = "cargo build --release",
+  --   opts = {
+  --     prompt = ' ',
+  --     layout = {
+  --       prompt_position = 'left',
+  --       preview_position = 'right',
+  --       height = 0.9,
+  --       width = 0.9,
+  --     },
+  --   },
+  --   keys = {
+  --     { "<leader>sf", function() require("fff").find_files() end, desc = "Open file picker" },
+  --   },
+  -- },
   {
     "dmmulroy/ts-error-translator.nvim",
     opts = {},

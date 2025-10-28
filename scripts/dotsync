@@ -4,12 +4,14 @@ dotfiles_dir="/home/sahaj/LinuxBackup/dotfiles/"
 data_dir="/media/data/Linux_Backup/dotfiles/"
 
 dotfiles=(
+
   "/etc/keyd/default.conf"
   "/etc/tlp.conf"
   "/etc/auto-cpufreq.conf"
   "/etc/systemd/system/powermgmt.service"
   "/etc/systemd/system/fix-mic.service"
   # "/etc/udev/rules.d/90-power.rules"
+  "$HOME/.gitattributes"
   "$HOME/README.md"
   "$HOME/setup_ss.jpg"
   "$HOME/.config/opencode/"

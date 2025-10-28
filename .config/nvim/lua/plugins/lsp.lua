@@ -4,6 +4,14 @@ return {
     config = function()
       local servers = {
         jsonls = {},
+        glslls = { -- GLSL-specific settings
+          settings = {
+            glsl = {
+              dialect = "glsl", -- Options: "glsl" (default/OpenGL), "glsl450", "essl" (ES), "hlsl", "msl", "spirv" (Vulkan)
+              -- extendedDialect = "GLSL_450",  -- Uncomment for Vulkan/GLSL 4.50
+            },
+          },
+        },
         biome = {},
         gopls = {
           settings = {
