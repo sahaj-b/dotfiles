@@ -93,8 +93,8 @@ alias tp="trash-put"
 # alias rm="echo hell naw bro"
 alias dunstHist="dunstctl history | jq '.data[0][] | .summary.data + \": \" + .body.data' -r"
 alias refl="sudo reflector -c India --save /etc/pacman.d/mirrorlist"
-# alias scratch="hyprctl dispatch exec '[workspace special:term silent] foot -a scratch -e tmux new-session -A -s scratch'"
-alias scratch="hyprctl dispatch exec '[workspace special:term silent] ghostty --gtk-single-instance=true --class=scratch -e tmux new-session -A -s scratch'"
+alias scratch="hyprctl dispatch exec '[workspace special:term silent] foot -a scratch -e tmux new-session -A -s scratch'"
+# alias scratch="hyprctl dispatch exec '[workspace special:term silent] ghostty --gtk-single-instance=true --class=scratch -e tmux new-session -A -s scratch'"
 alias oscratch="hyprctl dispatch exec '[workspace special:term silent] foot -o colors.alpha=1 -a scratch -e tmux new-session -A -s scratch' & disown; exit"
 alias vibes='~/wayvibes/main ~/Downloads/creamy -v 5 > /dev/null 2>&1 &'
 alias unimatrix='unimatrix -n -s 96 -l o'

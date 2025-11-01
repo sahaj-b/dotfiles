@@ -177,19 +177,9 @@ vim.fn.setreg("t", [[_f"ý5r`ý5f"ý5r`ý5a}hF`ý5i{]]) -- JS/TS: co
 
 -- Plugins keymaps
 
--- Smear cursor
-map("n", "<leader>sm", function()
-  -- require('smear_cursor.color').unhide_real_cursor()
-  -- require('smear_cursor.animation').replace_real_cursor()
-
-  -- Reset the animation state
-  require('smear_cursor.events').unlisten()
-  require('smear_cursor.events').listen()
-  require('smear_cursor.events').re_enable()
-
-  -- :set guicursor&
-  -- :set guicursor=n-v-c:block,i-ci-ve:ver25,r-cr:hor20,o:hor50
-end, { desc = "Reset Smear cursor" })
+-- go-tagger
+map("n", "<leader>gt", "<cmd>AddGoTags<CR>", { desc = "Add Go Tags" })
+map("v", "<leader>gt", "<cmd>'<,'>AddGoTags<CR>", { desc = "Add Go Tags" })
 
 -- Sidekick
 map('v', '<leader>ai', function()

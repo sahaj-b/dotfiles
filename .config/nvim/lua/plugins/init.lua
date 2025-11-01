@@ -1,25 +1,32 @@
 return {
   {
-    dir = '/home/sahaj/projects/brainrot.nvim',
-    opts = {
-      phonk_time = 1,
-      disable_phonk = false,
-      block_input = false,
-      min_error_duration = 2,
-      lsp_wide = false,
-      dim_level = 30,
-    },
+    "romus204/go-tagger.nvim",
+    config = function()
+      require("go-tagger").setup({
+        skip_private = true, -- Skip unexported fields (starting with lowercase)
+      })
+    end,
   },
+  -- {
+  --   dir = '/home/sahaj/projects/brainrot.nvim',
+  --   opts = {
+  --     disable_phonk = true,
+  --     block_input = false,
+  --     min_error_duration = 2,
+  --     lsp_wide = false,
+  --     dim_level = 30,
+  --   },
+  -- },
   {
     "3rd/image.nvim",
     build = false,
     opts = {
       processor = "magick_cli",
-      -- backend = "sixel"
+      backend = "sixel",
       integrations = {
         markdown = {
           enabled = false,
-        },
+        }
       }
     }
   },

@@ -28,6 +28,7 @@ return {
         "python",
         "c",
         "cpp",
+        "go",
       }
       treesitter.install(parsers)
       local filetypes = {}

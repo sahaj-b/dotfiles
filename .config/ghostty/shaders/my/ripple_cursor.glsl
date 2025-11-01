@@ -4,7 +4,7 @@ const float MAX_RADIUS = 0.026;             // Max radius in normalized coords (
 const float RING_THICKNESS = 0.02;             // Ring width in normalized coords
 const float CURSOR_WIDTH_CHANGE_THRESHOLD = 0.5; // Triggers ripple if cursor width changes by this fraction
 vec4 COLOR = vec4(0.35, 0.36, 0.44, 0.8); // change to iCurrentCursorColor for your cursor's color
-const float BLUR = 3.5;                    // Blur level in pixels
+const float BLUR = 3.0;                    // Blur level in pixels
 const float ANIMATION_START_OFFSET = 0.01;        // Start the ripple slightly progressed (0.0 - 1.0)
 
 

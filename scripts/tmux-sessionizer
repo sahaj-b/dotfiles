@@ -15,7 +15,19 @@ if [[ -z $selected ]]; then
   exit 0
 fi
 
-selected_name=$(basename "$selected" | tr . _)
+# If selected path ends with frontend/backend/shared, use last two dirs, else just basename
+case "$selected" in
+*/frontend | */backend | */shared)
+  parent_dir=$(basename "$(dirname "$selected")")
+  child_dir=$(basename "$selected")
+  selected_name="${parent_dir}_${child_dir}"
+  ;;
+*)
+  selected_name=$(basename "$selected" | tr . _)
+  ;;
+esac
+
+selected_name=$(echo "$selected_name" | tr . _)
 tmux_running=$(pgrep tmux)
 
 if [[ -z $TMUX ]] && [[ -z $tmux_running ]]; then

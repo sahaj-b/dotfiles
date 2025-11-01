@@ -46,6 +46,10 @@ return {
           -- Customize the highlight group used for bold text
           -- You may need to identify which specific group is used for bold
           MarkviewPalette1Fg = { fg = "#ff6b6b", bold = true },
+          MarkviewInlineCode = {
+            bg = "#34344B",
+            fg = "#A6E3A1"
+          }
         },
         preview = {
           filetypes = { "markdown", "codecompanion", "Avante" },
