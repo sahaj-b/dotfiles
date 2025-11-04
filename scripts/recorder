@@ -44,7 +44,7 @@ else
   notify-send -t 1000 "Recording Stopped"
   while [ -n "$(pgrep -x wl-screenrec)" ]; do wait; done
   pkill -RTMIN+8 waybar
-  name="$(zenity --entry --text "enter recording filename" --cancel-label="Delete")"
+  name="$(yad --entry --entry-text "filename")"
   case $? in
   0)
     if [ -n "$name" ]; then

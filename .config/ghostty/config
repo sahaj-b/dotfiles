@@ -27,7 +27,7 @@ mouse-scroll-multiplier = 1
 # custom-shader = ~/projects/ghostty-cursor-shaders/ripple_cursor.glsl
 # custom-shader = ~/projects/ghostty-cursor-shaders/ripple_rectangle_cursor.glsl
 
-custom-shader = shaders/my/cursor_warp.glsl
+# custom-shader = shaders/my/cursor_warp.glsl
 # custom-shader = shaders/my/cursor_sweep.glsl
 # custom-shader = shaders/my/cursor_tail.glsl
 

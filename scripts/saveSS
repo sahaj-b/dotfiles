@@ -1,0 +1,16 @@
+#!/bin/env bash
+
+PIC_DIR="$HOME/Pictures"
+filename=$(yad --entry --entry-text "filename")
+if [ -z "$filename" ]; then
+  notify-send "Cancelled"
+  exit 1
+fi
+
+if [[ $(wl-paste --list-types) != *"image/png"* ]]; then
+  notify-send "No image in clipboard"
+  exit 1
+fi
+
+wl-paste >"$PIC_DIR/$filename.png"
+notify-send "SS Saved" --icon="$PIC_DIR/$filename.png"

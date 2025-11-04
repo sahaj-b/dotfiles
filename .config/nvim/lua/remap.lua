@@ -177,9 +177,14 @@ vim.fn.setreg("t", [[_f"ý5r`ý5f"ý5r`ý5a}hF`ý5i{]]) -- JS/TS: co
 
 -- Plugins keymaps
 
--- go-tagger
-map("n", "<leader>gt", "<cmd>AddGoTags<CR>", { desc = "Add Go Tags" })
-map("v", "<leader>gt", "<cmd>'<,'>AddGoTags<CR>", { desc = "Add Go Tags" })
+-- -- go-tagger
+-- map("n", "<leader>gt", "<cmd>AddGoTags<CR>", { desc = "Add Go Tags" })
+-- map("v", "<leader>gt", "<cmd>'<,'>AddGoTags<CR>", { desc = "Add Go Tags" })
+
+-- gomodifytags
+map("n", "<leader>gt", "<cmd>GoAddTags<CR>", { desc = "Add Go Tags" })
+map("v", "<leader>gt", "<cmd>'<,'>GoAddTags<CR>", { desc = "Add Go Tags" })
+
 
 -- Sidekick
 map('v', '<leader>ai', function()

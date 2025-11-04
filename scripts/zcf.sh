@@ -2,6 +2,8 @@
 
 # like zff, but only for CWD files
 
+ZCF_MAX_DEPTH=8
+
 # ignore patterns
 zcf_fd_ignores=(
   # VCS, project folders, misc
@@ -50,7 +52,7 @@ get_search_dir() {
 _zcf_selector() {
   local search_dir
   search_dir=$(get_search_dir)
-  fd --type f --hidden --max-depth 12 . "${zcf_fd_excludes[@]}" "$search_dir" |
+  fd --type f --hidden --max-depth $ZCF_MAX_DEPTH . "${zcf_fd_excludes[@]}" "$search_dir" |
     fzf --height 40% --layout=reverse --info=inline --preview 'bat {}'
 }
 

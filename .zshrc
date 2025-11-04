@@ -51,6 +51,7 @@ bindkey '^e' end-of-line
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^x^e' edit-command-line
 
+alias wl="wl-copy"
 alias ghostty="ghostty --gtk-single-instance=true"
 alias htspt="while true;do nmcli dev wifi rescan; if nmcli dev wifi connect \\?; then break; fi; sleep 0.5;done"
 alias co="cd -"
@@ -77,7 +78,12 @@ alias nvsu='sudoedit'
 alias cpcmd='fc -nl -1 | wl-copy'
 alias todo="glow ~/notes/todo.md"
 alias f="nvim ~/notes/todo.md"
-alias ocm="openssl enc -d -aes-256-cbc -in cache.bin -out cache && opencode --agent my; rm cache"
+alias ocm="openssl enc -d -aes-256-cbc -in cache.bin -out cache && opencode --agent my; openssl enc -e -aes-256-cbc -in cache -out cache.bin && rm cache"
+
+# Usage: ocm
+# You will be prompted for the password when encrypting and decrypting.
+# Example usage:
+#   ocm <<< \"yourpassword\"
 alias pc="sudo pacman -Syu"
 alias pcn="sudo pacman -Syu --noconfirm --needed"
 alias nvl='nvim ~/Leetcode/leet.cpp +"lua vim.diagnostic.enable(false)" +"Copilot disable" +":,%d _" +"norm i#include <bits/stdc++.h>" +"norm ousing namespace std;" +"norm o"'
@@ -111,14 +117,7 @@ alias duration="ffprobe -show_entries format=duration -v quiet -of csv='p=0' -i"
 
 # bros
 alias gpt='mods -m gpt-4.1'
-alias gpto='mods -m gpt-4o'
-alias pro='mods -m 2.5-pro'
-alias flash='mods -m 2.5-flash'
-alias flas='mods -m 2.0-flash'
-alias lite='mods -m 2.0-flash-lite'
-alias gcs="gh copilot suggest -t shell"
-alias gce="gh copilot explain"
-alias gits="gh copilot suggest -t git"
+alias gfl='mods -m 2.5-flash-lite'
 
 function ntui() {
   wifi=$(nmcli dev wifi list | fzf --bind 'ctrl-r:reload(nmcli dev wifi list)' --header-lines=1)

@@ -53,6 +53,12 @@ max-input-chars: 12250
 max-completion-tokens: 100
 # Aliases and endpoints for OpenAI compatible REST API.
 apis:
+  google:
+    models:
+      gemini-2.5-flash:
+        aliases: ["2.5-flash"]
+      gemini-2.5-flash-lite:
+        aliases: ["2.5-flash-lite"]
   openai:
     base-url: https://api.openai.com/v1
     api-key:

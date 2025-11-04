@@ -1,11 +1,17 @@
 return {
   {
-    "romus204/go-tagger.nvim",
-    config = function()
-      require("go-tagger").setup({
-        skip_private = true, -- Skip unexported fields (starting with lowercase)
-      })
-    end,
+    dir = "/home/sahaj/gomodifytags.nvim",
+    cmd = { "GoAddTags", "GoRemoveTags", "GoInstallModifyTagsBin" },
+    dependencies = {
+      "nvim-treesitter/nvim-treesitter",
+    },
+    opts = {
+      override = false,        -- (boolean) Whether to override existing tags when adding new ones.
+      skip_unexported = false, -- (boolean) Whether to skip unexported fields in structs.
+      sort = false,            -- (boolean) Whether to sort the tags alphabetically by the tag key.
+      transform = "camelcase"  -- "snake_case" | "camelCase" | "lisp-case" | "PascalCase" | "TitleCase" | "keep"
+      -- use like "snakecase" not "snake_case", these are for demonstration only
+    }
   },
   -- {
   --   dir = '/home/sahaj/projects/brainrot.nvim',
