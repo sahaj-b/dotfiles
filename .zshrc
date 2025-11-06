@@ -78,7 +78,7 @@ alias nvsu='sudoedit'
 alias cpcmd='fc -nl -1 | wl-copy'
 alias todo="glow ~/notes/todo.md"
 alias f="nvim ~/notes/todo.md"
-alias ocm="openssl enc -d -aes-256-cbc -in cache.bin -out cache && opencode --agent my; openssl enc -e -aes-256-cbc -in cache -out cache.bin && rm cache"
+alias ocm="cd ~/bluetooth; openssl enc -d -aes-256-cbc -in cache.bin -out cache && opencode --agent my; openssl enc -e -aes-256-cbc -in cache -out cache.bin && rm cache"
 
 # Usage: ocm
 # You will be prompted for the password when encrypting and decrypting.
