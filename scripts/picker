@@ -100,7 +100,7 @@ fi
 FZF_OPTS_BASE="--layout=reverse --bind='ctrl-d:half-page-down,ctrl-u:half-page-up,ctrl-c:abort'"
 
 WINDOW_TYPE="wide"
-[[ "$PICKER_TYPE" == "ansi_styles" ]] && WINDOW_TYPE="tall"
+[[ "$PICKER_TYPE" == "ansi_styles" || "$PICKER_TYPE" == "palette" ]] && WINDOW_TYPE="tall"
 
 # --- Command definitions ---
 data_cmd=""

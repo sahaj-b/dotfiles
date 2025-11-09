@@ -1,0 +1,16 @@
+#!/bin/env bash
+
+nmcli -t -f TYPE,STATE device | rg -q '^wifi:connected$' || exit 0
+
+STATE_FILE="$HOME/.cache/wificheck"
+if ping -c 1 -W 1 8.8.8.8 >/dev/null; then
+  [ -f "$STATE_FILE" ] && rm "$STATE_FILE"
+  exit 0
+else
+  if [ ! -f "$STATE_FILE" ]; then
+    notify-send "ISP trippin again"
+    touch "$STATE_FILE"
+  fi
+  echo "ISP trippin again"
+  exit 0
+fi

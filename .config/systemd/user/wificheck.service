@@ -1,0 +1,6 @@
+[Unit]
+Description=Check if ISP fucked up
+
+[Service]
+Type=oneshot
+ExecStart=%h/scripts/wificheck

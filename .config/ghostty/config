@@ -17,12 +17,11 @@ background-opacity=0.8
 font-feature = -liga, -calt, -dlig
 resize-overlay = never
 mouse-scroll-multiplier = 1
-
-# custom-shader = ~/projects/ghostty-cursor-shaders/cursor_warp.glsl
+custom-shader = ~/projects/ghostty-cursor-shaders/cursor_warp.glsl
 # custom-shader = ~/projects/ghostty-cursor-shaders/cursor_sweep.glsl
 # custom-shader = ~/projects/ghostty-cursor-shaders/cursor_tail.glsl
 
-# custom-shader = ~/projects/ghostty-cursor-shaders/sonic_boom_cursor.glsl
+custom-shader = ~/projects/ghostty-cursor-shaders/sonic_boom_cursor.glsl
 # custom-shader = ~/projects/ghostty-cursor-shaders/rectangle_boom_cursor.glsl
 # custom-shader = ~/projects/ghostty-cursor-shaders/ripple_cursor.glsl
 # custom-shader = ~/projects/ghostty-cursor-shaders/ripple_rectangle_cursor.glsl

@@ -1,0 +1,6 @@
+[Unit]
+Description=Sync ~/notes/prompts/code.md -> VSCode custom.instructions
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/sync_code_to_vscode.sh

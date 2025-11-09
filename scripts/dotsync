@@ -47,6 +47,7 @@ dotfiles=(
   "$HOME/.config/foot/"
   "$HOME/.config/starship/"
   "$HOME/.config/btop/"
+  "$HOME/.config/systemd/user/"
   "$HOME/.config/mimeapps.list"
   "$HOME/wallpapers/"
   "$HOME/.config/mods/"

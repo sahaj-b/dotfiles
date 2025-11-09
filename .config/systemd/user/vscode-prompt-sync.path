@@ -1,0 +1,10 @@
+[Unit]
+Description=Watch code.md and trigger sync-code.service
+
+[Path]
+# watch for content modifications and existence/moves (covers atomic saves)
+PathModified=/home/sahaj/notes/prompts/code.md
+PathExists=/home/sahaj/notes/prompts/code.md
+
+[Install]
+WantedBy=default.target

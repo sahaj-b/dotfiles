@@ -1,0 +1,10 @@
+[Unit]
+Description=Run wificheck periodically
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=5s
+Unit=wificheck.service
+
+[Install]
+WantedBy=timers.target
