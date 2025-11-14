@@ -64,7 +64,7 @@ local previewCmd
     fd -t d -d 1 "${fd_excludes[@]}" / 2>/dev/null | sed "s/^/$rootIcon /"
 
   } | sed "s|$HOME|~|" |
-    fzf --height 50% --layout reverse --info=inline \
+    fzf --multi --height 50% --layout reverse --info=inline \
       --scheme=path --tiebreak=index \
       --cycle --ansi --preview-window 'right:40%' \
       --preview "$previewCmd" |
@@ -86,20 +86,22 @@ zf() {
 # ZSH
 if [[ -n "$ZSH_VERSION" ]]; then
   zfi() {
-    local target_dir
-    target_dir=$(_zf_selector)
-    if [[ -n "$target_dir" ]]; then
-      # If path contains a space, use full, quoted path.
-      if [[ "$target_dir" =~ \  ]]; then
-        # shellcheck disable=SC2296
-        LBUFFER+="${(q)target_file} "
-      else
-        # use tilde if no spaces coz its cool
-        if [[ "$target_dir" == "$HOME"* ]]; then
-          target_dir="~${target_dir#$HOME}"
+    local selected_dirs
+    selected_dirs=$(_zf_selector)
+    if [[ -n "$selected_dirs" ]]; then
+      while IFS= read -r target_dir; do
+        if [[ -n "$target_dir" ]]; then
+          if [[ "$target_dir" =~ \  ]]; then
+            # shellcheck disable=SC2296
+            LBUFFER+="${(q)target_dir} "
+          else
+            if [[ "$target_dir" == "$HOME"* ]]; then
+              target_dir="~${target_dir#$HOME}"
+            fi
+            LBUFFER+="$target_dir "
+          fi
         fi
-        LBUFFER+="$target_dir "
-      fi
+      done <<< "$selected_dirs"
     fi
     zle redisplay
   }
@@ -107,15 +109,28 @@ if [[ -n "$ZSH_VERSION" ]]; then
 # BASH setup
 elif [[ -n "$BASH_VERSION" && $- == *i* ]]; then
   _zfi_bash_inserter() {
-    local selected
-    selected=$(_zf_selector < /dev/tty)
+    local selected_dirs
+    selected_dirs=$(_zf_selector < /dev/tty)
 
-    if [[ -n "$selected" ]]; then
-      local quoted_path
-      quoted_path=$(printf %q "$selected")
+    if [[ -n "$selected_dirs" ]]; then
+      while IFS= read -r selected; do
+        if [[ -n "$selected" ]]; then
+          local final_path
 
-      READLINE_LINE="${READLINE_LINE:0:$READLINE_POINT}${quoted_path} ${READLINE_LINE:$READLINE_POINT:}"
-      ((READLINE_POINT += ${#quoted_path} + 1))
+          if [[ "$selected" =~ \  ]]; then
+            final_path=$(printf %q "$selected")
+          else
+            if [[ "$selected" == "$HOME"* ]]; then
+              final_path="~${selected#$HOME}"
+            else
+              final_path="$selected"
+            fi
+          fi
+
+          READLINE_LINE="${READLINE_LINE:0:$READLINE_POINT}${final_path} ${READLINE_LINE:$READLINE_POINT:}"
+          ((READLINE_POINT += ${#final_path} + 1))
+        fi
+      done <<< "$selected_dirs"
     fi
   }
   # Comment this line to disable the keybind, or change it to another key

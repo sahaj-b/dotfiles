@@ -2,7 +2,7 @@
 
 # like zff, but only for CWD files
 
-ZCF_MAX_DEPTH=8
+ZCF_MAX_DEPTH=6
 
 # ignore patterns
 zcf_fd_ignores=(
@@ -53,7 +53,7 @@ _zcf_selector() {
   local search_dir
   search_dir=$(get_search_dir)
   fd --type f --hidden --max-depth $ZCF_MAX_DEPTH . "${zcf_fd_excludes[@]}" "$search_dir" |
-    fzf --height 40% --layout=reverse --info=inline --preview 'bat {}'
+    fzf --multi --height 40% --layout=reverse --info=inline --preview 'bat {}'
 }
 
 openFile() {
@@ -73,10 +73,22 @@ zcf() {
 }
 
 zcfi() {
-  local selected_file
-  selected_file=$(_zcf_selector)
-  if [[ -n "$selected_file" ]]; then
-    LBUFFER+="$selected_file "
+  local selected_files
+  selected_files=$(_zcf_selector)
+  if [[ -n "$selected_files" ]]; then
+    while IFS= read -r target_file; do
+      if [[ -n "$target_file" ]]; then
+        if [[ "$target_file" =~ \  ]]; then
+          # shellcheck disable=SC2296
+          LBUFFER+="${(q)target_file} "
+        else
+          if [[ "$target_file" == "$HOME"* ]]; then
+            target_file="~${target_file#$HOME}"
+          fi
+          LBUFFER+="$target_file "
+        fi
+      fi
+    done <<< "$selected_files"
     zle redisplay
   fi
 }
