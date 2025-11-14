@@ -138,7 +138,7 @@ function rmaudio() { ffmpeg -i "$1" -an -c:v copy "${2:-noaudio.mp4}"; }
 function ffss(){
   # trim video
   duration=$(ffprobe -i $1 -show_entries format=duration -v quiet -of csv="p=0")
-  ffmpeg -ss $2 -i $1 -t $(( $duration - $3 )) -c copy ${4:-output.mp4}
+  ffmpeg -ss "$2" -i "$1" -t $(awk "BEGIN{print $duration-$2-$3}") -c copy ${4:-output.mp4}
 }
 
 # yazi file browser
