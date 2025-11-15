@@ -119,7 +119,31 @@ alias duration="ffprobe -show_entries format=duration -v quiet -of csv='p=0' -i"
 alias gpt='mods -m gpt-4.1'
 alias gfl='mods -m 2.5-flash-lite'
 
-function ntui() {
+function ntfy() {
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      -t|--title)
+        local title="$2"
+        shift 2
+        ;;
+      -d|--delay)
+        local delay="$2"
+        shift 2
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+  local message="$*"
+  curl -d "$message" \
+    https://ntfy.sh/GLaDOS_notif \
+    -H "Title: ${title:-GLaDOS}" \
+    -H "Delay: ${delay:-0}"
+}
+
+
+function nmf() {
   wifi=$(nmcli dev wifi list | fzf --bind 'ctrl-r:reload(nmcli dev wifi list)' --header-lines=1)
   if [[ -n $wifi ]]; then
     ssid=$(echo $wifi | awk '{print $2}')
@@ -131,7 +155,6 @@ function lorem () {shuf -n ${1:-100} /usr/share/dict/cracklib-small | tr '\n' ' 
 function ggl () { links www.google.com/search\?q="$*"; }
 function postmanToHttp() { node ~/projects/postman-collection-gen/node.js --names --short -c "$1" | ~/scripts/curlToHttp }
 
-function alarm() { ~/scripts/countdown $(( $(date -d "$(date +'%Y-%m-%d') $*" +%s) - $(date +%s) )) }
 # function rmaudio() { alias rmaudio="ffmpeg -i  -an -c:v copy zff_noaudio.mp4" }
 function rmaudio() { ffmpeg -i "$1" -an -c:v copy "${2:-noaudio.mp4}"; }
 
