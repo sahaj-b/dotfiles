@@ -32,3 +32,6 @@
 | `waybar/notif_display.sh`                 | Frontend for `dnd_daemon` and makoctl state for waybar                                           |
 | `dualmonitor/`                            | Scripts to configure an external HDMI monitor (for Xorg)                                         |
 
+## Scripts moved to there own repos
+- [zff](github.com/sahaj-b/zff): smart file finder and opener/inserter, like `zf` but for files
+- [tymr](github.com/sahaj-b/tymr): general purpose timer with notifications,stopwatch, alarms management, etc

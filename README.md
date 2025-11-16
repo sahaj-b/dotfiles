@@ -11,7 +11,7 @@
 - **Font**: JetBrains Mono Nerd Font
 - **Editor**: Neovim
 - **Bar**: Waybar
-- **Launcher**: Fuzzel  
+- **Launcher**: Vicinae  
 - **Notifications**: Mako
 - **File Manager**: Yazi
 - **Theme**: Catppuccin Mocha
@@ -23,7 +23,7 @@
 - [Hypridle](.config/hypr/hypridle.conf) - Idle management  
 - [Waybar](.config/waybar/) - Status bar (custom component's scripts are in [scripts/waybar](scripts/waybar))
 - [Foot](.config/foot/foot.ini) - Terminal  
-- [Fuzzel](.config/fuzzel/fuzzel.ini) - Application launcher
+- [Vicinae](.config/vicinae/vicinae.json) - Launcher
 - [Mako](.config/mako/config) - Notification daemon
 - [Swaylock](.config/swaylock/config) - Screen locker
 
@@ -48,6 +48,7 @@
 - [Starship](.config/starship/starship.toml) - Cross-shell prompt
 
 ### Archived / No Longer in Use
+- [Fuzzel](.config/fuzzel/fuzzel.ini) - Application launcher
 - [Dunst](.config/dunst/dunstrc) - Notification daemon
 - [Wofi](.config/wofi/) - Application launcher
 - [Alacritty](.config/alacritty/alacritty.toml) - Terminal emulator

@@ -3,48 +3,48 @@ return {
     'nvim-lualine/lualine.nvim',
     config = function()
       local lualine = require('lualine')
-      local NESStatus = {
-        function()
-          local Nes = require("sidekick.nes")
-          if next(Nes._requests) then
-            return "󱋊 " -- loading (waiting on API)
-          end
-          if Nes.have() then
-            return " "
-          end
-          return " "
-        end,
-        color = function()
-          local Nes = require("sidekick.nes")
-          if next(Nes._requests) then
-            return "DiagnosticWarn"
-          end
-        end,
-        cond = function()
-          if not require("sidekick.nes").enabled then
-            return false
-          end
-          return true
-        end,
-      }
-      local copilot = {
-        function()
-          if (require("sidekick.status").get().busy) then
-            return " "
-          end
-          return " "
-        end,
-        color = function()
-          local status = require("sidekick.status").get()
-          if status then
-            return status.kind == "Error" and "DiagnosticError" or status.busy and "DiagnosticWarn" or "Special"
-          end
-        end,
-        cond = function()
-          local status = require("sidekick.status")
-          return status.get() ~= nil
-        end,
-      }
+      -- local NESStatus = {
+      --   function()
+      --     local Nes = require("sidekick.nes")
+      --     if next(Nes._requests) then
+      --       return "󱋊 " -- loading (waiting on API)
+      --     end
+      --     if Nes.have() then
+      --       return " "
+      --     end
+      --     return " "
+      --   end,
+      --   color = function()
+      --     local Nes = require("sidekick.nes")
+      --     if next(Nes._requests) then
+      --       return "DiagnosticWarn"
+      --     end
+      --   end,
+      --   cond = function()
+      --     if not require("sidekick.nes").enabled then
+      --       return false
+      --     end
+      --     return true
+      --   end,
+      -- }
+      -- local copilot = {
+      --   function()
+      --     if (require("sidekick.status").get().busy) then
+      --       return " "
+      --     end
+      --     return " "
+      --   end,
+      --   color = function()
+      --     local status = require("sidekick.status").get()
+      --     if status then
+      --       return status.kind == "Error" and "DiagnosticError" or status.busy and "DiagnosticWarn" or "Special"
+      --     end
+      --   end,
+      --   cond = function()
+      --     local status = require("sidekick.status")
+      --     return status.get() ~= nil
+      --   end,
+      -- }
       lualine.setup {
         options = {
           globalstatus = true,
@@ -61,7 +61,8 @@ return {
           lualine_c = { 'diagnostics',
           },
           -- lualine_x = { spinner, 'diff', 'filetype' },
-          lualine_x = { 'diff', 'filetype', NESStatus, copilot },
+          lualine_x = { 'diff', 'filetype', 'copilot' },
+          -- lualine_x = { 'diff', 'filetype', NESStatus, copilot },
           -- lualine_y = { function() return "{.}%3{codeium#GetStatusString()}" end, 'progress' },
           lualine_y = { 'progress' },
           lualine_z = { 'location' }

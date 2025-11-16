@@ -104,7 +104,7 @@ return {
     event = "VeryLazy",
     opts = {}
   },
-  -- { 'AndreM222/copilot-lualine' },
+  { 'AndreM222/copilot-lualine' },
   { "williamboman/mason.nvim",              cmd = "Mason" },
   { 'glacambre/firenvim',                   build = ":call firenvim#install(0)" },
   {
