@@ -5,6 +5,7 @@ export XDG_CACHE_HOME="$HOME/.cache"
 export XDG_STATE_HOME="$HOME/.local/state"
 export XDG_SCREENSHOTS_DIR="$HOME/Pictures/"
 export XDG_PICTURES_DIR="$HOME/Pictures/"
+export LD_LIBRARY_PATH="/usr/local/lib"
 
 # XDG System Directories
 export XDG_DATA_DIRS="/usr/local/share:/usr/share"
@@ -15,4 +16,3 @@ export ELECTRON_OZONE_PLATFORM_HINT=auto
 # if [[ $(cat /sys/class/power_supply/BAT0/status) == "Discharging" ]]; then 
 #     bluetoothctl power off
 # fi
-

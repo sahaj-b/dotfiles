@@ -1,6 +1,6 @@
 #!/bin/env bash
 package_list=$(pacman -Ss | awk -F '/' '{print $2}' | awk '{print $1}' | sort)
-packages=$(echo "$package_list" | fzf --multi --preview 'pacman -Si {}' --layout=reverse --query="'")
+packages=$(echo "$package_list" | fzf --multi --preview 'pacman -Si {}' --layout=reverse --preview-window wrap --query="'")
 packages=$(echo "$packages" | tr '\n' ' ' | sed 's/[[:space:]]*$//')
 if [ "$packages" != "" ]; then
   echo -ne "sudo pacman -Syu --needed $packages\nExecute?(Y/n/no(c)onfirm/no(u)pdate)"

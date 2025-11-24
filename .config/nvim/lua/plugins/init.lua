@@ -23,19 +23,19 @@ return {
   --     dim_level = 30,
   --   },
   -- },
-  {
-    "3rd/image.nvim",
-    build = false,
-    opts = {
-      processor = "magick_cli",
-      backend = "sixel",
-      integrations = {
-        markdown = {
-          enabled = false,
-        }
-      }
-    }
-  },
+  -- {
+  --   "3rd/image.nvim",
+  --   build = false,
+  --   opts = {
+  --     processor = "magick_cli",
+  --     backend = "sixel",
+  --     integrations = {
+  --       markdown = {
+  --         enabled = false,
+  --       }
+  --     }
+  --   }
+  -- },
 
   -- {
   --   "dmtrKovalenko/fff.nvim",

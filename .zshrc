@@ -108,16 +108,38 @@ alias unimatrix='unimatrix -n -s 96 -l o'
 alias dk='line=$(sed -n "3p" /etc/keyd/default.conf); if [[ $line == \#* ]]; then sudo sed -i "3s/^#//" /etc/keyd/default.conf; else sudo sed -i "3s/^/#/" /etc/keyd/default.conf; fi; sudo keyd reload'
 alias cmdbrowse="ls $(echo $PATH | tr ':' ' ') | grep -v '/' | grep . | fzf --preview 'whereis {};tldr {}' --layout=reverse --bind 'enter:execute( tldr {} | less)';"
 alias packbrowse="pacman -Qq | fzf --preview 'pacman -Qil {}' --layout=reverse --bind 'enter:execute(pacman -Qil {} | less)'" 
+alias packrm="sudo pacman -Rns \$(pacman -Qe | fzf --accept-nth=1 --multi --preview 'pacman -Qi {1}' --preview-window wrap | tr '\n' ' ')"
 alias orphanrm="sudo pacman -Qtdq | sudo pacman -Rns -"
 alias shToHttp="node ~/projects/multiple-curl-to-postman/index.js --file"
 alias randgen="tr -dc a-z1-4 </dev/urandom | tr 1-2 ' \n' | awk 'length==0 || length>50' | tr 3-4 ' ' | sed 's/^ *//' | cat -s | fmt | head"
-alias gs="git status"
 alias fm="source fm"
 alias duration="ffprobe -show_entries format=duration -v quiet -of csv='p=0' -i"
+
+# git
+alias ga="git add -A"
+alias ga.="git add ."
+alias gd="git difftool --staged"
+alias gdg="git diff --staged | gpt write a short commit message"
+alias gr="git restore --staged"
+alias gc="git commit -m"
+alias gca="git commit --amend"
+alias gp="git push"
+alias gs="git status"
 
 # bros
 alias gpt='mods -m gpt-4.1'
 alias gfl='mods -m 2.5-flash-lite'
+
+function mdserve() {
+  echo "$1" | sed 's/^* /\
+  &/' > tmp.md
+  # echo -e "\e[1;32m192.168.0.169:3000/tmp.md\e[0m"
+  # go-grip tmp.md --port 3000
+
+  pandoc tmp.md -o tmp.pdf --template ~/template.tex
+  echo -e "\e[1;32m192.168.0.169:3000/tmp.pdf\e[0m"
+  bunx serve
+}
 
 function ntfy() {
   while [[ $# -gt 0 ]]; do
@@ -226,6 +248,7 @@ export FZF_DEFAULT_OPTS="--bind 'ctrl-u:preview-page-up,ctrl-d:preview-page-down
 --color=marker:#B4BEFE,fg+:#CDD6F4,prompt:#CBA6F7,hl+:#F38BA8 \
 --color=selected-bg:#45475A \
 --color=border:#313244,label:#CDD6F4"
+# --bind='ctrl-d:half-page-down,ctrl-u:half-page-up'"
 
 # opencode
 export PATH=/home/sahaj/.opencode/bin:$PATH
@@ -284,6 +307,11 @@ zcf-widget() {
 
 zle -N zcf-widget
 bindkey '^t' zcf-widget # Ctrl+t
+
+# ---- FZF widgets ----
+
+bindkey -r '\ec'
+bindkey '^y' fzf-cd-widget
 
 # bun completions
 [ -s "/home/sahaj/.bun/_bun" ] && source "/home/sahaj/.bun/_bun"

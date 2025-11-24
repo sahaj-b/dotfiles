@@ -3,7 +3,9 @@ return {
   {
     'stevearc/conform.nvim',
     config = function()
-      require('conform').setup {
+      local conform = require('conform')
+      local util = require('conform.util')
+      conform.setup {
         notify_on_error = true,
 
         format_on_save = function(bufnr)
@@ -34,7 +36,7 @@ return {
             description = "biome tailwind classes sorter",
           },
           ["biome-assist"] = {
-            command = require("conform.util").from_node_modules("biome"),
+            command = util.from_node_modules("biome"),
             stdin = true,
             args = {
               "check",
@@ -46,7 +48,7 @@ return {
             },
           },
           ["biome-assist-linter"] = {
-            command = require("conform.util").from_node_modules("biome"),
+            command = util.from_node_modules("biome"),
             stdin = true,
             args = {
               "check",
@@ -58,7 +60,7 @@ return {
             },
           },
           ["biome-unsafe-linter"] = {
-            command = require("conform.util").from_node_modules("biome"),
+            command = util.from_node_modules("biome"),
             stdin = true,
             args = {
               "check",
@@ -69,6 +71,26 @@ return {
               "--stdin-file-path",
               "$FILENAME",
             },
+          },
+          ["prettierd-local"] = {
+            command = util.from_node_modules("prettierd"),
+            -- this is the marker for the git root repo, so that it doesn't search my home dir or smth
+            cwd = util.root_file({
+              "prettier.config.js",
+              "prettier.config.ts",
+              ".git",
+            }),
+            require_cwd = true,
+          },
+
+          ["prettier-local"] = {
+            command = util.from_node_modules("prettier"),
+            cwd = util.root_file({
+              "prettier.config.js",
+              "prettier.config.ts",
+              ".git",
+            }),
+            require_cwd = true,
           },
         },
         formatters_by_ft = {
@@ -82,19 +104,10 @@ return {
           -- jsonc = { 'fixjson' },
           css = { 'biome' },
 
-          -- without function nesting, this doesn't work
-          javascript = function(bufnr)
-            return Get_ts_formatter(bufnr)
-          end,
-          typescript = function(bufnr)
-            return Get_ts_formatter(bufnr)
-          end,
-          javascriptreact = function(bufnr)
-            return Get_ts_formatter(bufnr)
-          end,
-          typescriptreact = function(bufnr)
-            return Get_ts_formatter(bufnr)
-          end,
+          javascript = { "biome-assist", "prettierd", "prettier", stop_after_first = true },
+          typescript = { "biome-assist", "prettierd", "prettier", stop_after_first = true },
+          javascriptreact = { "biome-assist", "prettierd", "prettier", stop_after_first = true },
+          typescriptreact = { "biome-assist", "prettierd", "prettier", stop_after_first = true },
         }
         -- run sequentially, optionally stop after first
         -- python = { "isort", "black", stop_after_first = true },
@@ -103,7 +116,7 @@ return {
       function Get_ts_formatter(bufnr)
         local dirname = vim.fs.dirname(vim.api.nvim_buf_get_name(bufnr))
 
-        -- First priority: prettierd
+        -- priority 1: prettierd
         if vim.fs.find("node_modules/.bin/prettierd", {
               upward = true,
               path = dirname,
@@ -123,7 +136,7 @@ return {
 
         -- Third priority: biome
         -- use biome-check if you wanna also apply 'safe' code actions
-        if require("conform").get_formatter_info("biome", bufnr).available then
+        if conform.get_formatter_info("biome", bufnr).available then
           return { "biome-assist" }
         end
 
