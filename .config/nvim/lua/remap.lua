@@ -2,6 +2,9 @@ vim.g.mapleader = " "
 
 local map = vim.keymap.set
 
+map('n', '<leader>yf', function()
+  vim.fn.setreg('+', vim.fn.expand('%:.'))
+end)
 -- keymap.set("x", "p", function() return 'pgv"' .. vim.v.register .. "y" end, { remap = false, expr = true })
 map("n", "<leader>cl", "<cmd>set hlsearch<CR>")
 map("n", "<leader><leader>z", "<cmd>set ls=0<CR>")
@@ -187,6 +190,11 @@ map("v", "<leader>gt", "<cmd>'<,'>GoAddTags<CR>", { desc = "Add Go Tags" })
 
 
 -- Sidekick
+
+map("n", "<leader>at", function()
+  require('sidekick.cli').select()
+end, { desc = 'Sidekick Select Tool' })
+
 map('v', '<leader>ai', function()
   vim.ui.input({ prompt = 'Prompt: ' }, function(prompt)
     if prompt and prompt ~= '' then
@@ -448,8 +456,8 @@ local filetypes = {
   javascript = "node %",
   typescript = "npx tsx %",
   python = "python3 %",
-  c = "gcc % -o %:r && ./%:r",
-  cpp = "g++ % -o %:r && ./%:r",
+  c = "gcc % -o %:r && %:r",
+  cpp = "g++ % -o %:r && %:r",
   qml = "qmlscene %",
   go = "if [ -f go.mod ]; then go run .; else go run %; fi",
   markdown = "go-grip %"

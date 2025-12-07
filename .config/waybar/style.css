@@ -201,7 +201,7 @@ window#waybar {
 #custom-music.NoVisualizer,
 #custom-music.Stopped {
   background: @bg;
-  color: @fg2;
+/*  color: @fg2;*/
 /*animation: rgb 20s linear infinite;*/
 }
 

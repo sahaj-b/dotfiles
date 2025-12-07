@@ -7,9 +7,9 @@ fi
 
 path=$(yad --file --save --filename="ss.png")
 if [ -z "$path" ]; then
-  notify-send -t 1000 "Cancelled"
+  notify-send -t 1500 "Cancelled"
   exit 1
 fi
 
 wl-paste >"$path"
-notify-send -t 1000 "$path" --icon="$path"
+notify-send -t 1500 "$path" --icon="$path"

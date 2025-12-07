@@ -14,6 +14,7 @@ export ANDROID_HOME=/opt/android-sdk
 
 plug "zsh-users/zsh-autosuggestions"
 plug "zsh-users/zsh-syntax-highlighting"
+plug "TunaCuma/zsh-vi-man"
 
 setopt interactive_comments
 stty stop undef
@@ -51,6 +52,8 @@ bindkey '^e' end-of-line
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^x^e' edit-command-line
 
+alias op="opencode"
+alias dr="dragon-drop"
 alias wl="wl-copy"
 alias ghostty="ghostty --gtk-single-instance=true"
 alias htspt="while true;do nmcli dev wifi rescan; if nmcli dev wifi connect \\?; then break; fi; sleep 0.5;done"
@@ -64,7 +67,7 @@ alias ..="cd .."
 alias tok="fd -t d | xargs -I{} sh -c 'printf \"\n\x1b[36m{}\x1b[0m\n\"; tokei {}| grep -v = | tail -n +2'"
 alias mpvo="eza --no-quotes | mpv --playlist=- "
 alias xo="xdg-open"
-alias gitl="git log --oneline --graph --decorate --color=always"
+alias gitl="git log --oneline --graph --decorate --color=always | head"
 alias df="duf"
 alias du="dust"
 alias grep="grep --color=auto"
@@ -78,7 +81,7 @@ alias nvsu='sudoedit'
 alias cpcmd='fc -nl -1 | wl-copy'
 alias todo="glow ~/notes/todo.md"
 alias f="nvim ~/notes/todo.md"
-alias ocm="cd ~/bluetooth; openssl enc -d -aes-256-cbc -in cache.bin -out cache && opencode --agent my; openssl enc -e -aes-256-cbc -in cache -out cache.bin && rm cache"
+alias ocm="cd ~/bluetooth; openssl enc -d -aes-256-cbc -in cache.bin -out cache && opencode --agent raw; openssl enc -e -aes-256-cbc -in cache -out cache.bin && rm cache"
 
 # Usage: ocm
 # You will be prompted for the password when encrypting and decrypting.
@@ -125,6 +128,9 @@ alias gc="git commit -m"
 alias gca="git commit --amend"
 alias gp="git push"
 alias gs="git status"
+
+alias pd="pnpm dev"
+alias bd="bun run dev"
 
 # bros
 alias gpt='mods -m gpt-4.1'
@@ -319,3 +325,4 @@ bindkey '^y' fzf-cd-widget
 # bun
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
+export LD_LIBRARY_PATH="/usr/local/lib"

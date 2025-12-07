@@ -1,5 +1,11 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "bash": {
+      "git": "ask",
+      "git *": "ask"
+    }
+  },
   "autoupdate": true,
   "layout": "stretch",
   "keybinds": {
@@ -7,15 +13,14 @@
     "messages_half_page_down": "ctrl+d"
   },
   "agent": {
-    "my": {
-      "mode": "subagent",
+    "raw": {
       "prompt": "",
       "tools": {
         "write": true,
         "edit": true,
-        "bash": true,
+        "bash": true
       }
-    },
+    }
   },
   "mcp": {
     "tavily": {
