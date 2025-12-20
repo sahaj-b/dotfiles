@@ -32,6 +32,8 @@ dotfiles=(
   "$HOME/.config/fuzzel/"
   "$HOME/.config/yazi/"
   "$HOME/.config/nvim/"
+  "$HOME/.config/xdg-desktop-portal/"
+  "$HOME/.config/xdg-desktop-portal-termfilechooser/"
   # i had to do this :(
   "$HOME/.config/Code/User/keybindings.json"
   "$HOME/.config/Code/User/settings.json"
@@ -40,6 +42,8 @@ dotfiles=(
   "$HOME/.config/yay/config.json"
   "$HOME/.config/gtk-3.0/"
   "$HOME/.config/gtk-4.0/"
+  "$HOME/.config/qt5ct/"
+  "$HOME/.config/qt6ct/"
   "$HOME/.config/alacritty/alacritty.toml"
   "$HOME/.config/ghostty/"
   "$HOME/.config/dconf/"

@@ -159,6 +159,8 @@ application/xml=zen.desktop
 text/xml=zen.desktop
 x-scheme-handler/ipfs=zen.desktop
 x-scheme-handler/ipns=zen.desktop
+application/x-extension-burp=install4j_vbmci9-BurpSuiteCommunity.desktop
+x-scheme-handler/terminal=org.codeberg.dnkl.foot.desktop
 
 [Added Associations]
 x-scheme-handler/http=userapp-Zen-AN1SB3.desktop;zen.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-9O1UA3.desktop;brave-browser.desktop;
@@ -171,3 +173,9 @@ application/x-extension-shtml=brave-browser.desktop;zen.desktop;userapp-Zen-9O1U
 application/xhtml+xml=brave-browser.desktop;zen.desktop;userapp-Zen-9O1UA3.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-AN1SB3.desktop;
 application/x-extension-xhtml=brave-browser.desktop;zen.desktop;userapp-Zen-9O1UA3.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-AN1SB3.desktop;
 application/x-extension-xht=brave-browser.desktop;zen.desktop;userapp-Zen-9O1UA3.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-AN1SB3.desktop;
+
+[Added Associations]
+inode/directory=yazi.desktop
+
+[Default Applications]
+inode/directory=yazi.desktop

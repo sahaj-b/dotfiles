@@ -1,0 +1,7 @@
+[[plugin.deps]]
+use = "nsavvide/duck-radar"
+rev = "479f4cb"
+hash = "42aa93dcf41895c3b3edbd6903241483"
+
+[flavor]
+deps = []

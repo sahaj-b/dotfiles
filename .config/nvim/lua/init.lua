@@ -2,6 +2,7 @@
 require("remap")
 require("options")
 
+
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
