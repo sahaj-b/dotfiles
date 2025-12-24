@@ -15,6 +15,7 @@ dotfiles=(
   "$HOME/README.md"
   "$HOME/setup_ss.jpg"
   "$HOME/.config/vicinae/"
+  "$HOME/.config/gamemode.ini"
   "$HOME/.config/opencode/"
   "$HOME/.opencode/plugin/"
   "$HOME/.clang-format"

@@ -15,8 +15,15 @@ elif [[ $1 == rl ]]; then
   printf "\e[1;32mConnecting to Realme T300\n\e[0m"
   id=B0:A3:F2:6A:E3:DB
 elif [[ $1 == RL ]]; then
-  printf "\e[1;32mConnecting to Realme T300\n\e[0m"
+  printf "\e[1;32mRemoving and Connecting to Realme T300\n\e[0m"
   id=B0:A3:F2:6A:E3:DB
+  bluetoothctl remove $id
+  bluetoothctl power off
+  bluetoothctl power on
+  bluetoothctl scan on
+  sleep 1
+  bluetoothctl trust $id
+  bluetoothctl pair $id
   bluetoothctl connect $id
 elif [[ $1 == a ]]; then
   printf "\e[1;32mConnecting to Airpods pro\n\e[0m"
