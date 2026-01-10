@@ -1,13 +1,13 @@
 # A TOML linter such as https://taplo.tamasfe.dev/ can use this schema to validate your config.
 # If you encounter any issues, please make an issue at https://github.com/yazi-rs/schemas.
 "$schema" = "https://yazi-rs.github.io/schemas/keymap.json"
-
 [mgr]
 
 keymap = [
-{ on = [ "<C-n>" ], run = '''
-    shell 'dragon-drop -x --all-compact -T "$@"' --confirm
-''' },
+  { on = [ "<C-n>" ], run = '''
+      shell 'dragon-drop -x --all-compact -T "$@"' --confirm
+  ''' },
+  { on   = "!", run  = 'shell "$SHELL" --block', desc = "Open $SHELL here" },
 	{ on = "<Esc>", run = "escape",             desc = "Exit visual mode, clear selected, or cancel search" },
 	{ on = "<C-[>", run = "escape",             desc = "Exit visual mode, clear selected, or cancel search" },
 	{ on = "q",     run = "quit",               desc = "Quit the process" },

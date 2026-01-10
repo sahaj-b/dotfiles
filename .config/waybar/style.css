@@ -63,6 +63,7 @@ window#waybar {
 }
 
 #bluetooth,
+#custom-notes,
 #clock.1,
 #clock.3,
 #custom-notif,
@@ -78,7 +79,6 @@ window#waybar {
   color: @fg;
 }
 
-#custom-vuln,
 #custom-wakapi,
 #tray,
 #battery,
@@ -216,6 +216,10 @@ window#waybar {
 #temperature.critical {
   background: @red;
   color: @crust;
+  font-weight: bold;
+}
+
+#custom-notes {
   font-weight: bold;
 }
 

@@ -16,7 +16,7 @@
     "hyprland/workspaces"
   ],
   "modules-right": [
-    "custom/vuln",
+    // "custom/notes",
     "custom/recorder",
     "custom/wakapi",
     "memory",
@@ -76,12 +76,17 @@
     "interval": 1,
     "exec": "~/scripts/waybar/getScratchOutput.sh"
   },
-  "custom/vuln": {
-    "exec": "[ -f /tmp/vuln ] && echo 󰚌",
-    "format": "{}",
-    "interval": 1,
-    "on-click": "rm /tmp/vuln"
-    // "on-click-right": "~/scripts/vuln-detect"
+  // "custom/vuln": {
+  //   "exec": "[ -f /tmp/vuln ] && echo 󰚌",
+  //   "format": "{}",
+  //   "interval": 1,
+  //   "on-click": "rm /tmp/vuln"
+  //   // "on-click-right": "~/scripts/vuln-detect"
+  // },
+  "custom/notes": {
+    "interval": "100",
+    "exec": "head -n1 /home/sahaj/notes/todo.md | cut -c3-; inotifywait -m ~/notes/ | while read; do head -n1 ~/notes/todo.md | cut -c3- ; done",
+    "max-length": 30
   },
   "custom/cal": {
     "interval": 120,

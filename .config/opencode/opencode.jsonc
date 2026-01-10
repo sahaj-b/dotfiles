@@ -6,6 +6,9 @@
       "git *": "ask"
     }
   },
+  "plugin": [
+    "@franlol/opencode-md-table-formatter@0.0.3"
+  ],
   "autoupdate": true,
   "layout": "stretch",
   "keybinds": {
