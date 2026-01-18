@@ -4,6 +4,7 @@ return {
     config = function()
       local servers = {
         jsonls = {},
+        mdx_analyzer = {},
         glslls = { -- GLSL-specific settings
           settings = {
             glsl = {

@@ -41,6 +41,7 @@ return {
         end
         table.insert(filetypes, ft)
       end
+
       vim.api.nvim_create_autocmd("FileType", {
         pattern = filetypes,
         callback = function()

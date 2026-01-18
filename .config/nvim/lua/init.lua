@@ -213,6 +213,7 @@ end
 vim.filetype.add({
   extension = {
     env = "dotenv",
+    mdx = "markdown",
   },
   filename = {
     [".env"] = "dotenv",
