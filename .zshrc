@@ -171,13 +171,6 @@ function ntfy() {
 }
 
 
-function nmf() {
-  wifi=$(nmcli dev wifi list | fzf --bind 'ctrl-r:reload(nmcli dev wifi list)' --header-lines=1)
-  if [[ -n $wifi ]]; then
-    ssid=$(echo $wifi | awk '{print $2}')
-    nmcli dev wifi connect "$ssid" --ask
-  fi
-}
 function fan() { echo $1 | sudo tee /sys/devices/platform/asus-nb-wmi/hwmon/hwmon5/pwm1_enable }
 function lorem () {shuf -n ${1:-100} /usr/share/dict/cracklib-small | tr '\n' ' ' | fmt }
 function ggl () { links www.google.com/search\?q="$*"; }

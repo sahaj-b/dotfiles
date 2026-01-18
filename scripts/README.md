@@ -10,6 +10,7 @@
 | `mkcontext [-e/--exclude PATHS]`          | Generates context (workspace tree and all files content in current dir) for AIs                  |
 | `dnd_daemon`, `dnd`                       | Daemon and Controller for DND timer state control                                                |
 | `fm`                                      | Fzf-based file browser for quick navigation                                                      |
+| `nfm`                                     | Fzf-based wifi monitor                                                                           |
 | `bat-notif`                               | Daemon for battery notifications                                                                 |
 | `blu-notif`                               | Sends notifications for Bluetooth events                                                         |
 | `blu`                                     | Connects Bluetooth devices                                                                       |

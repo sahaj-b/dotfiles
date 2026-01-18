@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+port=56969
+cmd="nmcli dev wifi list"
+
+wifi=$($cmd | fzf --ansi --listen "$port" \
+  --header-lines=1 \
+  --layout=reverse \
+  --height=40%)
+
+(
+  while true; do
+    curl -s -X POST -d "reload($cmd)" "http://localhost:$port" >/dev/null 2>&1
+    sleep 0.5
+  done
+) &
+loop_pid=$!
+
+trap "kill $loop_pid 2>/dev/null" EXIT SIGINT SIGTERM
+
+if [[ -n $wifi ]]; then
+  bssid=$(echo "$wifi" | awk '{print $2}')
+  nmcli dev wifi connect "$bssid" --ask
+fi
