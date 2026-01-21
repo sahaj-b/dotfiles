@@ -17,7 +17,6 @@ dotfiles=(
   "$HOME/.config/vicinae/"
   "$HOME/.config/gamemode.ini"
   "$HOME/.config/opencode/"
-  "$HOME/.opencode/plugin/"
   "$HOME/.clang-format"
   "$HOME/scripts/"
   "$HOME/.gitconfig"

@@ -112,11 +112,11 @@
     "exec": "~/scripts/waybar/caway-go -b 10",
     "return-type": "json",
     "restart-interval": 5,
-    "on-click": "playerctl play-pause -p 'spotify, %any'",
-    "on-scroll-up": "playerctl position 5+ -p 'spotify, %any'",
-    "on-scroll-down": "playerctl position 5- -p 'spotify, %any'",
-    "on-click-right": "hyprctl dispatch exec '[float] spotify'",
-    "on-click-middle": "pkill spotify; pkill waybar; waybar",
+    "on-click": "playerctl play-pause -p 'spotify, chrome, %any'",
+    "on-scroll-up": "playerctl position 5+ -p 'spotify, chrome, %any'",
+    "on-scroll-down": "playerctl position 5- -p 'spotify, chrome, %any'",
+    "on-click-right": "hyprctl dispatch togglespecialworkspace music",
+    "on-click-middle": "kill $(hyprctl clients -j | jq '.[] | select(.initialTitle | contains(\"YouTube Music\")) | .pid'); pkill waybar; waybar",
     "max-length": 15
   },
   "pulseaudio/slider": {

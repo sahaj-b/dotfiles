@@ -52,6 +52,7 @@ bindkey '^e' end-of-line
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^x^e' edit-command-line
 
+alias att="attendthat"
 alias op="opencode"
 alias dr="dragon-drop"
 alias wl="wl-copy"
@@ -62,7 +63,6 @@ alias oc="opencode run -m github-copilot/gpt-4.1 --agent build"
 alias rgb="sed -i '204s/^ *\/\* *//;204s/ *\*\/ *$//' ~/.config/waybar/style.css && pkill waybar && waybar&>/dev/null &disown"
 alias norgb="sed -i '204s/^/\/*/;204s/$/*\//' ~/.config/waybar/style.css && pkill waybar && waybar&>/dev/null &disown"
 alias tt="~/timetable"
-alias att="go-attend"
 alias ..="cd .."
 alias tok="fd -t d | xargs -I{} sh -c 'printf \"\n\x1b[36m{}\x1b[0m\n\"; tokei {}| grep -v = | tail -n +2'"
 alias mpvo="eza --no-quotes | mpv --playlist=- "
@@ -170,6 +170,14 @@ function ntfy() {
     -H "Delay: ${delay:-0}"
 }
 
+
+function nmff() {
+  wifi=$(nmcli dev wifi list | fzf --bind 'ctrl-r:reload(nmcli dev wifi list)' --header-lines=1)
+  if [[ -n $wifi ]]; then
+    ssid=$(echo $wifi | awk '{print $2}')
+    nmcli dev wifi connect "$ssid" --ask
+  fi
+}
 
 function fan() { echo $1 | sudo tee /sys/devices/platform/asus-nb-wmi/hwmon/hwmon5/pwm1_enable }
 function lorem () {shuf -n ${1:-100} /usr/share/dict/cracklib-small | tr '\n' ' ' | fmt }

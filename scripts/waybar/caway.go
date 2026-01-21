@@ -45,7 +45,7 @@ type Config struct {
 
 var (
 	bars            = []rune("▁▂▃▄▅▆▇█")
-	checkUrl        = true // change this to false for chromium-based browsers
+	checkUrl        = false // change this to false for chromium-based browsers
 	validURLPattern = regexp.MustCompile(`(spotify|music\.youtube)`)
 )
 
@@ -138,7 +138,7 @@ func run(ctx context.Context, config *Config) error {
 	debugLog(config, "Starting caway with %d bars, %d fps, equalizer=%t", config.Bars, config.Framerate, config.Equilizer)
 
 	cmd := exec.CommandContext(ctx, "playerctl",
-		"-p", "spotify,firefox,chrome,brave,chromium",
+		"-p", "chromium,spotify",
 		"metadata",
 		"--format", `{"text": "{{markup_escape(title)}}", "tooltip": "{{playerName}} : {{markup_escape(title)}} - {{markup_escape(artist)}}", "alt": "{{status}}", "class": "{{status}}", "url": "{{xesam:url}}"}`,
 		"-F")
