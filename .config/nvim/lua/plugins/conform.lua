@@ -74,10 +74,12 @@ return {
           },
           ["prettierd-local"] = {
             command = util.from_node_modules("prettierd"),
+            args = { "--stdin-filepath", "$FILENAME" },
             -- this is the marker for the git root repo, so that it doesn't search my home dir or smth
             cwd = util.root_file({
               "prettier.config.js",
               "prettier.config.ts",
+              ".prettierrc.json",
               ".git",
             }),
             require_cwd = true,
@@ -85,9 +87,11 @@ return {
 
           ["prettier-local"] = {
             command = util.from_node_modules("prettier"),
+            args = { "--stdin-filepath", "$FILENAME" },
             cwd = util.root_file({
               "prettier.config.js",
               "prettier.config.ts",
+              ".prettierrc.json",
               ".git",
             }),
             require_cwd = true,
@@ -104,10 +108,10 @@ return {
           -- jsonc = { 'fixjson' },
           css = { 'biome' },
 
-          javascript = { "biome-assist", "prettierd", "prettier", stop_after_first = true },
-          typescript = { "biome-assist", "prettierd", "prettier", stop_after_first = true },
-          javascriptreact = { "biome-assist", "prettierd", "prettier", stop_after_first = true },
-          typescriptreact = { "biome-assist", "prettierd", "prettier", stop_after_first = true },
+          javascript = { "prettierd-local", "prettier-local", "biome-assist", "prettierd", "prettier", stop_after_first = true },
+          typescript = { "prettierd-local", "prettier-local", "biome-assist", "prettierd", "prettier", stop_after_first = true },
+          javascriptreact = { "prettierd-local", "prettier-local", "biome-assist", "prettierd", "prettier", stop_after_first = true },
+          typescriptreact = { "prettierd-local", "prettier-local", "biome-assist", "prettierd", "prettier", stop_after_first = true },
         }
         -- run sequentially, optionally stop after first
         -- python = { "isort", "black", stop_after_first = true },

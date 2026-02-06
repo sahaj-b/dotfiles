@@ -3,7 +3,7 @@
 port=56969
 cmd="nmcli dev wifi list"
 
-wifi=$($cmd | fzf --ansi --listen "$port" \
+wifi=$($cmd | fzf --listen "$port" \
   --header-lines=1 \
   --layout=reverse \
   --height=40%)

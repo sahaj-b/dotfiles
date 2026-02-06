@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+
+origin_url=$(git remote get-url origin 2>/dev/null)
+upstream_url=$(git remote get-url upstream 2>/dev/null)
+
+if [[ -z "$origin_url" ]]; then
+  echo "No origin remote found"
+  exit 1
+fi
+
+parse_repo() {
+  local url="$1"
+  if [[ "$url" == git@github.com:* ]]; then
+    echo "${url#git@github.com:}" | sed 's/\.git$//'
+  elif [[ "$url" == https://github.com/* ]]; then
+    echo "${url#https://github.com/}" | sed 's/\.git$//'
+  else
+    echo ""
+  fi
+}
+
+origin_repo=$(parse_repo "$origin_url")
+upstream_repo=$(parse_repo "$upstream_url")
+
+if [[ -z "$origin_repo" ]]; then
+  echo "Not a GitHub repo or unsupported URL format"
+  exit 1
+fi
+
+# Get current branch
+branch=$(git rev-parse --abbrev-ref HEAD)
+if [[ "$branch" == "main" || "$branch" == "master" ]]; then
+  echo "You're on $branch, can't PR this"
+  exit 1
+fi
+
+# Detect base branch (main or master)
+base_branch=""
+# Check upstream first, then origin
+for remote in upstream origin; do
+  if git remote | grep -q "^${remote}$"; then
+    # Try to get default branch from remote HEAD
+    base_branch=$(git symbolic-ref refs/remotes/${remote}/HEAD 2>/dev/null | sed "s/refs\/remotes\/${remote}\///")
+    if [[ -n "$base_branch" ]]; then
+      break
+    fi
+  fi
+
+done
+
+# Fallback: check if main or master exists locally
+if [[ -z "$base_branch" ]]; then
+  if git show-ref --quiet refs/heads/main; then
+    base_branch="main"
+  elif git show-ref --quiet refs/heads/master; then
+    base_branch="master"
+  else
+    base_branch="main" # Default guess
+  fi
+fi
+
+# Build PR URL
+pr_url=""
+
+if [[ -n "$upstream_repo" ]]; then
+  # We have an upstream remote - this is a fork situation
+  # Format: upstream-repo/compare/base-branch...origin-owner:branch?expand=1
+  origin_owner="${origin_repo%%/*}"
+  pr_url="https://github.com/${upstream_repo}/compare/${base_branch}...${origin_owner}:${branch}?expand=1"
+else
+  # No upstream - simple PR within same repo
+  pr_url="https://github.com/${origin_repo}/compare/${base_branch}...${branch}?expand=1"
+fi
+
+echo "Opening PR: ${branch} → ${base_branch}"
+echo "   URL: $pr_url"
+
+# Open browser
+if command -v xdg-open &>/dev/null; then
+  xdg-open "$pr_url"
+elif command -v open &>/dev/null; then
+  open "$pr_url"
+else
+  echo "$pr_url" | wl-copy && echo "URL copied to clipboard"
+fi

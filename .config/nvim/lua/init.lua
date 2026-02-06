@@ -183,6 +183,9 @@ vim.api.nvim_create_autocmd({ 'UIEnter' }, {
   callback = function()
     local client = vim.api.nvim_get_chan_info(vim.v.event.chan).client
     if client ~= nil and client.name == "Firenvim" then
+      vim.opt.showmode = false
+      vim.opt.showcmd = false
+      vim.opt.ruler = false
       vim.o.laststatus = 0
       vim.o.cmdheight = 0
       if vim.o.lines < 5 then

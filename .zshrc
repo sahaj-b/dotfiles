@@ -12,6 +12,8 @@ export VISUAL='nvim'
 export GOBIN=~/.local/bin/
 export ANDROID_HOME=/opt/android-sdk
 
+export OPENCODE_ENABLE_EXA=true
+
 plug "zsh-users/zsh-autosuggestions"
 plug "zsh-users/zsh-syntax-highlighting"
 plug "TunaCuma/zsh-vi-man"
@@ -52,6 +54,7 @@ bindkey '^e' end-of-line
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^x^e' edit-command-line
 
+alias brr="sudo systemctl start tailscaled && sudo tailscale up && OPENCODE_SERVER_PASSWORD=lul opencode web --hostname 0.0.0.0; sudo tailscale down; sudo systemctl stop tailscaled"
 alias att="attendthat"
 alias op="opencode"
 alias dr="dragon-drop"
@@ -68,6 +71,7 @@ alias tok="fd -t d | xargs -I{} sh -c 'printf \"\n\x1b[36m{}\x1b[0m\n\"; tokei {
 alias mpvo="eza --no-quotes | mpv --playlist=- "
 alias xo="xdg-open"
 alias gitl="git log --oneline --graph --decorate --color=always | head"
+alias gitll="git log --oneline --graph --decorate --color=always"
 alias df="duf"
 alias du="dust"
 alias grep="grep --color=auto"
@@ -327,3 +331,4 @@ bindkey '^y' fzf-cd-widget
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 export LD_LIBRARY_PATH="/usr/local/lib"
+export PATH="$HOME/.npm-global/bin:$PATH"

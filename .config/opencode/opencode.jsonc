@@ -7,7 +7,8 @@
     }
   },
   "plugin": [
-    "@franlol/opencode-md-table-formatter@0.0.3"
+    "@franlol/opencode-md-table-formatter@latest",
+    "@mohak34/opencode-notifier@latest"
   ],
   "autoupdate": true,
   "layout": "stretch",
@@ -16,16 +17,35 @@
     "messages_half_page_down": "ctrl+d"
   },
   "agent": {
-    "raw": {
-      "prompt": "",
+    "research": {
+      "prompt": "{file:./prompts/research.md}",
+      "description": "Does in-depth research by aggressively searching the web",
+      "mode": "all",
+      "color": "#caf480",
+      "permission": {
+        "*": "allow",
+        "edit": "deny",
+        "bash": "ask",
+        "kernel*": "allow",
+        "kernel": "allow"
+      },
       "tools": {
-        "write": true,
-        "edit": true,
-        "bash": true
+        "kernel*": true,
       }
-    }
+    },
+    // "raw": {
+    //   "prompt": "",
+    //   "tools": {
+    //     "write": true,
+    //     "edit": true,
+    //     "bash": true
+    //   }
   },
   "mcp": {
+    "kernel": {
+      "type": "remote",
+      "url": "https://mcp.onkernel.com/mcp",
+    },
     "tavily": {
       "type": "local",
       "enabled": true,
@@ -44,5 +64,11 @@
         "@upstash/context7-mcp@latest"
       ]
     }
+  },
+  "tools": {
+    "kernel*": false,
+  },
+  "permission": {
+    "kernel*": "deny"
   },
 }

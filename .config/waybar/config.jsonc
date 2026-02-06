@@ -17,6 +17,7 @@
   ],
   "modules-right": [
     // "custom/notes",
+    "custom/cal",
     "custom/recorder",
     "custom/wakapi",
     "memory",

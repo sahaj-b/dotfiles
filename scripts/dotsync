@@ -16,6 +16,7 @@ dotfiles=(
   "$HOME/setup_ss.jpg"
   "$HOME/.config/vicinae/"
   "$HOME/.config/gamemode.ini"
+  "$HOME/.agents/"
   "$HOME/.config/opencode/"
   "$HOME/.clang-format"
   "$HOME/scripts/"

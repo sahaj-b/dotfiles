@@ -15,10 +15,13 @@ theme = Catppuccin Mocha
 cursor-style=block
 adjust-cursor-thickness = 3
 shell-integration-features = no-cursor
+shell-integration = none
 background-opacity=0.8
 font-feature = -liga, -calt, -dlig
 resize-overlay = never
 mouse-scroll-multiplier = 1
+# confirm-close-surface = false
+
 # custom-shader = ~/projects/ghostty-cursor-shaders/cursor_warp.glsl
 # custom-shader = ~/projects/ghostty-cursor-shaders/cursor_sweep.glsl
 # custom-shader = ~/projects/ghostty-cursor-shaders/cursor_tail.glsl
