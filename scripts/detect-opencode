@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+
+if ! command -v hyprctl &>/dev/null; then
+  echo "hyprctl not found" >&2
+  exit 1
+fi
+
+ACTIVE_WINDOW=$(hyprctl activewindow -j 2>/dev/null)
+if [ -z "$ACTIVE_WINDOW" ] || [ "$ACTIVE_WINDOW" = "null" ]; then
+  exit 1
+fi
+
+CLASS=$(echo "$ACTIVE_WINDOW" | jq -r '.class // empty')
+TITLE=$(echo "$ACTIVE_WINDOW" | jq -r '.title // empty')
+PID=$(echo "$ACTIVE_WINDOW" | jq -r '.pid // empty')
+
+if [[ "$CLASS" != "foot" && "$CLASS" != "footclient" ]]; then
+  exit 1
+fi
+
+# Method 1: Check title directly
+if echo "$TITLE" | grep -qiE "opencode|OC "; then
+  exit 0
+fi
+
+# Method 2: Check all tmux panes to see if foot PID matches or is child of any pane
+if [ -n "$PID" ] && command -v tmux &>/dev/null; then
+  # Get all tmux panes with their pane_pid (the shell process in the pane)
+  while IFS= read -r pane_line; do
+    PANE_ID=$(echo "$pane_line" | awk '{print $1}')
+    PANE_PID=$(echo "$pane_line" | awk '{print $2}')
+
+    # Check if foot PID is the same as pane PID (foot is running tmux)
+    if [ "$PID" = "$PANE_PID" ]; then
+      CURRENT_CMD=$(tmux display -p -t "$PANE_ID" '#{pane_current_command}' 2>/dev/null)
+      if [ "$CURRENT_CMD" = "opencode" ]; then
+        exit 0
+      fi
+    fi
+
+    # Check if foot PID is a child of the pane's shell
+    # Walk up the parent chain from foot PID
+    CURRENT_PID=$PID
+    while [ -n "$CURRENT_PID" ] && [ "$CURRENT_PID" != "1" ]; do
+      PARENT_PID=$(ps -o ppid= -p "$CURRENT_PID" 2>/dev/null | tr -d ' ')
+      if [ "$PARENT_PID" = "$PANE_PID" ]; then
+        CURRENT_CMD=$(tmux display -p -t "$PANE_ID" '#{pane_current_command}' 2>/dev/null)
+        if [ "$CURRENT_CMD" = "opencode" ]; then
+          exit 0
+        fi
+        break
+      fi
+      CURRENT_PID=$PARENT_PID
+    done
+  done < <(tmux list-panes -a -F '#{pane_id} #{pane_pid}' 2>/dev/null)
+fi

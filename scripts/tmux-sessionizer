@@ -1,5 +1,21 @@
 #!/usr/bin/env bash
 
+get_session_name() {
+  local dir="$1"
+  case "$dir" in
+  */frontend | */backend | */shared)
+    local parent_dir=$(basename "$(dirname "$dir")")
+    local child_dir=$(basename "$dir")
+    echo "${parent_dir}_${child_dir}" | tr . _
+    ;;
+  *)
+    basename "$dir" | tr . _
+    ;;
+  esac
+}
+
+existing_sessions=$(tmux list-sessions -F "#{session_name}" 2>/dev/null)
+
 if [[ $# -eq 1 ]]; then
   selected=$1
 else
@@ -7,7 +23,35 @@ else
     (
       find ~/projects -mindepth 1 -maxdepth 1 -type d
       find ~/projects -mindepth 2 -maxdepth 2 -type d \( -name frontend -o -name backend -o -name shared \)
-    ) | sed "s|$HOME|~|" | fzf | sed "s|~|$HOME|"
+    ) | awk -v home="$HOME" -v sessions="$existing_sessions" '
+    BEGIN {
+      n = split(sessions, arr, "\n")
+      for (i = 1; i <= n; i++) {
+        sess[arr[i]] = 1
+      }
+    }
+    {
+      dir = $0
+      gsub(home, "~", dir)
+      
+      # Calculate session name
+      if (match($0, "/(frontend|backend|shared)$")) {
+        split($0, parts, "/")
+        n = length(parts)
+        session_name = parts[n-1] "_" parts[n]
+      } else {
+        split($0, parts, "/")
+        session_name = parts[length(parts)]
+        gsub(/\./, "_", session_name)
+      }
+      
+      if (sess[session_name]) {
+        print "1\t● " dir
+      } else {
+        print "0\t  " dir
+      }
+    }
+    ' | sort -k1,1nr -k2 | cut -f2- | fzf | sed 's/^[● ]* //; s|~|$HOME|'
   )
 fi
 
@@ -15,19 +59,7 @@ if [[ -z $selected ]]; then
   exit 0
 fi
 
-# If selected path ends with frontend/backend/shared, use last two dirs, else just basename
-case "$selected" in
-*/frontend | */backend | */shared)
-  parent_dir=$(basename "$(dirname "$selected")")
-  child_dir=$(basename "$selected")
-  selected_name="${parent_dir}_${child_dir}"
-  ;;
-*)
-  selected_name=$(basename "$selected" | tr . _)
-  ;;
-esac
-
-selected_name=$(echo "$selected_name" | tr . _)
+selected_name=$(get_session_name "$selected")
 tmux_running=$(pgrep tmux)
 
 if [[ -z $TMUX ]] && [[ -z $tmux_running ]]; then
