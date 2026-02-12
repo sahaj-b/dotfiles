@@ -1,0 +1,19 @@
+{
+  "format": {
+    "title": "{directory} | {title}",
+    "body": "{message}"
+  },
+  "messages": {
+    "permission": "PERMISSION REQUIRED",
+    "complete": "FINISHED",
+    "subagent_complete": "Subagent completed",
+    "error": "ERROR",
+    "question": "QUESTION"
+  },
+  "events": {
+    "subagent_complete": {
+      "sound": false,
+      "notification": false
+    }
+  }
+}

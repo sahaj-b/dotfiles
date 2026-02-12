@@ -33,6 +33,7 @@ dotfiles=(
   "$HOME/.config/fuzzel/"
   "$HOME/.config/yazi/"
   "$HOME/.config/nvim/"
+  "$HOME/.config/aerc/"
   "$HOME/.config/xdg-desktop-portal/"
   "$HOME/.config/xdg-desktop-portal-termfilechooser/"
   # i had to do this :(

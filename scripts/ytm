@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+wait_for_internet() {
+  local timeout=30
+  local count=0
+
+  echo "Waiting for internet connection..." >&2
+
+  while [ $count -lt $timeout ]; do
+    if ping -c 1 -W 2 8.8.8.8; then
+      echo "Internet connection established" >&2
+      return 0
+    fi
+
+    sleep 1
+    ((count++))
+  done
+
+  echo "Timeout waiting for internet, launching anyway..." >&2
+  return 1
+}
+
+wait_for_internet
+
+youtube-music --enable-features=UseOzonePlatform --ozone-platform=wayland &
+
+for _ in {1..30}; do
+  if playerctl status -p YoutubeMusic 2>/dev/null | grep -q "Playing"; then
+    playerctl pause -p YoutubeMusic
+    echo "MPRIS active and paused"
+    break
+  fi
+  sleep 0.5
+done

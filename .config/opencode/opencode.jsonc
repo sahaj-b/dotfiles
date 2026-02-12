@@ -4,11 +4,12 @@
     "bash": {
       "git": "ask",
       "git *": "ask"
-    }
+    },
+    "kernel*": "deny"
   },
   "plugin": [
     "@franlol/opencode-md-table-formatter@latest",
-    "@mohak34/opencode-notifier@latest"
+    "@sahaj-b/opencode-notifier@latest"
   ],
   "autoupdate": true,
   "layout": "stretch",
@@ -67,8 +68,5 @@
   },
   "tools": {
     "kernel*": false,
-  },
-  "permission": {
-    "kernel*": "deny"
   },
 }

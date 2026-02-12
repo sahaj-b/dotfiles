@@ -161,6 +161,11 @@ x-scheme-handler/ipfs=zen.desktop
 x-scheme-handler/ipns=zen.desktop
 application/x-extension-burp=install4j_vbmci9-BurpSuiteCommunity.desktop
 x-scheme-handler/terminal=org.codeberg.dnkl.foot.desktop
+x-scheme-handler/pttp=CiscoPacketTracerPtsa-9.0.0.desktop
+application/x-pka=CiscoPacketTracer-9.0.0.desktop
+application/x-pkt=CiscoPacketTracer-9.0.0.desktop
+application/x-pkz=CiscoPacketTracer-9.0.0.desktop
+application/x-pksz=CiscoPacketTracer-9.0.0.desktop
 
 [Added Associations]
 x-scheme-handler/http=userapp-Zen-AN1SB3.desktop;zen.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-9O1UA3.desktop;brave-browser.desktop;

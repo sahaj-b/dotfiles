@@ -138,7 +138,7 @@ func run(ctx context.Context, config *Config) error {
 	debugLog(config, "Starting caway with %d bars, %d fps, equalizer=%t", config.Bars, config.Framerate, config.Equilizer)
 
 	cmd := exec.CommandContext(ctx, "playerctl",
-		"-p", "chromium,spotify",
+		"-p", "YoutubeMusic, chromium,spotify",
 		"metadata",
 		"--format", `{"text": "{{markup_escape(title)}}", "tooltip": "{{playerName}} : {{markup_escape(title)}} - {{markup_escape(artist)}}", "alt": "{{status}}", "class": "{{status}}", "url": "{{xesam:url}}"}`,
 		"-F")
