@@ -59,23 +59,6 @@ return {
     lazy = true,
     ft = { "typescript", "typescriptreact", "javascript", "javascriptreact" },
   },
-  {
-    "zbirenbaum/copilot.lua",
-    cmd = "Copilot",
-    event = "InsertEnter",
-    opts = {
-      filetypes = {
-        ["*"] = true
-      },
-      suggestion = {
-        auto_trigger = true,
-        debounce = 50,
-        keymap = {
-          accept = "<Tab>",
-        }
-      },
-    }
-  },
   { "https://github.com/tpope/vim-abolish", cmd = { "Abolish", "S", "Subvert" } },
   {
     "j-hui/fidget.nvim",
@@ -104,7 +87,6 @@ return {
     event = "VeryLazy",
     opts = {}
   },
-  { 'AndreM222/copilot-lualine' },
   { "williamboman/mason.nvim",              cmd = "Mason" },
   { 'glacambre/firenvim',                   build = ":call firenvim#install(0)" },
   {

@@ -193,6 +193,48 @@ return {
     end,
   },
 
+  {
+    "zbirenbaum/copilot.lua",
+    dependencies = {
+      {
+        "copilotlsp-nvim/copilot-lsp",
+        init = function()
+          vim.g.copilot_nes_debounce = 300
+        end,
+        opts = {
+          nes = {
+            move_count_threshold = 10,
+          }
+        }
+      }
+    },
+    cmd = "Copilot",
+    event = "InsertEnter",
+    opts = {
+      filetypes = {
+        ["*"] = true
+      },
+      suggestion = {
+        auto_trigger = true,
+        debounce = 50,
+        keymap = {
+          accept = "<Tab>",
+        }
+      },
+      nes = {
+        enabled = true,
+        keymap = {
+          accept_and_goto = "<Tab>",
+          accept = false,
+          dismiss = "<Esc>",
+        },
+      },
+    }
+  },
+
+  { 'AndreM222/copilot-lualine' }
+
+
   -- {
   --   "folke/sidekick.nvim",
   --   opts = {

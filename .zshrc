@@ -54,6 +54,7 @@ bindkey '^e' end-of-line
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^x^e' edit-command-line
 
+alias res="opencode --agent research --model opencode/minimax-m2.5-free"
 alias brr="sudo systemctl start tailscaled && sudo tailscale up && sudo systemctl start sshd && OPENCODE_SERVER_PASSWORD=lul opencode web --hostname 0.0.0.0; sudo tailscale down; sudo systemctl stop tailscaled; sudo systemctl stop sshd"
 alias att="attendthat"
 alias op="opencode"
