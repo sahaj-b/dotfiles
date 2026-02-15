@@ -5,59 +5,72 @@ data_dir="/media/data/Linux_Backup/dotfiles/"
 
 dotfiles=(
 
+  # system level
   "/etc/keyd/default.conf"
   "/etc/tlp.conf"
   "/etc/auto-cpufreq.conf"
   "/etc/systemd/system/powermgmt.service"
   "/etc/systemd/system/fix-mic.service"
-  # "/etc/udev/rules.d/90-power.rules"
+
+  # plymouth
+  "/etc/plymouth/plymouthd.conf"
+  "/usr/share/plymouth/themes/ascii_burst/"
+  "/usr/share/plymouth/themes/plymouthd.defaults"
+
+  # home
   "$HOME/.gitattributes"
   "$HOME/README.md"
   "$HOME/setup_ss.jpg"
+  "$HOME/.gitconfig"
+  "$HOME/.zshrc"
+  "$HOME/.zprofile"
+  "$HOME/.clang-format"
+  "$HOME/wallpapers/"
+  "$HOME/scripts/"
+
+  # .config
   "$HOME/.config/vicinae/"
   "$HOME/.config/gamemode.ini"
   "$HOME/.agents/"
   "$HOME/.config/opencode/"
-  "$HOME/.clang-format"
-  "$HOME/scripts/"
-  "$HOME/.gitconfig"
-  "$HOME/.zshrc"
-  "$HOME/.zprofile"
   "$HOME/.config/hypr/"
   "$HOME/.config/swaylock/config"
   "$HOME/.config/waybar/"
   "$HOME/.config/dunst/"
   "$HOME/.config/mako/"
   "$HOME/.config/wofi/"
-  "$HOME/.config/mpv/"
   "$HOME/.config/fuzzel/"
+  "$HOME/.config/foot/"
+  "$HOME/.config/mimeapps.list"
+  "$HOME/.config/mods/"
+  "$HOME/.config/mcphub/"
+
+  "$HOME/.config/mpv/"
   "$HOME/.config/yazi/"
   "$HOME/.config/nvim/"
   "$HOME/.config/aerc/"
+  "$HOME/.config/tmux/tmux.conf"
+  "$HOME/.config/starship/"
+  "$HOME/.config/btop/"
+  "$HOME/.config/systemd/user/"
+  "$HOME/.config/alacritty/alacritty.toml"
+  "$HOME/.config/ghostty/"
+  "$HOME/.config/dconf/"
+
   "$HOME/.config/xdg-desktop-portal/"
   "$HOME/.config/xdg-desktop-portal-termfilechooser/"
-  # i had to do this :(
-  "$HOME/.config/Code/User/keybindings.json"
-  "$HOME/.config/Code/User/settings.json"
-  "$HOME/.config/Cursor/User/keybindings.json"
-  "$HOME/.config/Cursor/User/settings.json"
   "$HOME/.config/yay/config.json"
   "$HOME/.config/gtk-3.0/"
   "$HOME/.config/gtk-4.0/"
   "$HOME/.config/qt5ct/"
   "$HOME/.config/qt6ct/"
-  "$HOME/.config/alacritty/alacritty.toml"
-  "$HOME/.config/ghostty/"
-  "$HOME/.config/dconf/"
-  "$HOME/.config/tmux/tmux.conf"
-  "$HOME/.config/foot/"
-  "$HOME/.config/starship/"
-  "$HOME/.config/btop/"
-  "$HOME/.config/systemd/user/"
-  "$HOME/.config/mimeapps.list"
-  "$HOME/wallpapers/"
-  "$HOME/.config/mods/"
-  "$HOME/.config/mcphub/"
+
+  "$HOME/.config/Code/User/keybindings.json"
+  "$HOME/.config/Code/User/settings.json"
+  "$HOME/.config/Cursor/User/keybindings.json"
+  "$HOME/.config/Cursor/User/settings.json"
+
+  # "/etc/udev/rules.d/90-power.rules"
 )
 
 # --- helpers ---
@@ -162,7 +175,7 @@ function copyDots() {
   for item in "${dotfiles[@]}"; do
     if [ -e "$item" ]; then
       relative_path="${item#~/}"
-      if [[ $item == /etc/* ]]; then
+      if [[ $item == /etc/* || $item == /usr/share/* ]]; then
         relative_path="${item#/}"
       fi
       destination_dir=$(dirname "$1$relative_path")

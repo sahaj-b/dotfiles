@@ -230,17 +230,17 @@ return {
   {
     "zbirenbaum/copilot.lua",
     dependencies = {
-      {
-        "copilotlsp-nvim/copilot-lsp",
-        init = function()
-          vim.g.copilot_nes_debounce = 300
-        end,
-        opts = {
-          nes = {
-            move_count_threshold = 10,
-          }
-        }
-      }
+      -- {
+      --   "copilotlsp-nvim/copilot-lsp",
+      --   init = function()
+      --     vim.g.copilot_nes_debounce = 300
+      --   end,
+      --   opts = {
+      --     nes = {
+      --       move_count_threshold = 10,
+      --     }
+      --   }
+      -- }
     },
     cmd = "Copilot",
     event = "InsertEnter",
@@ -255,26 +255,26 @@ return {
           accept = "<Tab>",
         }
       },
-      nes = {
-        enabled = true,
-        keymap = {
-          accept_and_goto = false,
-          accept = false,
-          dismiss = "<Esc>",
-        },
-      },
+      -- nes = {
+      --   enabled = true,
+      --   keymap = {
+      --     accept_and_goto = false,
+      --     accept = false,
+      --     dismiss = "<Esc>",
+      --   },
+      -- },
     },
-    init = function()
-      vim.keymap.set("n", "<Tab>", function()
-        local ok, nes = pcall(require, "copilot-lsp.nes")
-        if ok then
-          if not nes.walk_cursor_start_edit() then
-            nes.apply_pending_nes()
-            nes.walk_cursor_end_edit()
-          end
-        end
-      end, { desc = "Accept Copilot NES suggestion" })
-    end,
+    -- init = function()
+    --   vim.keymap.set("n", "<Tab>", function()
+    --     local ok, nes = pcall(require, "copilot-lsp.nes")
+    --     if ok then
+    --       if not nes.walk_cursor_start_edit() then
+    --         nes.apply_pending_nes()
+    --         nes.walk_cursor_end_edit()
+    --       end
+    --     end
+    --   end, { desc = "Accept Copilot NES suggestion" })
+    -- end,
   },
 
   { 'AndreM222/copilot-lualine' }
