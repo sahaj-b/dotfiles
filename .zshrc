@@ -54,7 +54,7 @@ bindkey '^e' end-of-line
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^x^e' edit-command-line
 
-alias brr="sudo systemctl start tailscaled && sudo tailscale up && OPENCODE_SERVER_PASSWORD=lul opencode web --hostname 0.0.0.0; sudo tailscale down; sudo systemctl stop tailscaled"
+alias brr="sudo systemctl start tailscaled && sudo tailscale up && sudo systemctl start sshd && OPENCODE_SERVER_PASSWORD=lul opencode web --hostname 0.0.0.0; sudo tailscale down; sudo systemctl stop tailscaled; sudo systemctl stop sshd"
 alias att="attendthat"
 alias op="opencode"
 alias dr="dragon-drop"
@@ -332,3 +332,6 @@ export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 export LD_LIBRARY_PATH="/usr/local/lib"
 export PATH="$HOME/.npm-global/bin:$PATH"
+
+# kilo
+export PATH=/home/sahaj/.kilo/bin:$PATH

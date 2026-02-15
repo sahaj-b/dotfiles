@@ -1,32 +1,35 @@
 return {
   {
-    "folke/sidekick.nvim",
-    opts = {
-      -- add any options here
-      cli = {
-        mux = {
-          backend = "tmux",
-          enabled = true,
+    "ThePrimeagen/99",
+    config = function()
+      local _99 = require("99")
+
+      -- local cwd = vim.uv.cwd()
+      -- local basename = vim.fs.basename(cwd)
+      _99.setup({
+        -- logger = {
+        --   level = _99.DEBUG,
+        --   type = "file",
+        --   path = "/tmp/" .. basename .. ".99.debug",
+        --   print_on_error = true,
+        -- },
+        model = "opencode/minimax-m2.5-free",
+        source = "blink",
+        md_files = {
+          "AGENT.md",
         },
-      },
-      nes = {
-        enabled = false,
-      },
-    },
-    keys = {
-      {
-        "<tab>",
-        function()
-          -- if there is a next edit, jump to it, otherwise apply it if any
-          if not require("sidekick").nes_jump_or_apply() then
-            return "<Tab>" -- fallback to normal tab
-          end
-        end,
-        expr = true,
-        desc = "Goto/Apply Next Edit Suggestion",
-      },
-    },
+      })
+
+      vim.keymap.set("v", "<leader>9v", function()
+        _99.visual()
+      end)
+
+      vim.keymap.set("v", "<leader>9s", function()
+        _99.stop_all_requests()
+      end)
+    end,
   },
+
   {
     "olimorris/codecompanion.nvim",
     dependencies = {
@@ -189,4 +192,33 @@ return {
       require("plugins.codecompanion.fidget-spinner"):init()
     end,
   },
+
+  -- {
+  --   "folke/sidekick.nvim",
+  --   opts = {
+  --     -- add any options here
+  --     cli = {
+  --       mux = {
+  --         backend = "tmux",
+  --         enabled = true,
+  --       },
+  --     },
+  --     nes = {
+  --       enabled = false,
+  --     },
+  --   },
+  --   keys = {
+  --     {
+  --       "<tab>",
+  --       function()
+  --         -- if there is a next edit, jump to it, otherwise apply it if any
+  --         if not require("sidekick").nes_jump_or_apply() then
+  --           return "<Tab>" -- fallback to normal tab
+  --         end
+  --       end,
+  --       expr = true,
+  --       desc = "Goto/Apply Next Edit Suggestion",
+  --     },
+  --   },
+  -- },
 }

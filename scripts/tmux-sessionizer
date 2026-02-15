@@ -51,7 +51,7 @@ else
         print "0\t  " dir
       }
     }
-    ' | sort -k1,1nr -k2 | cut -f2- | fzf | sed 's/^[● ]* //; s|~|$HOME|'
+    ' | sort -k1,1nr -k2 | cut -f2- | fzf | sed 's/^[● ]* //'
   )
 fi
 
@@ -60,6 +60,7 @@ if [[ -z $selected ]]; then
 fi
 
 selected_name=$(get_session_name "$selected")
+selected=$(eval echo "$selected")
 tmux_running=$(pgrep tmux)
 
 if [[ -z $TMUX ]] && [[ -z $tmux_running ]]; then
