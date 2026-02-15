@@ -236,10 +236,10 @@ map({ "n", "v" }, "<leader>ao", function() require("sidekick.cli").toggle({ name
 
 map({ "n", "v" }, "<leader>ap", function() require("sidekick.cli").prompt() end, { desc = "Sidekick Ask Prompt" })
 
--- CodeCompanion
-map({ "n", "v" }, "<leader>ci", ":CodeCompanion<cr>", { noremap = true, silent = true })
-map({ "n", "v" }, "<leader>aa", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
-map("n", "<leader><leader>a", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true })
+-- CodeCompanion KEYMAPS IN ITS CONFIG
+-- map({ "n", "v" }, "<leader>ci", ":CodeCompanion<cr>", { noremap = true, silent = true })
+-- map({ "n", "v" }, "<leader>aa", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
+-- map("n", "<leader><leader>a", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true })
 map('ca', "cc", "CodeCompanion")
 map('ca', "cch", "CodeCompanionHistory")
 

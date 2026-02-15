@@ -53,7 +53,28 @@ return {
       },
     },
     cmd = { "CodeCompanion", "CodeCompanionChat", "CodeCompanionActions", "CodeCompanionCmd", "CodeCompanionHistory" },
+    keys = {
+      {
+        "<leader>ci",
+        ":CodeCompanion<cr>",
+        desc = "Start CodeCompanion",
+        mode = { "n", "v" },
+      },
+      {
+        "<leader>aa",
+        ":CodeCompanionActions<cr>",
+        desc = "CodeCompanion Actions",
+        mode = { "n", "v" },
+      },
+      {
+        "<leader><leader>a",
+        ":CodeCompanionChat Toggle<cr>",
+        desc = "Toggle CodeCompanion Chat",
+        mode = "n",
+      },
+    },
     config = function()
+      local inlineAdapter = "copilot_gpt"
       require("codecompanion").setup({
         adapters = {
           http = {
@@ -61,6 +82,13 @@ return {
               return require("codecompanion.adapters").extend("copilot", {
                 schema = {
                   model = { default = "claude-sonnet-4.5" },
+                },
+              })
+            end,
+            copilot_grok = function()
+              return require("codecompanion.adapters").extend("copilot", {
+                schema = {
+                  model = { default = "grok-code-fast-1" },
                 },
               })
             end,
@@ -82,13 +110,6 @@ return {
               return require("codecompanion.adapters").extend("copilot", {
                 schema = {
                   model = { default = "gpt-5-mini" },
-                },
-              })
-            end,
-            copilot_opus = function()
-              return require("codecompanion.adapters").extend("copilot", {
-                schema = {
-                  model = { default = "claude-opus-4.5" },
                 },
               })
             end,
@@ -137,7 +158,7 @@ return {
             },
           },
           inline = {
-            adapter = "copilot_gpt",
+            adapter = inlineAdapter,
             keymaps = {
               accept_change = {
                 modes = { n = "ga" },
@@ -187,6 +208,19 @@ return {
           },
         },
       })
+
+      -- this prewarms copilot adapter so it doesnt block the first time you use it
+      vim.defer_fn(function()
+        local adapters = require("codecompanion.adapters")
+        local get_models = require("codecompanion.adapters.http.copilot.get_models")
+        local token = require("codecompanion.adapters.http.copilot.token")
+
+        local fetched_token = token.fetch({ force = true })
+        if fetched_token and fetched_token.copilot_token then
+          local adapter = adapters.resolve(inlineAdapter)
+          get_models.choices(adapter, { token = fetched_token, async = true })
+        end
+      end, 100)
     end,
     init = function()
       require("plugins.codecompanion.fidget-spinner"):init()
@@ -224,12 +258,23 @@ return {
       nes = {
         enabled = true,
         keymap = {
-          accept_and_goto = "<Tab>",
+          accept_and_goto = false,
           accept = false,
           dismiss = "<Esc>",
         },
       },
-    }
+    },
+    init = function()
+      vim.keymap.set("n", "<Tab>", function()
+        local ok, nes = pcall(require, "copilot-lsp.nes")
+        if ok then
+          if not nes.walk_cursor_start_edit() then
+            nes.apply_pending_nes()
+            nes.walk_cursor_end_edit()
+          end
+        end
+      end, { desc = "Accept Copilot NES suggestion" })
+    end,
   },
 
   { 'AndreM222/copilot-lualine' }
