@@ -13,6 +13,10 @@
   ],
   "autoupdate": true,
   "layout": "stretch",
+  "keybinds": {
+    "messages_half_page_up": "ctrl+u",
+    "messages_half_page_down": "ctrl+d"
+  },
   "agent": {
     "research": {
       "prompt": "{file:./prompts/research.md}",

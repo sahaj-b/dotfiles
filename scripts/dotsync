@@ -15,7 +15,7 @@ dotfiles=(
   # plymouth
   "/etc/plymouth/plymouthd.conf"
   "/usr/share/plymouth/themes/ascii_burst/"
-  "/usr/share/plymouth/themes/plymouthd.defaults"
+  "/usr/share/plymouth/plymouthd.defaults"
 
   # home
   "$HOME/.gitattributes"

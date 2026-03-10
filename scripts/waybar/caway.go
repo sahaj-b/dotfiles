@@ -2,8 +2,7 @@ package main
 
 // you can add your browser on line 101 in the playerctl command
 
-// Note for chromium-based browsers(chrome, brave, vivaldi, etc):
-// The xesam:url property isn't available, so it won't work, so change the checkUrl variable to false on line 48
+// The xesam:url property is available for firefox-based browsers, so it can filter only for youtube-music/spotify, so change the checkUrl variable to true on line 47
 
 // Toggle visualizer on/off:
 // Send SIGUSR1 signal to toggle: pkill -SIGUSR1 caway
@@ -45,7 +44,7 @@ type Config struct {
 
 var (
 	bars            = []rune("▁▂▃▄▅▆▇█")
-	checkUrl        = false // change this to false for chromium-based browsers
+	checkUrl        = false // change this to true for firefox-based browsers
 	validURLPattern = regexp.MustCompile(`(spotify|music\.youtube)`)
 )
 
