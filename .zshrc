@@ -58,6 +58,9 @@ if [[ -f ~/yeah.sh ]]; then
   source ~/yeah.sh
 fi
 
+alias mdata="sudo mount -t ntfs3 /dev/nvme0n1p6 /media/data"
+alias mwindows="sudo mount -t ntfs3 /dev/nvme0n1p3 /media/windows"
+alias mexternal="sudo mount -t ntfs3 /dev/sda1 /media/external"
 alias rmpv="mpv --no-video --no-terminal --no-config --script=/usr/lib/mpv-mpris/mpris.so"
 alias res="opencode --agent research --model opencode/minimax-m2.5-free"
 alias lesgo="sudo systemctl start tailscaled && sudo tailscale up && sudo systemctl start sshd"
@@ -147,6 +150,14 @@ alias bd="bun run dev"
 # bros
 alias gpt='mods -m gpt-4.1'
 alias gfl='mods -m 2.5-flash-lite'
+
+function gifcompress() {
+  if [[ $1 == '-h' ]]; then
+    echo "input.gif [output.gif] [lossy:80] [colors:64]"
+    return
+  fi
+  gifsicle -O3 --colors ${$4:-64} --lossy=${3:-80} -o ${2:-output.gif} $1
+}
 
 function mdserve() {
   echo "$1" | sed 's/^* /\

@@ -209,7 +209,7 @@ return {
     event = "InsertEnter",
     opts = {},
   },
-  { 'kylechui/nvim-surround', event = "VeryLazy", opts = { keymaps = { visual = "Y" }, }, },
+  { 'kylechui/nvim-surround', event = "VeryLazy" },
   {
     "aserowy/tmux.nvim",
     opts = {

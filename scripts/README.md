@@ -27,6 +27,7 @@
 | `jour <d/w/m/y> <offset>`                 | Quick journal with templates support                                                             |
 | `nscratch <number/output>`                | Scratchpad terminal for i3 with dynamic output support                                           |
 | `bmon`                                    | Battery monitor with pango markup output and notifications                                       |
+| `ffgif`                                   | Ffmpeg wrapper to create gifs from videos                                                        |
 | `waybar/cal.py`                           | Displays current event from Google Calendar                                                      |
 | `waybar/getScratchOutput.sh`              | Gets last line output of scratchpad terminal with urgent(prompt) state support                   |
 | `waybar/caway-go`                         | Port of [caway](https://github.com/PROxZIMA/caway) in Go with bugfixes and improvements          |

@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+
+usage() {
+  echo "Usage: ffgif input [output.gif]"
+  echo "Options:"
+  echo "  -h, --help        Show this help message and exit"
+  echo "  -f, --fps         Set the frames per second (default: 15)"
+  echo "  -w, --width       Set the width of the output GIF (default: 480)"
+  echo "  -p, --palette     Use a palette for better color quality (default: false)"
+}
+
+fps=15
+width=480
+palette=false
+args=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  -f | --fps)
+    fps="$2"
+    shift 2
+    ;;
+  -w | --width)
+    width="$2"
+    shift 2
+    ;;
+  -p | --palette)
+    palette=true
+    shift
+    ;;
+  -*)
+    echo "Unknown option: $1" >&2
+    usage >&2
+    exit 1
+    ;;
+  *)
+    args+=("$1")
+    shift
+    ;;
+  esac
+done
+
+input="${args[0]:-}"
+output="${args[1]:-output.gif}"
+
+if [[ -z $input ]]; then
+  echo "No input file specified" >&2
+  usage >&2
+  exit 1
+fi
+
+if [[ $palette == true ]]; then
+  palette_file="$(mktemp --suffix=.png)"
+  trap 'rm -f "$palette_file"' EXIT
+  ffmpeg -y -i "$input" -vf "fps=$fps,scale=$width:-1:flags=lanczos,palettegen" -frames:v 1 -update 1 "$palette_file"
+  ffmpeg -y -i "$input" -i "$palette_file" -filter_complex "fps=$fps,scale=$width:-1:flags=lanczos[x];[x][1:v]paletteuse" "$output"
+else
+  ffmpeg -i "$input" -vf "fps=$fps,scale=$width:-1:flags=lanczos" -c:v gif "$output"
+fi
