@@ -58,11 +58,12 @@ if [[ -f ~/yeah.sh ]]; then
   source ~/yeah.sh
 fi
 
+alias drpaste="wl-paste > .tempimg.png && dragon-drop .tempimg.png"
 alias mdata="sudo mount -t ntfs3 /dev/nvme0n1p6 /media/data"
 alias mwindows="sudo mount -t ntfs3 /dev/nvme0n1p3 /media/windows"
 alias mexternal="sudo mount -t ntfs3 /dev/sda1 /media/external"
 alias rmpv="mpv --no-video --no-terminal --no-config --script=/usr/lib/mpv-mpris/mpris.so"
-alias res="opencode --agent research --model opencode/minimax-m2.5-free"
+alias res="opencode --agent research --model opencode/mimo-v2-pro-free"
 alias lesgo="sudo systemctl start tailscaled && sudo tailscale up && sudo systemctl start sshd"
 alias unlesgo="sudo tailscale down; sudo systemctl stop tailscaled; sudo systemctl stop sshd"
 alias brr="sudo systemctl start tailscaled && sudo tailscale up && sudo systemctl start sshd && OPENCODE_SERVER_PASSWORD=lul opencode web --hostname 0.0.0.0; sudo tailscale down; sudo systemctl stop tailscaled; sudo systemctl stop sshd"
@@ -89,6 +90,7 @@ alias grep="grep --color=auto"
 alias o="nvim +'lua Snacks.picker.recent()'"
 alias bp="sudo l2ping -s 200"
 alias neofetch="fastfetch -c neofetch.jsonc"
+alias ff="fastfetch -c examples/14.jsonc"
 alias ls='eza --no-quotes -a --icons --group-directories-first'
 alias nv='nvim'
 alias v='vim'
@@ -156,8 +158,9 @@ function gifcompress() {
     echo "input.gif [output.gif] [lossy:80] [colors:64]"
     return
   fi
-  gifsicle -O3 --colors ${$4:-64} --lossy=${3:-80} -o ${2:-output.gif} $1
+  gifsicle -O3 --colors "${4:-64}" --lossy="${3:-80}" -o "${2:-output.gif}" "$1"
 }
+
 
 function mdserve() {
   echo "$1" | sed 's/^* /\

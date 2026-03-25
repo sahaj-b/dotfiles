@@ -21,7 +21,7 @@
       "color": "#caf480",
       "permission": {
         "*": "allow",
-        "edit": "deny",
+        "edit": "allow",
         "bash": "ask",
         "kernel*": "allow",
         "kernel": "allow"

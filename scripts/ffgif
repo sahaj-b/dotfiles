@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 usage() {
-  echo "Usage: ffgif input [output.gif]"
+  echo "Usage: ffgif input.gif [output.gif]"
   echo "Options:"
   echo "  -h, --help        Show this help message and exit"
   echo "  -f, --fps         Set the frames per second (default: 15)"
@@ -45,7 +45,11 @@ while [[ $# -gt 0 ]]; do
 done
 
 input="${args[0]:-}"
-output="${args[1]:-output.gif}"
+if [[ -n ${args[1]:-} ]]; then
+  output="${args[1]}"
+else
+  output="${input%.*}.gif"
+fi
 
 if [[ -z $input ]]; then
   echo "No input file specified" >&2
