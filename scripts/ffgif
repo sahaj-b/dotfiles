@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 usage() {
-  echo "Usage: ffgif input.gif [output.gif]"
+  echo "Usage: ffgif input [output.gif]"
   echo "Options:"
   echo "  -h, --help        Show this help message and exit"
   echo "  -f, --fps         Set the frames per second (default: 15)"

@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+# toggle laptop keyboard
+SYSFS="/sys/devices/platform/i8042/serio0/input/input3/inhibited"
+case "$1" in
+on)
+  sudo sh -c "echo 1 > $SYSFS"
+  ;;
+off)
+  sudo sh -c "echo 0 > $SYSFS"
+  ;;
+help | --help | -h)
+  echo "Usage: tkeeb [on|off]"
+  exit 1
+  ;;
+*)
+  if [ "$(cat $SYSFS)" = "1" ]; then
+    sudo sh -c "echo 0 > $SYSFS"
+  else
+    sudo sh -c "echo 1 > $SYSFS"
+  fi
+  ;;
+esac

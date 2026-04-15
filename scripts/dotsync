@@ -70,6 +70,8 @@ dotfiles=(
   "$HOME/.config/Cursor/User/keybindings.json"
   "$HOME/.config/Cursor/User/settings.json"
 
+  "$HOME/.local/share/applications/foot-open.desktop"
+
   # "/etc/udev/rules.d/90-power.rules"
 )
 

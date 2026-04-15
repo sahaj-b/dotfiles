@@ -21,7 +21,7 @@
 | `stopwatch`, `countdown`                  | Timers                                                                                           |
 | `fstat`                                   | Pretty file statistics using `stat`                                                              |
 | `powermgmt`                               | Daemon to run commands and manage services based on charging state                               |
-| `changeWall <rand/prev/next>`             | Changes wallpaper using `swww`                                                                   |
+| `changeWall <rand/prev/next>`             | Changes wallpaper using `awww`                                                                   |
 | `curlToHttp`                              | Converts curl command to HTTP request using `curlconverter`                                      |
 | `automate <db/copy/paste/run..>`          | keyboard/mouse automation stuff code from neovim to Leetcode,youtube,dbdiagrams,etc              |
 | `jour <d/w/m/y> <offset>`                 | Quick journal with templates support                                                             |

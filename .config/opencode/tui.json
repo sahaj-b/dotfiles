@@ -2,6 +2,9 @@
   "$schema": "https://opencode.ai/tui.json",
   "keybinds": {
     "messages_half_page_up": "ctrl+u",
-    "messages_half_page_down": "ctrl+d"
+    "messages_half_page_down": "ctrl+d",
+    "app_exit": "ctrl+c,<leader>q",
+    "input_delete": "delete,shift+delete",
+    "input_delete_word_forward": "alt+d,alt+delete"
   }
 }

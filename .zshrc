@@ -124,8 +124,6 @@ alias scratch="hyprctl dispatch exec '[workspace special:term silent] foot -a sc
 alias oscratch="hyprctl dispatch exec '[workspace special:term silent] foot -o colors.alpha=1 -a scratch -e tmux new-session -A -s scratch' & disown; exit"
 alias vibes='~/wayvibes/main ~/Downloads/creamy -v 5 > /dev/null 2>&1 &'
 alias unimatrix='unimatrix -n -s 96 -l o'
-# disable lappy keeb
-alias dk='line=$(sed -n "3p" /etc/keyd/default.conf); if [[ $line == \#* ]]; then sudo sed -i "3s/^#//" /etc/keyd/default.conf; else sudo sed -i "3s/^/#/" /etc/keyd/default.conf; fi; sudo keyd reload'
 alias cmdbrowse="ls $(echo $PATH | tr ':' ' ') | grep -v '/' | grep . | fzf --preview 'whereis {};tldr {}' --layout=reverse --bind 'enter:execute( tldr {} | less)';"
 alias packbrowse="pacman -Qq | fzf --preview 'pacman -Qil {}' --layout=reverse --bind 'enter:execute(pacman -Qil {} | less)'" 
 alias packrm="sudo pacman -Rns \$(pacman -Qe | fzf --accept-nth=1 --multi --preview 'pacman -Qi {1}' --preview-window wrap | tr '\n' ' ')"

@@ -3,7 +3,7 @@ wallDir=~/wallpapers/
 if [[ $1 == rand ]]; then
   wall=$(ls $wallDir | shuf -n 1)
   echo "$wall" >~/.currentWall
-  swww img $wallDir"$wall" --transition-type grow --transition-pos top --transition-fps 60 --transition-duration 0.7
+  awww img $wallDir"$wall" --transition-type grow --transition-pos top --transition-fps 60 --transition-duration 0.7
   exit
 fi
 
@@ -21,4 +21,4 @@ fi
 
 [[ "$next" == "$curr" || -z "$next" ]] && next=$cycleTo
 echo "$next" >$cacheFile
-swww img $wallDir"$next" --transition-type wipe --transition-angle $angle --transition-fps 60 --transition-duration 0.7
+awww img $wallDir"$next" --transition-type wipe --transition-angle $angle --transition-fps 60 --transition-duration 0.7

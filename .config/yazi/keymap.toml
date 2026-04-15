@@ -160,7 +160,8 @@ keymap = [
 ]
 
 prepend_keymap = [
-  { on = [ "g", "r" ], run = "plugin duck-radar", desc = "Recent Files (duck-radar)" },
+{ on = [ "g", "W" ], run = 'shell -- WINEPREFIX="$HOME/wine-flstudio/" wine %s1', desc = "Run with Wine (flstudio)" },
+{ on = [ "g", "w" ], run = 'shell "WINEPREFIX= wine %s1" --cursor=11 --interactive', desc = "Run with Wine" },
 ]
 
 [tasks]
