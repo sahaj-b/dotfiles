@@ -1,13 +1,7 @@
 [Desktop Entry]
-Version=1.0
 Type=Application
-Name=Foot URL Launcher
-GenericName=Terminal emulator
-Comment=Open URLs with foot
-StartupNotify=true
+Name=Foot Open
+Exec=foot --working-directory=%f
 TryExec=foot
-Exec=kitty %U
-Icon=kitty
-Categories=System;TerminalEmulator;
-NoDisplay=true
-MimeType=image/*;application/x-sh;application/x-shellscript;inode/directory;text/*;x-scheme-handler/kitty;x-scheme-handler/ssh;
+MimeType=inode/directory;
+Terminal=false

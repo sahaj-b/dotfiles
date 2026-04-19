@@ -11,6 +11,7 @@
 | `dnd_daemon`, `dnd`                       | Daemon and Controller for DND timer state control                                                |
 | `fm`                                      | Fzf-based file browser for quick navigation                                                      |
 | `nfm`                                     | Fzf-based wifi monitor                                                                           |
+| `paddleocr`                               | select area -> OCR using paddleocr, grim & slurp                                                 |
 | `bat-notif`                               | Daemon for battery notifications                                                                 |
 | `blu-notif`                               | Sends notifications for Bluetooth events                                                         |
 | `blu`                                     | Connects Bluetooth devices                                                                       |

@@ -38,32 +38,33 @@
     //     "edit": true,
     //     "bash": true
     //   }
-  },
-  "mcp": {
-    "kernel": {
-      "type": "remote",
-      "url": "https://mcp.onkernel.com/mcp",
+    // },
+    "mcp": {
+      "kernel": {
+        "type": "remote",
+        "url": "https://mcp.onkernel.com/mcp",
+      },
+      "tavily": {
+        "type": "local",
+        "enabled": true,
+        "command": [
+          "pnpm",
+          "dlx",
+          "tavily-mcp@latest"
+        ]
+      },
+      "context7": {
+        "type": "local",
+        "enabled": true,
+        "command": [
+          "pnpm",
+          "dlx",
+          "@upstash/context7-mcp@latest"
+        ]
+      }
     },
-    "tavily": {
-      "type": "local",
-      "enabled": true,
-      "command": [
-        "pnpm",
-        "dlx",
-        "tavily-mcp@latest"
-      ]
+    "tools": {
+      "kernel*": false,
     },
-    "context7": {
-      "type": "local",
-      "enabled": true,
-      "command": [
-        "pnpm",
-        "dlx",
-        "@upstash/context7-mcp@latest"
-      ]
-    }
-  },
-  "tools": {
-    "kernel*": false,
-  },
+  }
 }

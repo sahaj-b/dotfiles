@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# Alt key passthrough for FL Studio
+# unbinds Alt binds that conflict with FL Studio shortcuts
+
+TARGET_CLASS="fl64.exe"
+SOCKET="$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
+
+ALT_BINDS=(
+  "bind|Ctrl ALT, R, exec, obs-cmd recording toggle; sleep 0.8; obs-cmd recording status-active || notify-send \"Recording Stopped\""
+  "bind|ALT, A, exec, rfkill unblock bluetooth && bluetoothctl power on && busctl call org.bluez /org/bluez/hci0/dev_B0_A3_F2_6A_E3_DB org.bluez.Device1 Disconnect; busctl call org.bluez /org/bluez/hci0/dev_B0_A3_F2_6A_E3_DB org.bluez.Device1 Connect"
+  "bindl|ALT, Z, exec, ~/scripts/blu toggle"
+  "bind|ALT, S, exec, ~/scripts/saveSS"
+  "bind|ALT, R, exec, ~/scripts/changeWall rand"
+  "bindl|ALT, left, exec, playerctl previous -p 'YoutubeMusic, spotify, chromium, %any'"
+  "bindl|ALT, right, exec, playerctl next -p 'YoutubeMusic, spotify, chromium, %any'"
+  "bindl|ALT, down, exec, playerctl play-pause -p 'YoutubeMusic, spotify, chromium, %any'"
+  "bindl|ALT, up, exec, playerctl play-pause -p 'firefox, brave, chromium, mpv'"
+  "bind|ALT SHIFT, SPACE, togglespecialworkspace, music"
+  "bind|ALT CTRL, SPACE, resizeactive, exact 80% 80%"
+  "bind|ALT CTRL, SPACE, centerwindow"
+  "binde|ALT, O, exec, echo \"wheel -5\" | dotoolc"
+  "binde|ALT, P, exec, echo \"wheel 5\" | dotoolc"
+  "binde|ALT, U, exec, echo \"click left\" | dotoolc"
+  "bind|ALT, slash, exec, hexecute"
+  "bind|ALT SHIFT, M, movetoworkspace, special:music"
+)
+
+unbind_all_alt() {
+  for entry in "${ALT_BINDS[@]}"; do
+    value="${entry#*|}"
+    keypart=$(echo "$value" | cut -d',' -f1,2 | xargs)
+    hyprctl keyword unbind "$keypart" >/dev/null 2>&1 || true
+  done
+}
+
+rebind_all_alt() {
+  for entry in "${ALT_BINDS[@]}"; do
+    type="${entry%%|*}"
+    value="${entry#*|}"
+    hyprctl keyword "$type" "$value" >/dev/null 2>&1 || true
+  done
+}
+
+current_class=""
+rebind_all_alt
+
+socat -U - UNIX-CONNECT:"$SOCKET" | while read -r line; do
+  if [[ $line == activewindow* ]]; then
+    new_class=$(hyprctl activewindow -j 2>/dev/null | jq -r '.class // ""')
+
+    if [[ "$new_class" == "$TARGET_CLASS" && "$current_class" != "$TARGET_CLASS" ]]; then
+      unbind_all_alt
+      current_class="$TARGET_CLASS"
+      # echo "Alt Passthrough"
+      # ffplay -autoexit -nodisp -v quiet -volume 30 /usr/share/sounds/freedesktop/stereo/device-added.oga
+    elif [[ "$new_class" != "$TARGET_CLASS" && "$current_class" == "$TARGET_CLASS" ]]; then
+      rebind_all_alt
+      current_class="$new_class"
+      # echo "Passthrough Restored"
+      # ffplay -autoexit -nodisp -v quiet -volume 30 /usr/share/sounds/freedesktop/stereo/device-removed.oga
+    fi
+  fi
+done

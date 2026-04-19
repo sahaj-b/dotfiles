@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+export PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=1
+
+img=$(mktemp --suffix=.png)
+grim -g "$(slurp)" "$img"
+
+text=$(
+  ~/.py-global/bin/python - "$img" <<'PY'
+import sys
+from paddleocr import PaddleOCR
+
+ocr = PaddleOCR(
+    use_doc_orientation_classify=False,
+    use_doc_unwarping=False,
+    use_textline_orientation=False,
+)
+
+out = []
+for res in ocr.predict(sys.argv[1]):
+    out.extend(res.json["res"].get("rec_texts", []))
+
+print("\n".join(out).strip())
+PY
+)
+
+printf "%s" "$text" | wl-copy
+notify-send -t 2000 "Copied Text" "$text"
+rm -f "$img"
