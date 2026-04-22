@@ -19,6 +19,6 @@ loop_pid=$!
 trap "kill $loop_pid 2>/dev/null" EXIT SIGINT SIGTERM
 
 if [[ -n $wifi ]]; then
-  bssid=$(echo "$wifi" | awk '{print $2}')
+  bssid=$(echo "$wifi" | grep -oP '([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}')
   nmcli dev wifi connect "$bssid" --ask
 fi

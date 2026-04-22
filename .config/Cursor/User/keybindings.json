@@ -201,5 +201,10 @@
 		"key": "l",
 		"command": "editor.action.scrollRightHover",
 		"when": "editorHoverFocused"
+	},
+	{
+		"key": "ctrl+alt+s",
+		"command": "workbench.action.toggleUnifiedSidebarFromKeyboard",
+		"when": "!isAuxiliaryWindowFocusedContext"
 	}
 ]
