@@ -8,7 +8,8 @@
 # you can use --prefix <ansi_code> to apply an ANSI code to items preview in ansi_styles
 
 # --- Configuration ---
-TERMINAL="foot"
+# TERMINAL="foot"
+TERMINAL="kitty -1"
 EMOJI_FILE="$HOME/emojis.txt"
 NERDFONT_FILE="$HOME/nerdfonts.txt"
 UNICODE_FILE="$HOME/unicode.txt"
@@ -87,8 +88,7 @@ if [[ -z "$PICKER_TYPE" ]]; then
     hyprctl dispatch exec "$window_config $TERMINAL -e sh -c \"$fzf_cmd_float\""
 
   else
-    picker_options=("emoji" "nerdfont" "unicode" "ansi_styles" "ansi_controls" "ansi_keycodes")
-    picker_options=("emoji" "nerdfont" "unicode" "ansi_styles" "ansi_controls" "ansi_keycodes" "palette") # <-- ADD palette
+    picker_options=("emoji" "nerdfont" "unicode" "ansi_styles" "ansi_controls" "ansi_keycodes" "palette")
     [[ -z "$selected_picker" ]] && exit 0
     exec "$0" "$selected_picker"
   fi

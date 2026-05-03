@@ -59,6 +59,10 @@ apis:
         aliases: ["2.5-flash"]
       gemini-2.5-flash-lite:
         aliases: ["2.5-flash-lite"]
+      gemini-3-flash:
+        aliases: ["3-flash"]
+      gemini-3.1-flash:
+        aliases: ["3.1-flash"]
   openai:
     base-url: https://api.openai.com/v1
     api-key:

@@ -44,6 +44,7 @@ dotfiles=(
   "$HOME/.config/mimeapps.list"
   "$HOME/.config/mods/"
   "$HOME/.config/mcphub/"
+  "$HOME/.config/solaar/"
 
   "$HOME/.config/mpv/"
   "$HOME/.config/yazi/"
@@ -55,6 +56,7 @@ dotfiles=(
   "$HOME/.config/systemd/user/"
   "$HOME/.config/alacritty/alacritty.toml"
   "$HOME/.config/ghostty/"
+  "$HOME/.config/kitty/"
   "$HOME/.config/dconf/"
 
   "$HOME/.config/xdg-desktop-portal/"
