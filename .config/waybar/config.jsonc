@@ -8,7 +8,7 @@
     "clock#2",
     "clock#3",
     // "temperature",
-    "custom/music",
+    // "custom/music",
     "custom/scratchOutput",
     "hyprland/submap"
   ],
@@ -17,7 +17,7 @@
   ],
   "modules-right": [
     // "custom/notes",
-    "custom/cal",
+    // "custom/cal",
     "custom/recorder",
     "custom/wakapi",
     "memory",
@@ -116,7 +116,7 @@
     "on-click": "playerctl play-pause -p 'YoutubeMusic, spotify, chrome, %any'",
     "on-scroll-up": "playerctl position 5+ -p 'YoutubeMusic, spotify, chrome, %any'",
     "on-scroll-down": "playerctl position 5- -p 'YoutubeMusic, spotify, chrome, %any'",
-    "on-click-right": "hyprctl dispatch togglespecialworkspace music",
+    "on-click-right": "sh -c \"hyprctl dispatch 'hl.dsp.workspace.toggle_special(\\\"music\\\")'\"",
     "on-click-middle": "kill $(hyprctl clients -j | jq '.[] | select(.initialClass | contains(\"com.github.th_ch.youtube_music\")) | .pid'); pkill waybar; waybar",
     "max-length": 15
   },
