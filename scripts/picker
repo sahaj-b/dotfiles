@@ -40,9 +40,9 @@ check_file() {
 
 window_config() {
   case "$1" in
-  wide) echo "[float; size 60% 70%; center]" ;;
-  tall) echo "[float; size 40% 80%; center]" ;;
-  *) echo "[float; size 30% 25%; center]" ;;
+  wide) echo "{ float = true, size = '60% 70%', center = true }" ;;
+  tall) echo "{ float = true, size = '40% 80%', center = true }" ;;
+  *) echo "{ float = true, size = '30% 25%', center = true }" ;;
   esac
 }
 
@@ -77,18 +77,15 @@ fi
 
 # --- Picker for pickers ---
 if [[ -z "$PICKER_TYPE" ]]; then
-  fzf_base_opts="--layout=reverse --prompt='Select Picker: ' --bind='ctrl-c:abort'"
-
   if [[ "$FLOAT_MODE" -eq 1 ]]; then
     window_config=$(window_config "small")
     quoted_script_path=$(printf '%q' "$0")
     fzf_cmd_float="printf 'emoji\\nnerdfont\\nunicode\\nansi_styles\\nansi_controls\\nansi_keycodes\\npalette\\n' | \\
       fzf --layout=reverse --prompt='Select Picker: ' --bind='ctrl-c:abort' \\
           --bind='enter:execute($quoted_script_path {} \"$FLOAT_ARG\")+accept'"
-    hyprctl dispatch exec "$window_config $TERMINAL -e sh -c \"$fzf_cmd_float\""
+    hyprctl dispatch "hl.dsp.exec_cmd([[ $TERMINAL -e sh -c \"$fzf_cmd_float\" ]], $window_config)"
 
   else
-    picker_options=("emoji" "nerdfont" "unicode" "ansi_styles" "ansi_controls" "ansi_keycodes" "palette")
     [[ -z "$selected_picker" ]] && exit 0
     exec "$0" "$selected_picker"
   fi
@@ -179,7 +176,7 @@ if [[ "$FLOAT_MODE" -eq 1 ]]; then
     fi
 INNER_EOF
   )
-  hyprctl dispatch exec "$window_config $TERMINAL -e sh -c $(printf '%q' "$inner_cmd")"
+  hyprctl dispatch "hl.dsp.exec_cmd([[ $TERMINAL -e sh -c $(printf '%q' "$inner_cmd") ]], $window_config)"
 
 else
   # normal mode

@@ -1,7 +1,4 @@
 #!/bin/bash
-# move to workspace is handled in hyprland.conf
-# hyprctl dispatch exec '[workspace special:term silent] foot -a scratch -e tmux new-session -A -s "scratch"'
-# hyprctl dispatch exec '[workspace special:term silent] ghostty --gtk-single-instance=true --class=scratch -e tmux new-session -A -s scratch'
 
 # ghostty --gtk-single-instance=true --class=scratch -e tmux new-session -A -s scratch
 # foot -a scratch -e tmux new-session -A -s "scratch"
