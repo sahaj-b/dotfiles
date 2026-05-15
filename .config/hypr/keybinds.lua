@@ -59,16 +59,20 @@ hl.bind(mod .. " + SHIFT + J", hl.dsp.window.move({ direction = "down" }))
 -- Resize submap
 hl.bind(mod .. " + R", hl.dsp.submap("Resize"))
 hl.define_submap("Resize", function()
-  hl.bind(" + L", function() hl.dispatch(hl.dsp.window.resize({ x = 10, y = 0, relative = true })) end, { repeating = true })
-  hl.bind(" + H", function() hl.dispatch(hl.dsp.window.resize({ x = -10, y = 0, relative = true })) end, { repeating = true })
-  hl.bind(" + K", function() hl.dispatch(hl.dsp.window.resize({ x = 0, y = -10, relative = true })) end, { repeating = true })
-  hl.bind(" + J", function() hl.dispatch(hl.dsp.window.resize({ x = 0, y = 10, relative = true })) end, { repeating = true })
+  hl.bind(" + L", function() hl.dispatch(hl.dsp.window.resize({ x = 10, y = 0, relative = true })) end,
+    { repeating = true })
+  hl.bind(" + H", function() hl.dispatch(hl.dsp.window.resize({ x = -10, y = 0, relative = true })) end,
+    { repeating = true })
+  hl.bind(" + K", function() hl.dispatch(hl.dsp.window.resize({ x = 0, y = -10, relative = true })) end,
+    { repeating = true })
+  hl.bind(" + J", function() hl.dispatch(hl.dsp.window.resize({ x = 0, y = 10, relative = true })) end,
+    { repeating = true })
   hl.bind(" + escape", hl.dsp.submap("reset"))
 end)
 
 -- Power submap
-hl.bind(mod2 .. " + SHIFT + E", hl.dsp.submap("power"))
-hl.define_submap("power", "reset", function()
+hl.bind(mod2 .. " + SHIFT + E", hl.dsp.submap("(S)hutdown (R)eboot (L)ogout Sus(p)end (H)ibernate "))
+hl.define_submap("(S)hutdown (R)eboot (L)ogout Sus(p)end (H)ibernate ", "reset", function()
   hl.bind(mod2 .. " + S", hl.dsp.exec_cmd("shutdown now"))
   hl.bind(mod2 .. " + R", hl.dsp.exec_cmd("systemctl reboot"))
   hl.bind(mod2 .. " + L", hl.dsp.exec_cmd("hyprctl dispatch exit"))
@@ -188,10 +192,10 @@ hl.bind(mod2 .. " + down", hl.dsp.exec_cmd(ppause))
 hl.bind(mod2 .. " + up", hl.dsp.exec_cmd(ppause2))
 hl.bind(mod .. " + down", hl.dsp.exec_cmd("playerctl pause -a"))
 
-hl.bind("XF86AudioPlay", hl.dsp.exec_cmd(ppause))
-hl.bind("XF86AudioPause", hl.dsp.exec_cmd(ppause))
-hl.bind("XF86AudioNext", hl.dsp.exec_cmd(pnext))
-hl.bind("XF86AudioPrev", hl.dsp.exec_cmd(pprev))
+hl.bind("XF86AudioPlay", hl.dsp.exec_cmd(ppause), { locked = true, repeating = true })
+hl.bind("XF86AudioPause", hl.dsp.exec_cmd(ppause), { locked = true, repeating = true })
+hl.bind("XF86AudioNext", hl.dsp.exec_cmd(pnext), { locked = true, repeating = true })
+hl.bind("XF86AudioPrev", hl.dsp.exec_cmd(pprev), { locked = true, repeating = true })
 
 -- Second terminal / DND
 hl.bind(mod .. " + SHIFT + S", hl.dsp.exec_cmd(terminal))

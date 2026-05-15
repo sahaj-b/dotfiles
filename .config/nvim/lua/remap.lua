@@ -194,50 +194,50 @@ map("v", "<leader>gt", "<cmd>'<,'>GoAddTags<CR>", { desc = "Add Go Tags" })
 
 -- Sidekick
 
-map("n", "<leader>at", function()
-  require('sidekick.cli').select()
-end, { desc = 'Sidekick Select Tool' })
-
-map('v', '<leader>ai', function()
-  vim.ui.input({ prompt = 'Prompt: ' }, function(prompt)
-    if prompt and prompt ~= '' then
-      require('sidekick.cli').send({
-        selection = true,
-        diagnostics = true,
-        location = true,
-        msg = prompt,
-        submit = true
-      })
-    end
-  end)
-end, { desc = 'Sidekick Ask Prompt' })
-
-map({ 'n', 'v' }, '<leader>af', function()
-  vim.ui.input({ prompt = 'Prompt: ' }, function(prompt)
-    if prompt and prompt ~= '' then
-      require('sidekick.cli').send({
-        prompt = "file",
-        selection = true,
-        diagnostics = true,
-        location = true,
-        msg = prompt,
-        submit = true
-      })
-    end
-  end)
-end, { desc = 'Sidekick Ask Prompt with FILE' })
-
-
-map({ "n", "x", "i", "t" }, "<c-g>", function() require("sidekick.cli").focus() end, { desc = "Sidekick Switch Focus" })
-
-map({ "n", "v" }, "<c-q>", function() require("sidekick.cli").toggle({ focus = true }) end,
-  { desc = "Sidekick Toggle CLI" }
-)
-
-map({ "n", "v" }, "<leader>ao", function() require("sidekick.cli").toggle({ name = "opencode", focus = true }) end,
-  { desc = "Sidekick Opencode Toggle" })
-
-map({ "n", "v" }, "<leader>ap", function() require("sidekick.cli").prompt() end, { desc = "Sidekick Ask Prompt" })
+-- map("n", "<leader>at", function()
+--   require('sidekick.cli').select()
+-- end, { desc = 'Sidekick Select Tool' })
+--
+-- map('v', '<leader>ai', function()
+--   vim.ui.input({ prompt = 'Prompt: ' }, function(prompt)
+--     if prompt and prompt ~= '' then
+--       require('sidekick.cli').send({
+--         selection = true,
+--         diagnostics = true,
+--         location = true,
+--         msg = prompt,
+--         submit = true
+--       })
+--     end
+--   end)
+-- end, { desc = 'Sidekick Ask Prompt' })
+--
+-- map({ 'n', 'v' }, '<leader>af', function()
+--   vim.ui.input({ prompt = 'Prompt: ' }, function(prompt)
+--     if prompt and prompt ~= '' then
+--       require('sidekick.cli').send({
+--         prompt = "file",
+--         selection = true,
+--         diagnostics = true,
+--         location = true,
+--         msg = prompt,
+--         submit = true
+--       })
+--     end
+--   end)
+-- end, { desc = 'Sidekick Ask Prompt with FILE' })
+--
+--
+-- map({ "n", "x", "i", "t" }, "<c-g>", function() require("sidekick.cli").focus() end, { desc = "Sidekick Switch Focus" })
+--
+-- map({ "n", "v" }, "<c-q>", function() require("sidekick.cli").toggle({ focus = true }) end,
+--   { desc = "Sidekick Toggle CLI" }
+-- )
+--
+-- map({ "n", "v" }, "<leader>ao", function() require("sidekick.cli").toggle({ name = "opencode", focus = true }) end,
+--   { desc = "Sidekick Opencode Toggle" })
+--
+-- map({ "n", "v" }, "<leader>ap", function() require("sidekick.cli").prompt() end, { desc = "Sidekick Ask Prompt" })
 
 -- CodeCompanion KEYMAPS IN ITS CONFIG
 -- map({ "n", "v" }, "<leader>ci", ":CodeCompanion<cr>", { noremap = true, silent = true })

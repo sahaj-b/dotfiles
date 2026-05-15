@@ -181,8 +181,8 @@ window#waybar {
   background: @red;
   color: @crust;
   font-weight: bold;
-  padding-right: 12px;
-  padding-left: 10px;
+  padding-right: 4px;
+  padding-left: 2px;
 }
 
 #custom-easyeffects.enabled {

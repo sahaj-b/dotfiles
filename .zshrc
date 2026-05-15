@@ -139,7 +139,7 @@ alias duration="ffprobe -show_entries format=duration -v quiet -of csv='p=0' -i"
 # git
 alias ga="git add -A"
 alias ga.="git add ."
-alias gd="git difftool --staged"
+alias gd="git dt --staged"
 alias gdg="git diff --staged | gpt write a short commit message"
 alias gr="git restore --staged"
 alias gc="git commit -m"

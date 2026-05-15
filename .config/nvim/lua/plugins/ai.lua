@@ -1,34 +1,34 @@
 return {
-  {
-    "ThePrimeagen/99",
-    config = function()
-      local _99 = require("99")
-
-      -- local cwd = vim.uv.cwd()
-      -- local basename = vim.fs.basename(cwd)
-      _99.setup({
-        -- logger = {
-        --   level = _99.DEBUG,
-        --   type = "file",
-        --   path = "/tmp/" .. basename .. ".99.debug",
-        --   print_on_error = true,
-        -- },
-        model = "opencode/minimax-m2.5-free",
-        source = "blink",
-        md_files = {
-          "AGENT.md",
-        },
-      })
-
-      vim.keymap.set("v", "<leader>9v", function()
-        _99.visual()
-      end)
-
-      vim.keymap.set("v", "<leader>9s", function()
-        _99.stop_all_requests()
-      end)
-    end,
-  },
+  -- {
+  --   "ThePrimeagen/99",
+  --   config = function()
+  --     local _99 = require("99")
+  --
+  --     -- local cwd = vim.uv.cwd()
+  --     -- local basename = vim.fs.basename(cwd)
+  --     _99.setup({
+  --       -- logger = {
+  --       --   level = _99.DEBUG,
+  --       --   type = "file",
+  --       --   path = "/tmp/" .. basename .. ".99.debug",
+  --       --   print_on_error = true,
+  --       -- },
+  --       model = "opencode/minimax-m2.5-free",
+  --       source = "blink",
+  --       md_files = {
+  --         "AGENT.md",
+  --       },
+  --     })
+  --
+  --     vim.keymap.set("v", "<leader>9v", function()
+  --       _99.visual()
+  --     end)
+  --
+  --     vim.keymap.set("v", "<leader>9s", function()
+  --       _99.stop_all_requests()
+  --     end)
+  --   end,
+  -- },
 
   {
     "olimorris/codecompanion.nvim",
@@ -55,9 +55,18 @@ return {
     cmd = { "CodeCompanion", "CodeCompanionChat", "CodeCompanionActions", "CodeCompanionCmd", "CodeCompanionHistory" },
     keys = {
       {
-        "<leader>ci",
-        ":CodeCompanion<cr>",
-        desc = "Start CodeCompanion",
+        "<leader>ai",
+        function()
+          local config = require("codecompanion.config")
+          local is_visual = vim.fn.mode():find("[vV]")
+          vim.ui.input({ prompt = config.display.action_palette.prompt, default = "#{b} #{d} " }, function(input)
+            if not input or vim.trim(input) == "" then
+              return
+            end
+            require("codecompanion").inline({ args = input, range = is_visual and 1 or nil })
+          end)
+        end,
+        desc = "CodeCompanion",
         mode = { "n", "v" },
       },
       {
@@ -74,7 +83,7 @@ return {
       },
     },
     config = function()
-      local inlineAdapter = "copilot_gpt"
+      local inlineAdapter = "opencodeM"
       require("codecompanion").setup({
         adapters = {
           http = {
@@ -85,17 +94,27 @@ return {
                 },
               })
             end,
-            copilot_grok = function()
-              return require("codecompanion.adapters").extend("copilot", {
+            opencodeM = function()
+              return require("codecompanion.adapters").extend("openai_compatible", {
                 schema = {
-                  model = { default = "grok-code-fast-1" },
+                  model = { default = "minimax-m2.5-free" },
+                },
+                env = {
+                  api_key = "cmd:echo -n $OPENCODE_API_KEY",
+                  url = "https://opencode.ai/zen",
+                  chat_url = "/v1/chat/completions",
                 },
               })
             end,
-            copilot_sonnet = function()
-              return require("codecompanion.adapters").extend("copilot", {
+            opencodeD = function()
+              return require("codecompanion.adapters").extend("openai_compatible", {
                 schema = {
-                  model = { default = "claude-sonnet-4.5" },
+                  model = { default = "deepseek-v4-flash-free" },
+                },
+                env = {
+                  api_key = "cmd:echo -n $OPENCODE_API_KEY",
+                  url = "https://opencode.ai/zen",
+                  chat_url = "/v1/chat/completions",
                 },
               })
             end,
@@ -103,13 +122,6 @@ return {
               return require("codecompanion.adapters").extend("copilot", {
                 schema = {
                   model = { default = "gpt-4.1" },
-                },
-              })
-            end,
-            copilot_gpt5 = function()
-              return require("codecompanion.adapters").extend("copilot", {
-                schema = {
-                  model = { default = "gpt-5-mini" },
                 },
               })
             end,
@@ -159,6 +171,20 @@ return {
           },
           inline = {
             adapter = inlineAdapter,
+            editor_context = {
+              ["d"] = {
+                callback = function(ec)
+                  return require("plugins.codecompanion.inline_diagnostics")(ec.inline.buffer_context)
+                end,
+                description = "Alias for diagnostics",
+                opts = { contains_code = true },
+              },
+              ["b"] = {
+                path = "interactions.inline.editor_context.buffer",
+                description = "Share the current buffer with the LLM",
+                opts = { contains_code = true },
+              },
+            },
             keymaps = {
               accept_change = {
                 modes = { n = "ga" },
@@ -211,6 +237,9 @@ return {
 
       -- this prewarms copilot adapter so it doesnt block the first time you use it
       vim.defer_fn(function()
+        if inlineAdapter:sub(1, 8) ~= "copilot" then
+          return
+        end
         local adapters = require("codecompanion.adapters")
         local get_models = require("codecompanion.adapters.http.copilot.get_models")
         local token = require("codecompanion.adapters.http.copilot.token")

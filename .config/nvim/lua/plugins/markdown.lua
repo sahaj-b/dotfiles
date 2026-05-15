@@ -53,7 +53,7 @@ return {
         },
         preview = {
           filetypes = { "markdown", "codecompanion", "Avante" },
-          ignore_buftypes = {},
+          -- ignore_buftypes = {},
           --   enable_hybrid_mode = true,
           --   hybrid_modes = { "i" },
           --   ignore_previews = {}

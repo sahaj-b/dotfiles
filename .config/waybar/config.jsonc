@@ -26,7 +26,8 @@
     "battery",
     "custom/notif",
     "custom/easyeffects",
-    "tray"
+    "tray",
+    "custom/vuln"
   ],
   "hyprland/workspaces": {
     "on-scroll-up": "hyprctl dispatch 'hl.dsp.focus({ workspace = \"e+1\" })'",
@@ -77,13 +78,13 @@
     "interval": 1,
     "exec": "~/scripts/waybar/getScratchOutput.sh"
   },
-  // "custom/vuln": {
-  //   "exec": "[ -f /tmp/vuln ] && echo 󰚌",
-  //   "format": "{}",
-  //   "interval": 1,
-  //   "on-click": "rm /tmp/vuln"
-  //   // "on-click-right": "~/scripts/vuln-detect"
-  // },
+  "custom/vuln": {
+    "exec": "[ -f /tmp/vuln ] && echo 󰚌",
+    "format": "{}",
+    "interval": 1,
+    "on-click": "rm /tmp/vuln"
+    // "on-click-right": "~/scripts/vuln-detect"
+  },
   "custom/notes": {
     "interval": "100",
     "exec": "head -n1 /home/sahaj/notes/todo.md | cut -c3-; inotifywait -m ~/notes/ | while read; do head -n1 ~/notes/todo.md | cut -c3- ; done",
