@@ -1,0 +1,595 @@
+source = ~/.config/hypr/mocha.conf
+
+################## MONITORS ##########################
+
+# See https://wiki.hyprland.org/Configuring/Monitors/
+monitor=eDP-1,1920x1080,auto,1.25
+monitor=HDMI-A-1,preferred,0x0,1,mirror,eDP-1
+# See https://wiki.hyprland.org/Configuring/Keywords/ for more
+
+################## AUTOSTART ##########################
+
+exec-once = sudo /usr/local/sbin/mute-led
+exec-once = pkill awww-daemon; awww-daemon & sleep 1 && ~/scripts/changeWall rand
+# exec-once = ~/scripts/lock
+exec-once = swaylock -c 000000 -F
+# exec-once = foot --server
+exec-once = waybar
+exec-once = hyprpm reload
+# exec-once = swaybg -i $(find ~/wallpapers/ -type f | shuf -n1)
+exec-once = wl-paste --watch cliphist store    
+exec-once = rm "$HOME/.cache/cliphist/db"
+exec-once = ~/scripts/startScratch
+exec-once = vicinae server
+exec-once = tymr --revive
+exec-once = tymr 4pm 'shake'
+exec-once = tymr 5pm 'gym'
+exec-once = easyeffects --gapplication-service
+# exec-once = ~/vtype-players.sh
+# exec-once = [workspace special:term silent] foot -a scratch -e tmux new-session -A -s "scratch"
+# exec-once = sleep 1 && tmux send-keys -t scratch.1 "todon" ENTER
+# exec-once = [workspace special:extra silent] thorium-browser 
+# exec-once = [workspace special:term silent] alacritty --class scratch -e tmux new-session -A -s "scratch" && sleep 1 && tmux send-keys -t scratch.1 "todon" ENTER
+# exec-once = dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=Hyprland && nm-applet --indicator
+exec-once = nm-applet --no-agent
+exec-once = ~/scripts/blu-notif
+exec-once = /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
+exec-once = ~/scripts/bat-notif
+# exec-once = wlsunset -l 28.613939 -L 77.209023 -t 50K&
+exec-once = dotoold
+# exec-once = [[ $(cat /sys/class/power_supply/BAT0/status) == "Discharging" ]] && bluetoothctl power off
+# exec-once = thorium-browser
+# exec-once = brave --password-store=basic
+exec-once = zen-browser
+# exec-once = spotify
+exec-once = [[ $(cat /sys/class/power_supply/BAT*/status) == Discharging ]] || ~/scripts/ytm
+# exec-once = line=$(sed -n "3p" /etc/keyd/default.conf); if [[ $line == \#* ]]; then sudo sed -i "3s/^#//" /etc/keyd/default.conf; fi; sudo keyd reload
+# exec-once = ~/scripts/mouseSim
+# exec-once = while true;do notify-send -t 10000 PCheck;sleep 5000;done
+# exec-once = while true;do blu rl;sleep 3;done
+exec-once = blueman-applet
+# exec-once = ulimit -S -u 5000 # bruh this is temporary cmd just for current terminal session
+exec-once = LBSync cp
+exec-once = syncthing --no-browser
+exec-once = solaar -b symbolic -w hide
+# exec-once = sleep 10 && solaar -w hide
+exec-once = powertop --auto-tune
+exec-once = hypridle
+exec-once = opencode upgrade
+# exec-once = ~/scripts/fl-alt-passthrough
+
+exec-once = hyprctl setcursor "Bibata-Modern-Classic" 24
+# exec-once = hyprctl setcursor "Banana" 32
+# exec = gsettings set org.gnome.desktop.interface cursor-theme "Banana"
+# exec = gsettings set org.gnome.desktop.interface cursor-size 32
+
+# exec-once = antigravity /home/sahaj/projects/tuix
+# exec-once = env LUTRIS_SKIP_INIT=1 lutris lutris:rungameid/8
+# exec-once = steam steam://rungameid/11561827269651464192
+
+
+# exec-once = ~/scripts/vuln-detect
+
+################## ENV VARIABLES ##########################
+
+# Some default env vars.
+env = GDK_SCALE,1.25
+# env = HYPRCURSOR_THEME,Bibata-Modern-Classic
+# env = HYPRCURSOR_SIZE,24
+# env = TERMINAL,ghostty
+# env = TERMINAL,footclient
+env = TERMINAL,kitty
+env = XCURSOR_SIZE,24
+env = QT_QPA_PLATFORMTHEME,qt6ct # change to qt6ct if you have that
+env = WLR_DRM_DEVICES,/dev/dri/card1  # card1 = Iris Xe; card0 = Arc
+env = __GLX_VENDOR_LIBRARY_NAME,mesa  # Mesa for Intel
+
+# For all categories, see https://wiki.hyprland.org/Configuring/Variables/
+
+################## HARDWARE ##########################
+
+input {
+    kb_layout = us
+    kb_variant =
+    kb_model =
+    kb_options =
+    kb_rules =
+    accel_profile = flat
+    follow_mouse = 1
+
+    touchpad {
+        natural_scroll = yes
+        scroll_factor = 0.2
+    }
+    scroll_factor = 0.5
+
+    sensitivity = 0.2 # -1.0 to 1.0, 0 means no modification.
+    repeat_rate = 30
+    repeat_delay = 270
+}
+device {
+    # name = asue1213:00-04f3:3294-touchpad
+    # # sensitivity = 1.5
+    # accel_profile = 
+}
+# device {
+#     name = at-translated-set-2-keyboard
+#     enabled = false
+# }
+
+################## BEHAVIOUR ##########################
+
+general {
+    # See https://wiki.hyprland.org/Configuring/Variables/ for more
+    gaps_in = 3
+    gaps_out = 0
+    border_size = 2
+    # col.active_border = rgba(33ccffee) rgba(00ff99ee) 45deg
+    # col.inactive_border = rgba(595959aa)
+    col.active_border = $mauve $blue 45deg
+    col.inactive_border = rgba(595959aa)
+    layout = dwindle
+    # no_gaps_when_only = true
+    # Please see https://wiki.hyprland.org/Configuring/Tearing/ before you turn this on
+    allow_tearing = false
+    # no_cursor_warps = true
+}
+
+cursor {
+    inactive_timeout = 2
+}
+binds { 
+    allow_workspace_cycles = true
+}
+
+decoration {
+    # See https://wiki.hyprland.org/Configuring/Variables/ for more
+
+    rounding = 10
+    
+    blur {
+        # enabled = false
+        enabled = true
+        size = 5
+        passes = 4
+        new_optimizations = true
+        xray = true
+        # noise = 0.06
+        popups = true
+        # special = true
+    }
+
+    shadow {
+      enabled = true
+      # enabled = false
+      range = 4
+      render_power = 3
+      color = rgba(1a1a1aee)
+    }
+
+    dim_special = 0.2
+    # blur_special = 0.1
+    inactive_opacity = 0.9
+    # dim_inactive = true
+    # dim_strength = 0.1
+    # layerrule = blur, class:Fuzzel
+    layerrule = blur on, match:namespace waybar
+    layerrule = xray 1, match:namespace waybar
+}
+
+animations {
+    enabled = yes
+
+    # Some default animations, see https://wiki.hyprland.org/Configuring/Animations/ for more
+
+    bezier = myBezier, 0.05, 0.9, 0.1, 1.05
+
+    animation = windows, 1, 3, myBezier
+    animation = windowsOut, 1, 3, default, popin 80%
+    animation = border, 1, 3, default
+    animation = borderangle, 1, 3, default
+    animation = fade, 1, 3, default
+    animation = workspaces, 1, 2, default
+    animation = specialWorkspace, 1, 2, default, slidefadevert
+}
+
+dwindle {
+    # See https://wiki.hyprland.org/Configuring/Dwindle-Layout/ for more
+    pseudotile = yes # master switch for pseudotiling. Enabling is bound to mod + P in the keybinds section below
+    preserve_split = yes # you probably want this
+    force_split = 2
+    # no_gaps_when_only = 1
+}
+
+master {
+    # See https://wiki.hyprland.org/Configuring/Master-Layout/ for more
+    # new_is_master = true
+    # no_gaps_when_only = true
+}
+
+misc {
+    # See https://wiki.hyprland.org/Configuring/Variables/ for more
+    force_default_wallpaper = 0 # Set to 0 or 1 to disable the anime mascot wallpapers
+    disable_splash_rendering = true
+    disable_hyprland_guiutils_check = true
+    middle_click_paste = false
+    enable_anr_dialog = false
+    # initial_workspace_tracking = 0
+}
+xwayland {
+  force_zero_scaling = true
+}
+
+
+################## WINDOW/WORKSPACE/LAYER RULES ##########################
+
+windowrule = suppress_event maximize, match:class .* # supress auto maximize for all apps
+
+# workspace=s[true],gapsin:3,gapsout:80 150 80 150 # foot
+# workspace=s[true],gapsin:3,gapsout:76 150 75 150 # ghostty
+workspace=s[true],gapsin:3,gapsout:78 150 77 150 # kitty
+# workspace=special:term, on-created-empty: foot -o colors.alpha=0.5 -a scratch -e tmux new-session -A -s "scratch"';sleep 1;tmux send-keys -t scratch.1 "todon" ENTER
+
+windowrule = decorate off, match:workspace w[tv1] f[-1], match:float 0, match:initial_class ^(zen)$
+windowrule = float on, match:initial_class ^(float)$
+windowrule = float on, match:initial_title ^(Open File)$
+windowrule = float on, match:initial_title ^(Open Files)$
+windowrule = float on, match:initial_title ^(Open)$
+windowrule = float on, match:initial_title ^(Save File)$
+windowrule = float on, match:initial_title ^(Save)$
+windowrule = float on, match:title .*wants to.*
+windowrule = float on, match:initial_title ^(Qml Runtime)$
+windowrule = float on, match:initial_title ^(qmlscene)$
+windowrule = float on, match:title .*Sign.*
+windowrule = float on, match:class ^(yad)$
+windowrule = workspace special:term silent, match:class ^(scratch)$
+
+windowrule = workspace special:music silent, match:initial_class ^(com.github.th_ch.youtube_music)$
+# windowrule = float on, match:class ^(spotify)$
+# windowrule = size (monitor_w*0.85) (monitor_h*0.85), match:class ^(spotify)$
+# windowrule = center on, match:class ^(spotify)$
+
+windowrule = no_focus on, match:class ^(fl64.exe)$, match:title ^()$
+windowrule {
+  name = ghost_about_reaper
+  match:class = ^(REAPER)$
+  match:title = About REAPER.*
+
+  float = on
+  no_initial_focus = on
+  no_focus = on
+  suppress_event = activate activatefocus
+  no_anim = on
+  no_blur = on
+  no_shadow = on
+  opacity = 0 override 0 override 0 override
+}
+
+# windowrule {
+#   name = ghost_wine_desktop
+#   match:class = ^(explorer.exe)$
+#   match:title = ^(Wine Desktop)
+#
+#   float = on
+#   no_initial_focus = on
+#   no_focus = on
+#   suppress_event = activate activatefocus
+#   no_anim = on
+#   no_blur = on
+#   no_shadow = on
+#   opacity = 0 override 0 override 0 override
+# }
+
+windowrule = float on, match:title ^termfilechooser$
+windowrule = center on, match:title ^termfilechooser$
+windowrule = size (monitor_w*0.85) (monitor_h*0.85), match:title ^termfilechooser$
+
+# layerrule = blur on, match:title vicinae
+layerrule = ignore_alpha 0, match:namespace vicinae
+
+# disable fade animation for vicinae only
+layerrule = no_anim on, match:namespace vicinae
+
+# windowrulev2 = opacity 0.1, onworkspace:s[true]
+
+
+################## KEYBINDS ##########################
+
+# See https://wiki.hyprland.org/Configuring/Keywords/ for more
+$mod = SUPER
+$mod2 = ALT
+
+# $terminal = footclient
+# $terminal = ghostty +new-window
+$terminal = kitty -1
+$fileManager = thunar
+
+
+
+bind=$mod $mod2, S, exec, obs-cmd replay save && paplay /usr/share/sounds/freedesktop/stereo/camera-shutter.oga || notify-send "Failed to save replay buffer"
+bind=$mod $mod2, A, exec, obs-cmd replay toggle; sleep 1;obs-cmd replay status | grep -q "not running" && notify-send "Replay Buffer Stopped" || notify-send -t 1000 "Replay Buffer Started"
+
+bind=Ctrl $mod2, R, exec, obs-cmd recording toggle; sleep 0.8; obs-cmd recording status-active || notify-send "Recording Stopped"
+
+bind = $mod, S, exec, $terminal
+# bind = $mod, M, exit, 
+# bind = $mod, E, exec, $fileManager
+
+# float toggle
+bind = $mod SHIFT, SPACE, togglefloating
+
+# float -> resize -> center
+bind = $mod2 SHIFT, F, setfloating, 1
+bind = $mod2 SHIFT, F, resizeactive, exact 80% 80%
+bind = $mod2 SHIFT, F, centerwindow
+
+# resize -> center
+bind = $mod2 CTRL, SPACE, resizeactive, exact 80% 80%
+bind = $mod2 CTRL, SPACE, centerwindow
+
+# bind = $mod, D, exec, fuzzel
+bind = $mod, D, exec, vicinae open
+# bind = $mod, P, pseudo, # dwindle
+bind = $mod, E, togglesplit, # dwindle
+bind = $mod, F, fullscreen, # dwindle
+
+# Move focus with mod + hjkl
+bind = $mod, h, movefocus, l
+bind = $mod, l, movefocus, r
+bind = $mod, k, movefocus, u
+bind = $mod, j, movefocus, d
+bind = $mod, left, movefocus, l
+bind = $mod, right, movefocus, r
+bind = $mod, up, movefocus, u
+bind = $mod, down, movefocus, d
+bind = $mod2, tab, cyclenext
+
+bind = $mod SHIFT, H, movewindow, l
+bind = $mod SHIFT, L, movewindow, r
+bind = $mod SHIFT, K, movewindow, u
+bind = $mod SHIFT, J, movewindow, d
+
+#resize
+bind = $mod, R, submap, Resize
+submap = Resize
+binde = , l, resizeactive, 10 0
+binde = , h, resizeactive, -10 0
+binde = , k, resizeactive, 0 -10
+binde = , j, resizeactive, 0 10
+bind = , escape, submap, reset 
+submap = reset
+
+#Power
+bind = $mod2 SHIFT, E, submap, (S)hutdown (R)eboot (L)ogout Sus(p)end (H)ibernate 
+submap = (S)hutdown (R)eboot (L)ogout Sus(p)end (H)ibernate
+binde = $mod2, S, exec, shutdown now
+binde = $mod2, R, exec, systemctl reboot
+binde = $mod2, L, exec, hyprctl dispatch exit
+#loginctl kill-user sahaj
+binde = $mod2, P, exec, systemctl suspend && hyprctl dispatch submap reset
+binde = $mod2, H, exec, systemctl hibernate && hyprctl dispatch submap reset
+bind = , escape, submap, reset 
+submap = reset
+
+# Switch workspaces with mod + [0-9]
+bind = $mod, 1, workspace, 1
+bind = $mod, 2, workspace, 2
+bind = $mod, 3, workspace, 3
+bind = $mod, 4, workspace, 4
+bind = $mod, 5, workspace, 5
+bind = $mod, 6, workspace, 6
+bind = $mod, 7, workspace, 7
+bind = $mod, 8, workspace, 8
+bind = $mod, 9, workspace, 9
+bind = $mod, 0, workspace, 10
+bind = $mod, TAB, workspace, previous
+bind = $mod, period, workspace, e+1
+bind = $mod, comma, workspace, e-1
+
+# Move active window to a workspace with mod + SHIFT + [0-9]
+bind = $mod SHIFT, 1, movetoworkspacesilent, 1
+bind = $mod SHIFT, 2, movetoworkspacesilent, 2
+bind = $mod SHIFT, 3, movetoworkspacesilent, 3
+bind = $mod SHIFT, 4, movetoworkspacesilent, 4
+bind = $mod SHIFT, 5, movetoworkspacesilent, 5
+bind = $mod SHIFT, 6, movetoworkspacesilent, 6
+bind = $mod SHIFT, 7, movetoworkspacesilent, 7
+bind = $mod SHIFT, 8, movetoworkspacesilent, 8
+bind = $mod SHIFT, 9, movetoworkspacesilent, 9
+bind = $mod SHIFT, 0, movetoworkspacesilent, 10
+
+# Example special workspace (scratchpad)
+bind = $mod, SPACE, togglespecialworkspace, term
+bind = $mod2 SHIFT, SPACE, togglespecialworkspace, music
+bind = $mod2 SHIFT, M, movetoworkspace, special:music
+# bind = $mod2, SPACE, togglespecialworkspace, extra
+# bind = $mod2 SHIFT, SPACE, movetoworkspace, special:extra
+
+# Scroll through existing workspaces with mod + scroll
+bind = $mod, mouse_down, workspace, e-1
+bind = $mod, mouse_up, workspace, e+1
+
+# Move/resize windows with mod + LMB/RMB and dragging
+bindm = $mod, mouse:272, movewindow
+bindm = $mod, mouse:273, resizewindow
+
+# Brightness Controls
+$brightnessNotif = brightness=$(brightnessctl | awk -F '[()]' '/Current brightness:/ {gsub(/%/, ""); print $2}') && notify-send -h string:x-dunst-stack-tag:brtns -t 700 -h int:value:"$brightness" "               󰃠   ${brightness}%"
+
+binde = ,XF86MonBrightnessUp, exec, brightnessctl -c 'backlight' s +1% && $brightnessNotif
+binde = ,XF86MonBrightnessDown, exec, brightnessctl -c 'backlight' s 1%- && $brightnessNotif
+
+binde = $mod2,XF86AudioRaiseVolume, exec, brightnessctl -c 'backlight' s 1%+ && $brightnessNotif
+binde = $mod2,XF86AudioLowerVolume, exec, brightnessctl -c 'backlight' s 1%- && $brightnessNotif
+binde = $mod2,XF86AudioMute, exec, brightnessctl -c 'backlight' s 10% && $brightnessNotif
+
+# Volume Controls
+$volumeNotif = volume=$(pamixer --get-volume) && isMuted=$(pamixer --get-mute) && notify-send -h string:x-dunst-stack-tag:vol -t 700 $([[ "$isMuted" == "false" ]] && echo "-h int:value:$volume" || echo "-h int:value:0") "$([[ "$isMuted" == "true" ]] && echo '               󰖁' || echo '               󰕾')  ${volume}%"
+
+bindel= ,XF86AudioRaiseVolume, exec, pamixer -i  2 --allow-boost && pkill -RTMIN+10 waybar && $volumeNotif
+bindel= ,XF86AudioLowerVolume, exec, pamixer -d  2 --allow-boost && pkill -RTMIN+10 waybar && $volumeNotif
+bindel= ,XF86AudioMute, exec, pamixer -t && pkill -RTMIN+10 waybar && $volumeNotif
+
+$micNotif = notify-send -h string:x-dunst-stack-tag:mute -t 1000 "$([[ \"$(pamixer --default-source --get-mute)\" == \"true\" ]] && echo '               󰍭  Muted' || echo '             󰍬  Unmuted')"
+
+bind = ,XF86AudioMicMute, exec, pamixer --default-source -t && $micNotif
+
+
+binde = $mod, q, killactive,
+binde = $mod $mod2, q, killactive,
+bind = $mod2 SHIFT, X, exec, swaylock -c 000000 -F
+
+# bind = $mod, V, exec, cliphist list | fuzzel --dmenu | cliphist decode | wl-copy
+bind = $mod, V, exec, vicinae vicinae://extensions/vicinae/clipboard/history
+bind = $mod2, period, exec, vicinae deeplink 'vicinae://extensions/vicinae/core/search-emojis'
+
+
+bind = $mod, A, exec, rfkill unblock bluetooth && bluetoothctl power on && busctl call org.bluez /org/bluez/hci0/dev_B0_A3_F2_6A_E3_DB org.bluez.Device1 Disconnect; busctl call org.bluez /org/bluez/hci0/dev_B0_A3_F2_6A_E3_DB org.bluez.Device1 Connect
+# bind = $mod2, A, exec, paplay /usr/share/sounds/freedesktop/stereo/audio-volume-change.oga
+# rfkill list bluetooth | awk '/Soft blocked:/{s=$3} END{print s=="yes"?"unblock":"block"}' | xargs -I{} rfkill {} bluetooth
+bindl = $mod2, Z, exec, ~/scripts/blu toggle
+
+#Screenshots
+bind = $mod2 SHIFT, S, exec, ~/scripts/grimblast copy area && notify-send -t 1000 "SS Copied" 
+bind = $mod2 ,S, exec, ~/scripts/saveSS
+bind = $mod SHIFT, A, exec, ~/scripts/grimblast save area && notify-send -t 1000 "SS saved" 
+bind = $mod, Print, exec, ~/scripts/grimblast save screen && notify-send -t 1000 "SS saved" 
+bind = ,Print, exec, ~/scripts/grimblast copy screen && notify-send -t 1000 "SS Copied" 
+bind = $mod2 CONTROL, S, exec, wl-paste | satty --filename -
+# bind = $mod2 SHIFT, H, exec, hyprshot -m region -z --clipboard-only
+
+#Color Picker
+bind = $mod2 SHIFT, C, exec, hyprpicker -a
+
+#OCR
+# bind = $mod, O, exec, grim -g "$(slurp)" - | tesseract - - -l eng | wl-copy && notify-send -t 2000 "Copied Text:" "$(wl-paste)"
+bind = $mod, O, exec, bash -c ' grim -g "$(slurp)" - | magick - -colorspace Gray -normalize -unsharp 0x1+0.5+0.1 -threshold 60% - | tesseract --oem 3 --psm 6 -l eng - stdout | wl-copy && notify-send -t 2000 "OCR Copied" "$(wl-paste)"'
+bind = $mod SHIFT, O, exec, ~/scripts/paddleocr
+
+# bind = $mod2, R, exec, pkill swaybg; swaybg -i $(find ~/wallpapers/ -type f | shuf -n1)
+bind = $mod2, R, exec, ~/scripts/changeWall rand
+bind = $mod2 SHIFT, right, exec, ~/scripts/changeWall next
+bind = $mod2 SHIFT, left, exec, ~/scripts/changeWall prev
+
+bind = $mod, T, exec, hyprctl keyword "device[asue1213:00-04f3:3294-touchpad]:enabled" 0; notify-send -t 1000 󰤳 Disabled; pkill dotool; dotoold
+bind = $mod SHIFT, T, exec, hyprctl keyword "device[asue1213:00-04f3:3294-touchpad]:enabled" 1; notify-send -t 1000 󰟸 Enabled; pkill dotool; dotoold
+bind = ,XF86TouchpadToggle, exec, hyprctl keyword "device[asue1213:00-04f3:3294-touchpad]:enabled" 0; pkill dotool; dotoold
+
+# bind = $mod2, F, exec, line=$(sed -n '3p' /etc/keyd/default.conf); [[ $line == \#* ]] && sudo sed -i '3s/^#//' /etc/keyd/default.conf || sudo sed -i '3s/^/#/' /etc/keyd/default.conf; sudo keyd reload
+
+bind = CONTROL SHIFT, SPACE, exec, makoctl dismiss -a
+
+$pprev = playerctl previous -p 'YoutubeMusic, spotify, chromium, %any'
+$pnext = playerctl next -p 'YoutubeMusic, spotify, chromium, %any'
+$ppause = playerctl play-pause -p 'YoutubeMusic, spotify, chromium, %any'
+$ppause2 = playerctl play-pause -p 'firefox, brave, chromium, mpv'
+
+bindl = $mod2, left, exec, $pprev
+bindl = $mod2, right, exec, $pnext
+bindl = $mod2, down, exec, $ppause
+bindl = $mod2, up, exec, $ppause2
+bindl = $mod, down, exec, playerctl pause -a
+# bind = $mod2, slash, exec, spotify
+
+bindl = ,XF86AudioPlay, exec, $ppause
+bindl = ,XF86AudioPause, exec, $ppause
+bindl = ,XF86AudioNext, exec, $pnext
+bindl = ,XF86AudioPrev, exec, $pprev
+
+bind = $mod SHIFT, S, exec, $terminal
+bind = $mod2 SHIFT, D, exec, makoctl mode -s dnd
+
+binde = $mod2, O, exec, echo "wheel -5" | dotoolc
+binde = $mod2, P, exec, echo "wheel 5" | dotoolc
+binde = $mod2, U, exec, echo "click left" | dotoolc
+binde = $mod2, I, exec, echo "click right" | dotoolc
+
+bind = $mod2 SHIFT, D, exec, hyprctl dispatch dpms off && sleep 1 && hyprctl dispatch dpms on && pkill mako && mako
+
+# Pickers
+# bind = $mod2, period, exec, ~/scripts/picker emoji --float
+bind = $mod2 Shift, period, exec, ~/scripts/picker --float
+
+binde = $mod Shift, W, exec, pkill waybar; waybar
+bind = $mod2 Shift, R, exec, ~/scripts/recorder
+bind = $mod Shift, R, exec, ~/scripts/recorder -s
+
+bind = $mod2, slash, exec, hexecute
+
+bind = , END, exec, echo
+
+bind = $mod SHIFT, E, exec, pgrep easyeffects && easyeffects -q || easyeffects --gapplication-service&
+
+# bind = $mod1 SHIFT, z, exec, hyprctl keyword cursor:zoom_factor $(awk "BEGIN {print $(hyprctl getoption cursor:zoom_factor | grep 'float:' | awk '{print $2}') + 1}") # Zoom out
+#
+# bind = $mod1 SHIFT, x, exec, hyprctl keyword cursor:zoom_factor $(awk "BEGIN {print $(hyprctl getoption cursor:zoom_factor | grep 'float:' | awk '{print $2}') - 1}") # Zoom in
+
+################## GESTURES ##########################
+
+gesture = 3, left, dispatcher, exec, $pprev
+gesture = 3, right, dispatcher, exec, $pnext
+gesture = 3, down, dispatcher, exec, $ppause
+gesture = 3, up, dispatcher, exec, $ppause2
+
+# gesture = 4, right, dispatcher, exec, echo "type $(cut -c3 ~/.local/share/.codeium/.oldconfig)" | dotoolc
+# gesture = 4, left, dispatcher, exec, echo "type $(cut -c1 ~/.local/share/.codeium/.oldconfig)" | dotoolc
+# gesture = 3, pinchin, dispatcher, exec, echo "type $(cut -c4 ~/.local/share/.codeium/.oldconfig)" | dotoolc
+# gesture = 4, pinchin, dispatcher, exec, echo "type $(cut -c2 ~/.local/share/.codeium/.oldconfig)" | dotoolc
+
+gesture = 4, right, dispatcher, exec, echo "type $(cut -c1-2 ~/.local/share/.codeium/.oldconfig)" | dotoolc
+gesture = 4, pinchin, dispatcher, exec, echo "type $(cut -c3- ~/.local/share/.codeium/.oldconfig)" | dotoolc
+gesture = 4, down, dispatcher, exec, echo "key enter" | dotoolc
+
+gesture = 3, pinchout, dispatcher, exec, spotify
+# gesture = 3, horizontal, workspace
+
+
+################## PLUGINS ##########################
+
+plugin:dynamic-cursors {
+    enabled = true
+    # tilt rotate stretch
+    mode = stretch
+
+    # minimum angle difference in degrees after which the shape is changed
+    # smaller values are smoother, but more expensive for hw cursors
+    threshold = 2 
+
+    rotate {
+        length = 20
+        offset = 0.0
+    }
+
+    tilt {
+        limit = 3500
+        function = negative_quadratic
+    }
+
+    stretch {
+        limit = 3000
+        function = quadratic
+    }
+
+    shake {
+        enabled = true
+        # use nearest-neighbour (pixelated) scaling when shaking
+        nearest = true
+        threshold = 5.0
+        # magnification level immediately after shake start
+        base = 1.5
+        # magnification increase per second when continuing to shake
+        speed = 0.5
+        # how much the speed is influenced by the current shake intensitiy
+        influence = 5.0
+
+        # maximal magnification the cursor can reach
+        # values below 1 disable the limit (e.g. 0)
+        limit = 0.0
+
+        # time in millseconds the cursor will stay magnified after a shake has ended
+        timeout = 0
+
+        # show cursor behaviour `tilt`, `rotate`, etc. while shaking
+        effects = false
+    }
+}

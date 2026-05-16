@@ -154,6 +154,36 @@ alias bd="bun run dev"
 alias gpt='mods -m gpt-4.1'
 alias gfl='mods -m 2.5-flash-lite'
 
+function p() {
+  local tmp=$(mktemp /tmp/pi-prompt-XXXXXXXX)
+  ${EDITOR:-nvim} "$tmp" </dev/tty
+  if [[ -s "$tmp" ]]; then
+    local -a file_args=()
+    local -a msg_words=()
+    local content="$(<$tmp)"
+
+    for word in ${(z)content}; do
+      if [[ "$word" == @* && "${#word}" -gt 1 ]]; then
+        file_args+=("$word")
+      else
+        msg_words+=("$word")
+      fi
+    done
+
+    if (( ${#file_args[@]} )); then
+      local message="${(j: :)msg_words}"
+      if [[ -n "$message" ]]; then
+        command pi "${file_args[@]}" "$message"
+      else
+        command pi "${file_args[@]}"
+      fi
+    else
+      command pi "$content"
+    fi
+  fi
+  rm -f "$tmp"
+}
+
 function gifcompress() {
   if [[ $1 == '-h' ]]; then
     echo "input.gif [output.gif] [lossy:80] [colors:64]"

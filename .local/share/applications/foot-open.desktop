@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Foot Open
+Exec=foot --working-directory=%f
+TryExec=foot
+MimeType=inode/directory;
+Terminal=false

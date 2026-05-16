@@ -1,0 +1,45 @@
+{
+  "mcpServers": {
+    "tavily": {
+      "env": {
+        "TAVILY_API_KEY": ""
+      },
+      "name": "Tavily",
+      "disabled": false,
+      "id": "github.com/tavily-ai/tavily-mcp",
+      "args": [
+        "dlx",
+        "tavily-mcp@0.1.4"
+      ],
+      "command": "pnpm"
+    },
+    "github": {
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": ""
+      },
+      "args": [
+        "dlx",
+        "@modelcontextprotocol/server-github"
+      ],
+      "command": "pnpm"
+    },
+    "git": {
+      "args": [
+        "mcp-server-git"
+      ],
+      "command": "uvx"
+    },
+    "context7": {
+      "args": [
+        "dlx",
+        "@upstash/context7-mcp@latest"
+      ],
+      "command": "pnpm"
+    }
+  },
+  "nativeMCPServers": {
+    "mcphub": {
+      "disabled": false
+    }
+  }
+}

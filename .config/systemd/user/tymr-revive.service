@@ -1,0 +1,15 @@
+[Unit]
+Description=Revive tymr timers on user login
+After=graphical-session.target
+Wants=graphical-session.target
+
+[Service]
+Type=oneshot
+# wait for notification stuff to be ready
+User=%u
+ExecStartPre=/bin/sleep 5
+ExecStart=/usr/local/bin/tymr --revive
+RemainAfterExit=yes
+
+[Install]
+WantedBy=graphical-session.target

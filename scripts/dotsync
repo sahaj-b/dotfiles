@@ -28,6 +28,13 @@ dotfiles=(
   "$HOME/wallpapers/"
   "$HOME/scripts/"
 
+  # pi
+  "$HOME/.pi/agent/keybindings.json"
+  "$HOME/.pi/agent/settings.json"
+  "$HOME/.pi/agent/models.json"
+  "$HOME/.pi/agent/extenstions/"
+  "$HOME/.pi/agent/themes/"
+
   # .config
   "$HOME/.config/vicinae/"
   "$HOME/.config/gamemode.ini"
@@ -178,13 +185,14 @@ function copyDots() {
   mkdir -p "$1"
   for item in "${dotfiles[@]}"; do
     if [ -e "$item" ]; then
+      item="${item%/}"
       relative_path="${item#~/}"
       if [[ $item == /etc/* || $item == /usr/share/* ]]; then
         relative_path="${item#/}"
       fi
       destination_dir=$(dirname "$1$relative_path")
       mkdir -p "$destination_dir"
-      if ! cp -r "$item" "$destination_dir"; then
+      if ! rsync -a --exclude=node_modules "$item" "$destination_dir"; then
         error "Couldn't copy $item to $destination_dir"
       fi
     else

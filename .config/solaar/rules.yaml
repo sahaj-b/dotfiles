@@ -1,0 +1,58 @@
+%YAML 1.3
+---
+- Rule:
+  - MouseGesture: Mouse Down
+  - KeyPress:
+    - [Alt_L, Down]
+    - click
+- Rule:
+  - MouseGesture: Mouse Left
+  - KeyPress:
+    - [Alt_L, Left]
+    - click
+- Rule:
+  - MouseGesture: Mouse Right
+  - KeyPress:
+    - [Alt_L, Right]
+    - click
+- Rule:
+  - MouseGesture: Mouse Up
+  - KeyPress:
+    - [Alt_L, Up]
+    - click
+- Rule:
+  - MouseGesture: Mouse Gesture Button
+  - KeyPress:
+    - [Alt_L, slash]
+    - click
+...
+---
+- Rule:
+  - Key: [Forward Button, pressed]
+  - KeyPress:
+    - Super_L
+    - depress
+- Rule:
+  - Key: [Forward Button, released]
+  - KeyPress:
+    - Super_L
+    - release
+...
+---
+- Key: [Back Button, pressed]
+- KeyPress:
+  - [Alt_L, q]
+  - click
+...
+---
+- Rule:
+  - Test: [thumb_wheel_up, 20]
+  - KeyPress:
+    - [Control_L, equal]
+    - click
+- Rule:
+  - Test: [thumb_wheel_down, 20]
+  - KeyPress:
+    - [Control_L, minus]
+    - click
+...

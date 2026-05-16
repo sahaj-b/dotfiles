@@ -1,0 +1,6 @@
+[filechooser]
+cmd=yazi-wrapper.sh
+env=TERMCMD='foot -T "termfilechooser"'
+default_dir=$HOME
+open_mode = suggested
+save_mode = last

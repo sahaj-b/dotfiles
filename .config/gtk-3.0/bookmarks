@@ -1,0 +1,8 @@
+file:///home/sahaj/Pictures
+sftp://192.168.0.199:8022/storage/emulated/0 Phone
+sftp://192.168.0.199:8022/data/data/com.termux/files/home Termux
+sftp://192.168.0.195:8022/storage/emulated/0 Phone2
+file:///home/sahaj/Downloads
+sftp://192.168.0.195:8022/data/data/com.termux/files/home Termux2
+file:///home/sahaj/projects
+file:///home/sahaj/wallpapers

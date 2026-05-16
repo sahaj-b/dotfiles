@@ -1,0 +1,55 @@
+{
+    "editor.fontSize": 16,
+    "editor.fontFamily": "'JetBrainsMono Nerd Font', 'monospace', monospace",
+    "extensions.experimental.affinity": {
+        "asvetliakov.vscode-neovim": 1
+    },
+    "extensions.ignoreRecommendations": true,
+    "git.confirmSync": false,
+    "github.copilot.chat.agent.thinkingTool": true,
+    "github.copilot.chat.codesearch.enabled": true,
+    "github.copilot.nextEditSuggestions.enabled": true,
+    "chat.promptFilesLocations": {
+        "~/notes/prompt.md": true
+    },
+    "github.copilot.nextEditSuggestions.fixes": true,
+    "workbench.colorTheme": "Catppuccin Mocha",
+    "chat.instructionsFilesLocations": {
+        "/home/sahaj/.vscode/": true
+    },
+    "editor.minimap.enabled": false,
+    "scm.diffDecorationsGutterVisibility": "hover",
+    "editor.lineNumbers": "relative",
+    "editor.indentSize": 4,
+    "[jsonc]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    // "workbench.editor.showTabs": "single",
+    "wakatime.apiUrl": "https://wakapi.dev/api",
+    "editor.tabSize": 2,
+    "editor.cursorSurroundingLines": 8,
+    "errorLens.delay": 500,
+    "errorLens.messageBackgroundMode": "message",
+    "editor.smoothScrolling": true,
+    "errorLens.alignMessage": {
+        "start": 0,
+        "end": 0,
+        "minimumMargin": 4,
+        "padding": [
+            2,
+            5
+        ],
+        "useFixedPosition": true
+    },
+    "editor.formatOnSave": true,
+    "files.restoreUndoStack": false,
+    "window.customTitleBarVisibility": "never",
+    "editor.guides.highlightActiveIndentation": "always",
+    "errorLens.enabled": true,
+    "terminal.external.linuxExec": "footclient",
+    "gitlens.currentLine.enabled": false,
+    "find-it-faster.general.showMaximizedTerminal": true,
+    "workbench.editor.enablePreviewFromQuickOpen": true,
+    "window.titleBarStyle": "native",
+    "window.menuBarVisibility": "hidden",
+}
