@@ -32,7 +32,7 @@ dotfiles=(
   "$HOME/.pi/agent/keybindings.json"
   "$HOME/.pi/agent/settings.json"
   "$HOME/.pi/agent/models.json"
-  "$HOME/.pi/agent/extenstions/"
+  "$HOME/.pi/agent/extensions/"
   "$HOME/.pi/agent/themes/"
 
   # .config
@@ -62,7 +62,8 @@ dotfiles=(
   "$HOME/.config/btop/"
   "$HOME/.config/systemd/user/"
   "$HOME/.config/alacritty/alacritty.toml"
-  "$HOME/.config/ghostty/"
+  "$HOME/.config/ghostty/config"
+
   "$HOME/.config/kitty/"
   "$HOME/.config/dconf/"
 
