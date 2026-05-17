@@ -33,6 +33,17 @@ const PI_AUTH_PATH = join(homedir(), ".pi", "agent", "auth.json");
 
 const OC_SESSION_ID = `ses_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
 
+function ocHeaders(): Record<string, string> {
+	return {
+		"User-Agent": "opencode/1.14.50 ai-sdk/provider-utils/4.0.23 runtime/bun/1.3.13",
+		"Accept": "*/*",
+		"x-opencode-session": OC_SESSION_ID,
+		"x-opencode-request": `msg_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`,
+		"x-opencode-project": "global",
+		"x-opencode-client": "cli",
+	};
+}
+
 function resolveRegistryPath(): string {
 	for (const p of REGISTRY_PATHS) {
 		if (existsSync(p)) return p;
@@ -227,28 +238,6 @@ export default function (pi: ExtensionAPI) {
 	const g = globalThis as Record<symbol, any>;
 	if (g[REG_KEY]) return;
 
-	// fetch monkey-patch: guard with string key so it only runs once across reloads
-	const FETCH_PATCHED = "__pi-oc-sdk-fetch-patched";
-	if (!(globalThis as any)[FETCH_PATCHED]) {
-		const originalFetch = globalThis.fetch;
-		globalThis.fetch = async function (input, init) {
-			const url = typeof input === "string" ? input : (input?.url ?? "");
-			if (url.includes("opencode.ai/zen") && init && typeof init === "object") {
-				const headers = new Headers(init.headers as HeadersInit | undefined);
-				headers.set("x-opencode-session", OC_SESSION_ID);
-				headers.set(
-					"x-opencode-request",
-					`msg_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`,
-				);
-				headers.set("x-opencode-project", "global");
-				headers.set("x-opencode-client", "cli");
-				(init as RequestInit).headers = headers;
-			}
-			return originalFetch.call(this, input, init);
-		};
-		(globalThis as any)[FETCH_PATCHED] = true;
-	}
-
 	const zen = discoverModels();
 	if (zen.length > 0) {
 		const apiKey = resolveApiKey("opencode");
@@ -256,6 +245,7 @@ export default function (pi: ExtensionAPI) {
 			apiKey,
 			api: "openai-completions" as const,
 			baseUrl: OC_BASE_URL,
+			headers: ocHeaders(),
 			models: buildPiModels(zen, OC_PROVIDER),
 		});
 	}

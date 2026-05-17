@@ -8,7 +8,7 @@
     "npm:pi-workspace-history"
   ],
   "defaultProvider": "oc",
-  "defaultModel": "qwen3.6-plus-free",
+  "defaultModel": "deepseek-v4-flash-free",
   "defaultThinkingLevel": "high",
   "theme": "catppuccin-mocha",
   "vstack": {

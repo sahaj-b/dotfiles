@@ -329,16 +329,8 @@ function codeBlockBgParts(ctx?: ExtensionContext): { open: string; close: string
 	return { open: "\x1b[48;5;236m", close: "\x1b[49m" };
 }
 
-function applyCodeBlockBg(line: string, contentWidth: number, ctx?: ExtensionContext): string {
-	const { open, close } = codeBlockBgParts(ctx);
-	if (!open) return line;
-
-	const visibleLen = visibleWidth(line);
-	const paddingNeeded = contentWidth - visibleLen;
-	const padded = paddingNeeded > 0 ? line + " ".repeat(paddingNeeded) : line;
-
-	const reapplied = padded.replace(/\x1b\[(?:0|49)m/g, (reset) => `${reset}${open}`);
-	return `${open}${reapplied}${close}`;
+function applyCodeBlockBg(line: string, _contentWidth: number, _ctx?: ExtensionContext): string {
+	return line;
 }
 
 function renderStyledCodeBlock(token: any, width: number, markdownTheme: any, ctx?: ExtensionContext): string[] {
