@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
 
-TERM_INITIAL_TITLE_REGEX="${1:-foot}"
+SESSION_TITLE="${1:-}"
+TERM_INITIAL_TITLE_REGEX="${2:-^(foot|kitty|Alacritty|Ghostty)$}"
+set -u
+
+if [ -n "$SESSION_TITLE" ]; then
+  TITLE_PATTERN="OC | ${SESSION_TITLE:0:30}"
+else
+  TITLE_PATTERN="OC | *"
+fi
 
 if ! command -v hyprctl &>/dev/null; then
-  echo "hyprctl not found" >&2
   exit 1
 fi
 
@@ -14,54 +21,57 @@ fi
 
 INITIAL_TITLE=$(echo "$ACTIVE_WINDOW" | jq -r '.initialTitle // empty')
 TITLE=$(echo "$ACTIVE_WINDOW" | jq -r '.title // empty')
-PID=$(echo "$ACTIVE_WINDOW" | jq -r '.pid // empty')
+TERM_PID=$(echo "$ACTIVE_WINDOW" | jq -r '.pid // empty')
 
 if [[ ! "$INITIAL_TITLE" =~ $TERM_INITIAL_TITLE_REGEX ]]; then
-  echo "Active window initial title doesn't match $TERM_INITIAL_TITLE_REGEX"
   exit 1
 fi
 
-# Method 1: Check title directly
-if echo "$TITLE" | grep -qiE "opencode|OC "; then
-  echo $TITLE
-  exit 0
+match_title() {
+  local title="$1"
+  if echo "$title" | grep -qiE "^OC \|"; then
+    [ -z "$SESSION_TITLE" ] && return 0
+    echo "$title" | grep -qiE "^$(echo "$TITLE_PATTERN" | sed 's/[][$()*?^|]/\\&/g')" && return 0
+  fi
+  return 1
+}
+
+# Check terminal title (non-tmux)
+match_title "$TITLE" && exit 0
+
+if ! command -v tmux &>/dev/null; then
+  exit 1
 fi
 
-# Method 2: Check all tmux panes to see if foot PID matches or is child of any pane
-if [ -n "$PID" ] && command -v tmux &>/dev/null; then
-  # Get all tmux panes with their pane_pid (the shell process in the pane)
-  while IFS= read -r pane_line; do
-    PANE_ID=$(echo "$pane_line" | awk '{print $1}')
-    PANE_PID=$(echo "$pane_line" | awk '{print $2}')
-    echo "Checking pane $PANE_ID with shell PID $PANE_PID..."
+TMUX_CLIENTS=$(tmux list-clients -F '#{client_pid} #{client_session}' 2>/dev/null)
 
-    # Check if foot PID is the same as pane PID (foot is running tmux)
-    if [ "$PID" = "$PANE_PID" ]; then
-      echo "Foot PID matches pane PID, checking title..."
-      CURRENT_TITLE=$(tmux display -p -t "$PANE_ID" '#T' 2>/dev/null)
-      echo $CURRENT_TITLE
-      if [[ "$CURRENT_TITLE" == "OC | "* ]]; then
-        exit 0
-      fi
-    fi
+# check if the PID is of a tmux client & get active pane title
+check_pid() {
+  local pid=$1
 
-    # Check if foot PID is a child of the pane's shell
-    # Walk up the parent chain from foot PID
-    CURRENT_PID=$PID
-    while [ -n "$CURRENT_PID" ] && [ "$CURRENT_PID" != "1" ]; do
-      PARENT_PID=$(ps -o ppid= -p "$CURRENT_PID" 2>/dev/null | tr -d ' ')
-      if [ "$PARENT_PID" = "$PANE_PID" ]; then
-        echo "Foot PID $PID is a child of pane PID $PANE_PID, checking title..."
-        CURRENT_TITLE=$(tmux display -p -t "$PANE_ID" '#T' 2>/dev/null)
-        echo $CURRENT_TITLE
-        if [ "$CURRENT_TITLE" = "opencode" ]; then
-          exit 0
-        fi
-        break
-      fi
-      CURRENT_PID=$PARENT_PID
-    done
-  done < <(tmux list-panes -a -F '#{pane_id} #{pane_pid}' 2>/dev/null)
-fi
+  SESSION=$(awk -v pid="$pid" '$1 == pid {print $2}' <<<"$TMUX_CLIENTS")
+
+  if [[ -n "$SESSION" ]]; then
+    PANE_TITLE=$(tmux display-message -t "$SESSION" -p '#T')
+    match_title "$PANE_TITLE" && exit 0
+  fi
+}
+
+# walk process tree
+find_tmux_client() {
+  local pid=$1
+  local is_root=$2
+
+  if [[ "$is_root" != "true" ]]; then
+    check_pid "$pid"
+  fi
+
+  local children=$(pgrep -P "$pid" 2>/dev/null)
+  for child in $children; do
+    find_tmux_client "$child" "false"
+  done
+}
+
+find_tmux_client "$TERM_PID" "true"
 
 exit 1

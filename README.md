@@ -6,7 +6,7 @@
 
 ## Setup Overview
 - **WM**: Hyprland
-- **Terminal**: Foot
+- **Terminal**: Kitty
 - **Shell**: Zsh
 - **Font**: JetBrains Mono Nerd Font
 - **Editor**: Neovim
@@ -22,10 +22,10 @@
 - [Hyprland](.config/hypr/hyprland.conf) - Main compositor config
 - [Hypridle](.config/hypr/hypridle.conf) - Idle management  
 - [Waybar](.config/waybar/) - Status bar (custom component's scripts are in [scripts/waybar](scripts/waybar))
-- [Foot](.config/foot/foot.ini) - Terminal  
 - [Vicinae](.config/vicinae/vicinae.json) - Launcher
 - [Mako](.config/mako/config) - Notification daemon
 - [Swaylock](.config/swaylock/config) - Screen locker
+- [Kitty](.config/kitty/kitty.conf) - Terminal emulator
 
 ### Development
 - [Neovim](.config/nvim/) - Editor. Fully customized beast
@@ -53,5 +53,6 @@
 - [Wofi](.config/wofi/) - Application launcher
 - [Alacritty](.config/alacritty/alacritty.toml) - Terminal emulator
 - [Ghostty](.config/ghostty/config) - Terminal emulator
+- [Foot](.config/foot/foot.ini) - Terminal   emulator
 
 *Feel free to steal whatever you want from this setup 🏴‍☠️*

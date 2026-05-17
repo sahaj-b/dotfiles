@@ -1,16 +1,13 @@
 {
-  "lastChangelogVersion": "0.74.0",
+  "lastChangelogVersion": "0.74.1",
   "packages": [
     "npm:pi-btw",
     "npm:pi-subagents",
     "npm:@juicesharp/rpiv-ask-user-question",
-    "npm:pi-rewind",
-    "npm:@vanillagreen/pi-qol",
-    "npm:@vanillagreen/pi-tool-renderer",
-    "npm:pi-opencode-bridge",
-    "npm:@plannotator/pi-extension"
+    "npm:@plannotator/pi-extension",
+    "npm:pi-workspace-history"
   ],
-  "defaultProvider": "oc-sdk-zen",
+  "defaultProvider": "oc",
   "defaultModel": "deepseek-v4-flash-free",
   "defaultThinkingLevel": "high",
   "theme": "catppuccin-mocha",
@@ -18,11 +15,6 @@
     "extensionManager": {
       "disabledItems": [],
       "config": {
-        "@vanillagreen/pi-qol": {
-          "permissionGate.enabled": true,
-          "sessionAutoRename.model": "opencode/minimax-m2.5-free",
-          "compaction.model": "opencode/minimax-m2.5-free"
-        },
         "@vanillagreen/pi-tool-renderer": {
           "batchMaxCalls": 20,
           "renderMutationTools": true,
@@ -30,9 +22,19 @@
           "pendingStatusAnimation": true,
           "toolChrome": "off",
           "styledCodeBlocks": false
+        },
+        "pi-qol": {
+          "permissionGate.enabled": true,
+          "sessionAutoRename.model": "opencode/minimax-m2.5-free",
+          "compaction.model": "opencode/minimax-m2.5-free",
+          "compaction.customEnabled": false,
+          "compaction.idleEnabled": false
         }
       }
     }
   },
-  "hideThinkingBlock": false
+  "hideThinkingBlock": true,
+  "workspaceHistory": {
+    "enabled": false
+  }
 }
