@@ -29,6 +29,9 @@ const SOUND_KIND_MAP: Partial<Record<QolNotificationKind, SoundKind>> = {
   "task-complete": "complete",
   critical: "error",
   question: "question",
+  ready: "complete",
+  direction: "complete",
+  test: "complete",
 };
 
 function qolKindToSoundKind(kind: QolNotificationKind): SoundKind | undefined {
@@ -67,24 +70,36 @@ async function _runSoundCmd(command: string, args: string[]): Promise<void> {
   });
 }
 
-async function _playOnLinux(soundPath: string): Promise<void> {
-  const players = [
-    { command: "paplay", args: [soundPath] },
-    { command: "aplay", args: [soundPath] },
-    { command: "mpv", args: ["--no-video", "--no-terminal", soundPath] },
-    { command: "ffplay", args: ["-nodisp", "-autoexit", "-loglevel", "quiet", soundPath] },
-  ];
-  for (const player of players) {
-    try {
-      await _runSoundCmd(player.command, player.args);
-      return;
-    } catch {}
-  }
+// BT earbuds enter sleep after ~5s of idle and take ~2s to wake up.
+// Short notification sounds finish before the earbuds even activate,
+// so we play 1s of silence first to warm up the BT audio path.
+async function _wakeUpEarbuds(): Promise<void> {
+  const dir = findSoundsDir();
+  if (!dir) return;
+  const silence = join(dir, "silence.wav");
+  if (!existsSync(silence)) return;
+  await _runSoundCmd("paplay", [silence]);
 }
 
-async function _playOnMac(soundPath: string): Promise<void> {
-  await _runSoundCmd("afplay", [soundPath]);
+async function _playOnLinux(soundPath: string): Promise<void> {
+  await _wakeUpEarbuds();
+  await _runSoundCmd("paplay", [soundPath]);
+  // const players = [
+  //   { command: "aplay", args: [soundPath] },
+  //   { command: "mpv", args: ["--no-video", "--no-terminal", soundPath] },
+  //   { command: "ffplay", args: ["-nodisp", "-autoexit", "-loglevel", "quiet", soundPath] },
+  // ];
+  // for (const player of players) {
+  //   try {
+  //     await _runSoundCmd(player.command, player.args);
+  //     return;
+  //   } catch {}
+  // }
 }
+
+// async function _playOnMac(soundPath: string): Promise<void> {
+//   await _runSoundCmd("afplay", [soundPath]);
+// }
 
 async function _playOnWindows(soundPath: string): Promise<void> {
   await _runSoundCmd("powershell", ["-c", `(New-Object Media.SoundPlayer '${soundPath.replace(/'/g, "''")}').PlaySync()`]);
@@ -99,9 +114,9 @@ export async function playQolNotificationSound(soundKind: SoundKind, cwd?: strin
   if (!soundPath) return;
   try {
     switch (platform()) {
-      case "darwin":
-        await _playOnMac(soundPath);
-        break;
+      // case "darwin":
+      //   await _playOnMac(soundPath);
+      //   break;
       case "linux":
         await _playOnLinux(soundPath);
         break;
