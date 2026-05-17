@@ -107,13 +107,15 @@ export function registerBash(pi: ExtensionAPI, agent: any, cwd: string): void {
 			clearBashLiveTailTimer(liveTailState);
 			const exit = commandExit(output);
 			const count = lineCount(output);
-			const exitLabel = exit === null ? "exit 0" : `exit ${exit}`;
-			let summary = exit !== null && exit !== 0 ? theme.fg("error", exitLabel) : theme.fg("success", exitLabel);
-			summary += theme.fg("dim", ` · ${count} line${count === 1 ? "" : "s"}`);
-			if (resultTruncated(result)) summary += theme.fg("warning", " · truncated");
+			const exitLabel = exit != null && exit !== 0 ? `exit ${exit}` : null;
+			const parts = [];
+			if (exitLabel) parts.push(theme.fg("error", exitLabel));
+			parts.push(theme.fg(exitLabel ? "dim" : "success", `${count} line${count === 1 ? "" : "s"}`));
+			if (resultTruncated(result)) parts.push(theme.fg("warning", "truncated"));
+			const summary = parts.length ? ` · ${parts.join(" · ")}` : "";
 			const mode = bashOutputMode(effectiveCwd);
 			if (mode === "hidden") return makeEmpty();
-			let text = `${stackPrefix(theme)}${call}${theme.fg("dim", " · ")}${summary}`;
+			let text = `${stackPrefix(theme)}${call}${summary}`;
 			if (mode === "preview" && output) {
 				const limit = Math.max(1, Math.floor(settingNumber(expanded ? "bashPreviewLines" : "bashCollapsedLines", expanded ? 80 : 10, effectiveCwd)));
 				text += `\n${preview(output, limit, "tail", effectiveCwd)

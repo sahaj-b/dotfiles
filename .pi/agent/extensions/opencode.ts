@@ -1,10 +1,17 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { existsSync, readFileSync, writeFileSync, mkdirSync, chmodSync } from "fs";
+import {
+	chmodSync,
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	writeFileSync,
+} from "fs";
 import { homedir } from "os";
 import { join } from "path";
 
 const OC_PROVIDER = "oc";
 const OC_BASE_URL = "https://opencode.ai/zen/v1";
+const OC_BASE_URL_ANTHROPIC = "https://opencode.ai/zen";
 
 const REGISTRY_PATHS = [
 	join(homedir(), ".cache", "opencode", "models.json"),
@@ -15,7 +22,13 @@ const AUTH_PATHS = [
 	join(homedir(), ".local", "share", "opencode", "auth.json"),
 	join(homedir(), ".pi", "agent", "auth.json"),
 ];
-const OPENCODE_AUTH_PATH = join(homedir(), ".local", "share", "opencode", "auth.json");
+const OPENCODE_AUTH_PATH = join(
+	homedir(),
+	".local",
+	"share",
+	"opencode",
+	"auth.json",
+);
 const PI_AUTH_PATH = join(homedir(), ".pi", "agent", "auth.json");
 
 const OC_SESSION_ID = `ses_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
@@ -38,7 +51,7 @@ function resolveApiKey(provider: string): string {
 			if (key) return key;
 			const fallback = auth?.["opencode-go"]?.key;
 			if (fallback) return fallback;
-		} catch { }
+		} catch {}
 	}
 
 	return "public";
@@ -56,12 +69,19 @@ function setOpencodeGoApiKey(apiKey: string): void {
 		try {
 			data = JSON.parse(readFileSync(OPENCODE_AUTH_PATH, "utf-8"));
 		} catch {
-			throw new Error(`opencode auth.json is malformed. Fix manually: ${OPENCODE_AUTH_PATH}`);
+			throw new Error(
+				`opencode auth.json is malformed. Fix manually: ${OPENCODE_AUTH_PATH}`,
+			);
 		}
 	}
 	data["opencode-go"] = { type: "api", key: apiKey };
-	writeFileSync(OPENCODE_AUTH_PATH, JSON.stringify(data, null, 2), { encoding: "utf-8", mode: 0o600 });
-	try { chmodSync(OPENCODE_AUTH_PATH, 0o600); } catch { }
+	writeFileSync(OPENCODE_AUTH_PATH, JSON.stringify(data, null, 2), {
+		encoding: "utf-8",
+		mode: 0o600,
+	});
+	try {
+		chmodSync(OPENCODE_AUTH_PATH, 0o600);
+	} catch {}
 
 	if (!existsSync(piDir)) {
 		mkdirSync(piDir, { recursive: true, mode: 0o700 });
@@ -70,18 +90,16 @@ function setOpencodeGoApiKey(apiKey: string): void {
 	if (existsSync(PI_AUTH_PATH)) {
 		try {
 			piData = JSON.parse(readFileSync(PI_AUTH_PATH, "utf-8"));
-		} catch {
-		}
+		} catch {}
 	}
 	piData["opencode-go"] = { type: "api_key", key: apiKey };
-	writeFileSync(PI_AUTH_PATH, JSON.stringify(piData, null, 2), { encoding: "utf-8", mode: 0o600 });
-	try { chmodSync(PI_AUTH_PATH, 0o600); } catch { }
-}
-function getAuthStatus(): { oc: boolean } {
-	const key = resolveApiKey("opencode");
-	return {
-		oc: key !== "public",
-	};
+	writeFileSync(PI_AUTH_PATH, JSON.stringify(piData, null, 2), {
+		encoding: "utf-8",
+		mode: 0o600,
+	});
+	try {
+		chmodSync(PI_AUTH_PATH, 0o600);
+	} catch {}
 }
 
 type RawModel = {
@@ -98,10 +116,18 @@ function discoverModels(): RawModel[] {
 	if (!path) return zen;
 
 	let raw: string;
-	try { raw = readFileSync(path, "utf-8"); } catch { return zen; }
+	try {
+		raw = readFileSync(path, "utf-8");
+	} catch {
+		return zen;
+	}
 
 	let data: Record<string, any>;
-	try { data = JSON.parse(raw); } catch { return zen; }
+	try {
+		data = JSON.parse(raw);
+	} catch {
+		return zen;
+	}
 
 	for (const [provId, prov] of Object.entries(data)) {
 		if (provId !== "opencode") continue;
@@ -126,6 +152,23 @@ function discoverModels(): RawModel[] {
 	return zen;
 }
 
+function getModelConfig(meta: Record<string, unknown>): {
+	api: string;
+	baseUrl: string;
+} {
+	const providerNpm =
+		(meta.provider as Record<string, string> | undefined)?.npm ?? "";
+	// Anthropic-backed models (Qwen, MiniMax, Claude) return Anthropic SSE at
+	// the unified /chat/completions endpoint; route them through anthropic-messages
+	// so pi parses content_block_* / message_* events correctly.
+	// Also: Anthropic SDK hardcodes the path as /v1/messages, while OpenAI SDK
+	// uses /chat/completions. Strip the trailing /v1 so we don't get
+	// /zen/v1/v1/messages (404).
+	if (providerNpm === "@ai-sdk/anthropic")
+		return { api: "anthropic-messages", baseUrl: OC_BASE_URL_ANTHROPIC };
+	return { api: "openai-completions", baseUrl: OC_BASE_URL };
+}
+
 function buildPiModels(rawModels: RawModel[], provider: string): any[] {
 	return rawModels.map((m) => {
 		const limit = (m.meta.limit ?? {}) as Record<string, number>;
@@ -136,19 +179,26 @@ function buildPiModels(rawModels: RawModel[], provider: string): any[] {
 		const needsReasoningCompat =
 			family.includes("deepseek") || family.includes("kimi");
 
-		const contextWindow = (family.includes("deepseek") || m.id.includes("deepseek"))
-			? 1000000
-			: (limit.context as number) ?? (limit.maxInput as number) ?? 204800;
+		const contextWindow =
+			family.includes("deepseek") ||
+			m.id.includes("deepseek") ||
+			family.includes("qwen") ||
+			m.id.includes("qwen")
+				? 1000000
+				: ((limit.context as number) ?? (limit.maxInput as number) ?? 204800);
 
+		const modelCfg = getModelConfig(m.meta);
 		return {
 			id: m.id,
 			name: m.name,
-			api: "openai-completions",
+			api: modelCfg.api,
 			provider,
-			baseUrl: m.baseUrl,
+			baseUrl: modelCfg.baseUrl,
 			contextWindow,
-			maxTokens: (limit.output as number) ?? (limit.maxOutput as number) ?? 131072,
-			maxOutput: (limit.output as number) ?? (limit.maxOutput as number) ?? 131072,
+			maxTokens:
+				(limit.output as number) ?? (limit.maxOutput as number) ?? 131072,
+			maxOutput:
+				(limit.output as number) ?? (limit.maxOutput as number) ?? 131072,
 			reasoning: (m.meta.reasoning as boolean) ?? false,
 			cost: {
 				input: (cost.input as number) ?? 0,
@@ -159,26 +209,47 @@ function buildPiModels(rawModels: RawModel[], provider: string): any[] {
 			input: mods.input ?? ["text"],
 			...(needsReasoningCompat
 				? {
-					compat: {
-						requiresReasoningContentOnAssistantMessages: true,
-						thinkingFormat: family.includes("deepseek")
-							? "deepseek"
-							: undefined,
-					},
-				}
+						compat: {
+							requiresReasoningContentOnAssistantMessages: true,
+							thinkingFormat: family.includes("deepseek")
+								? "deepseek"
+								: undefined,
+						},
+					}
 				: {}),
 		};
 	});
 }
 
-const REG_KEY = Symbol.for("pi-oc-sdk:registered");
+const REG_KEY = Symbol("pi-oc-sdk:registered");
 
 export default function (pi: ExtensionAPI) {
 	const g = globalThis as Record<symbol, any>;
 	if (g[REG_KEY]) return;
 
-	const zen = discoverModels();
+	// fetch monkey-patch: guard with string key so it only runs once across reloads
+	const FETCH_PATCHED = "__pi-oc-sdk-fetch-patched";
+	if (!(globalThis as any)[FETCH_PATCHED]) {
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = async function (input, init) {
+			const url = typeof input === "string" ? input : (input?.url ?? "");
+			if (url.includes("opencode.ai/zen") && init && typeof init === "object") {
+				const headers = new Headers(init.headers as HeadersInit | undefined);
+				headers.set("x-opencode-session", OC_SESSION_ID);
+				headers.set(
+					"x-opencode-request",
+					`msg_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`,
+				);
+				headers.set("x-opencode-project", "global");
+				headers.set("x-opencode-client", "cli");
+				(init as RequestInit).headers = headers;
+			}
+			return originalFetch.call(this, input, init);
+		};
+		(globalThis as any)[FETCH_PATCHED] = true;
+	}
 
+	const zen = discoverModels();
 	if (zen.length > 0) {
 		const apiKey = resolveApiKey("opencode");
 		pi.registerProvider(OC_PROVIDER, {
@@ -191,26 +262,14 @@ export default function (pi: ExtensionAPI) {
 
 	g[REG_KEY] = true;
 
-	const originalFetch = globalThis.fetch;
-	globalThis.fetch = async function (input, init) {
-		const url = typeof input === "string" ? input : input?.url ?? "";
-		if (url.includes("opencode.ai/zen") && init && typeof init === "object") {
-			const headers = new Headers(init.headers as HeadersInit | undefined);
-			headers.set("x-opencode-session", OC_SESSION_ID);
-			headers.set("x-opencode-request", `msg_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`);
-			headers.set("x-opencode-project", "global");
-			headers.set("x-opencode-client", "cli");
-			(init as RequestInit).headers = headers;
-		}
-		return originalFetch.call(this, input, init);
-	};
-
 	pi.registerCommand("opencode-go-key", {
 		description: "Set your OpenCode Go API key directly (no CLI required)",
 		handler: async (args: string, ctx) => {
 			let apiKey = args.trim();
 			if (!apiKey) {
-				apiKey = (await ctx.ui.input("Enter your OpenCode Go API Key", "sk-...")) ?? "";
+				apiKey =
+					(await ctx.ui.input("Enter your OpenCode Go API Key", "sk-...")) ??
+					"";
 			}
 			if (!apiKey) {
 				ctx.ui.notify("No API key provided", "warning");
@@ -229,7 +288,12 @@ export default function (pi: ExtensionAPI) {
 		description: "Check OpenCode authentication status",
 		handler: async (_args, ctx) => {
 			const key = resolveApiKey("opencode");
-			ctx.ui.notify(key === "public" ? "Using public auth (no API Key found)" : "Authenticated", "info");
+			ctx.ui.notify(
+				key === "public"
+					? "Using public auth (no API Key found)"
+					: "Authenticated",
+				"info",
+			);
 		},
 	});
 }

@@ -13,7 +13,7 @@ import { registerBash } from "./bash.js";
 import { registerRead } from "./read.js";
 import { registerReadOnly } from "./search.js";
 
-const INSTALL_SYMBOL = Symbol.for("tool-beautify.installed");
+const INSTALL_SYMBOL = Symbol("tool-beautify.installed");
 
 export default async function toolBeautify(pi: ExtensionAPI): Promise<void> {
 	const guard = pi as unknown as Record<PropertyKey, unknown>;

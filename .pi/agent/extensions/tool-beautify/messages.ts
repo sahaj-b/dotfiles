@@ -46,8 +46,9 @@ export function installUserMessageRenderer(pi: ExtensionAPI, UserMessageComponen
 				const theme = ctx.ui?.theme ?? FALLBACK_THEME;
 				const frameWidth = stableRenderWidth(width, cwd);
 				const lines = state!.originalRender.call(this, Math.max(1, frameWidth));
-				const result = appendUserMessageBreak(trimUserMessagePadding(lines, theme, frameWidth, cwd), width, cwd);
-				return result;
+				const trimmed = trimUserMessagePadding(lines, theme, frameWidth, cwd);
+				const result = addUserMessageBorders(trimmed, frameWidth, theme, cwd);
+				return appendUserMessageBreak(result, width, cwd);
 			}
 			return appendUserMessageBreak(state!.originalRender.call(this, width), width, cwd);
 		};
@@ -65,14 +66,40 @@ export function installUserMessageRenderer(pi: ExtensionAPI, UserMessageComponen
 	});
 }
 
+const BG_ANSI_RE = /\x1b\[48(?:;[0-9;]*)?m|\x1b\[49m/g;
+
 function trimUserMessagePadding(lines: string[], theme: any, width: number, cwd?: string): string[] {
 	if (lines.length === 0) return lines;
 	const innerWidth = stableRenderWidth(width, cwd);
 	return lines.map((line) => {
 		const trimmed = line.trimEnd();
 		const clipped = truncateAnsi(trimmed, innerWidth);
-		return applyBaseTextFg(clipped, theme) + " ".repeat(Math.max(0, innerWidth - visibleWidth(clipped)));
+		const noBg = clipped.replace(BG_ANSI_RE, "");
+		return applyBaseTextFg(noBg, theme) + " ".repeat(Math.max(0, innerWidth - visibleWidth(noBg)));
 	});
+}
+
+const OSC_START_RE = /^\x1b\]133;A\x07/;
+const OSC_END_RE = /\x1b\]133;B\x07\x1b\]133;C\x07$/;
+
+function addUserMessageBorders(lines: string[], _width: number, theme: any, _cwd?: string): string[] {
+	if (lines.length < 3) return lines;
+
+	// Drop Box(1,1) top/bottom padding, keep only content
+	const content = lines.slice(1, -1);
+	if (content.length === 0) return lines;
+
+	// Measure actual visible width of the widest content line (strip ANSI, then measure)
+	const ansiStripRe = /\x1b\[[0-9;]*[a-zA-Z]/g;
+	const borderLen = Math.max(1, ...content.map((ln) => visibleWidth(ln.replace(ansiStripRe, ""))));
+
+	const first = lines[0] ?? "";
+	const last = lines[lines.length - 1] ?? "";
+	const oscStart = first.match(OSC_START_RE)?.[0] ?? "";
+	const oscEnd = last.match(OSC_END_RE)?.[0] ?? "";
+
+	const border = theme.fg("accent", "─".repeat(borderLen));
+	return [oscStart + border, ...content, border + oscEnd];
 }
 
 function appendUserMessageBreak(lines: string[], width: number, cwd?: string): string[] {
@@ -292,7 +319,7 @@ function codeBlockBgParts(ctx?: ExtensionContext): { open: string; close: string
 	try {
 		const theme = ctx?.hasUI ? ctx.ui.theme : undefined;
 		if (theme?.bg) {
-			const styled = theme.bg("customMessageBg", marker);
+			const styled = theme.bg("userMessageBg", marker);
 			const index = styled.indexOf(marker);
 			if (index >= 0) return { open: styled.slice(0, index), close: styled.slice(index + marker.length) };
 		}
@@ -302,10 +329,15 @@ function codeBlockBgParts(ctx?: ExtensionContext): { open: string; close: string
 	return { open: "\x1b[48;5;236m", close: "\x1b[49m" };
 }
 
-function applyCodeBlockBg(line: string, ctx?: ExtensionContext): string {
+function applyCodeBlockBg(line: string, contentWidth: number, ctx?: ExtensionContext): string {
 	const { open, close } = codeBlockBgParts(ctx);
 	if (!open) return line;
-	const reapplied = line.replace(/\x1b\[(?:0|49)m/g, (reset) => `${reset}${open}`);
+
+	const visibleLen = visibleWidth(line);
+	const paddingNeeded = contentWidth - visibleLen;
+	const padded = paddingNeeded > 0 ? line + " ".repeat(paddingNeeded) : line;
+
+	const reapplied = padded.replace(/\x1b\[(?:0|49)m/g, (reset) => `${reset}${open}`);
 	return `${open}${reapplied}${close}`;
 }
 
@@ -331,7 +363,7 @@ function renderStyledCodeBlock(token: any, width: number, markdownTheme: any, ct
 		const wrapped = wrapTextWithAnsi(highlightedLine, contentWidth);
 		const segments = wrapped.length > 0 ? wrapped : [""];
 		for (const segment of segments) {
-			lines.push(applyCodeBlockBg(segment, ctx));
+			lines.push(applyCodeBlockBg(segment, contentWidth, ctx));
 		}
 	}
 	return lines;

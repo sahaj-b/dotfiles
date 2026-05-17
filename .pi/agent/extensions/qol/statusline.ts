@@ -7,12 +7,12 @@ import type {
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { settingBoolean, settingNumber } from "./_config";
 
-const SPINNER_INTERVAL = 18;
+const SPINNER_INTERVAL = 15;
 const LOADING_WAVE_FROM = "#333333";
 const LOADING_WAVE_TO = "#c69bf7";
 const LOADING_WAVE_RATIO = 0.35;
 const LOADING_BAR_STATIC = "#835eaf";
-const LOADING_BOUNCE_FRAMES = 40;
+const LOADING_BOUNCE_FRAMES = 35;
 
 function hexGradient(from: string, to: string, steps: number): string[] {
 	const parse = (h: string) => [
@@ -217,8 +217,7 @@ export function renderStatusLine(
 
 	const percentPlain = percent === null ? "…" : `${percent}`;
 	const contextWindow = statuslineContextInfo(ctx).window;
-	const absTokens = `${used} / ${contextWindow}`;
-	const rightPlainFull = `${absTokens}  ${percentPlain}`;
+	const rightPlainFull = `${used}/${contextWindow} ${percentPlain}`;
 
 	const percentColor =
 		percent === null

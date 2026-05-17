@@ -8,7 +8,7 @@
     "npm:pi-workspace-history"
   ],
   "defaultProvider": "oc",
-  "defaultModel": "deepseek-v4-flash-free",
+  "defaultModel": "qwen3.6-plus-free",
   "defaultThinkingLevel": "high",
   "theme": "catppuccin-mocha",
   "vstack": {
@@ -24,6 +24,16 @@
           "styledCodeBlocks": false
         },
         "pi-qol": {
+          "notification.sound": true,
+          "notification.desktop": true,
+          "notification.suppressWhenFocused": true,
+          "notification.suppressSoundWhenFocused": false,
+          "notification.title": "Pi",
+          "notification.onAgentReady": true,
+          "notification.onDirectionNeeded": true,
+          "notification.onQuestion": true,
+          "notification.onTaskComplete": true,
+          "notification.onCritical": true,
           "permissionGate.enabled": true,
           "sessionAutoRename.model": "opencode/minimax-m2.5-free",
           "compaction.model": "opencode/minimax-m2.5-free",

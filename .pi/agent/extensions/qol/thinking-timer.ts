@@ -1,6 +1,6 @@
 import { AssistantMessageComponent, type ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
-import { THINKING_LABEL_DEFAULT, THINKING_TIMER_PATCH_SYMBOL, THINKING_TIMER_STORE_SYMBOL } from "./constants";
+import { THINKING_LABEL_DEFAULT, THINKING_TIMER_PATCH_KEY, THINKING_TIMER_STORE_SYMBOL } from "./constants";
 import { settingString } from "./_config";
 
 export interface ThinkingTimerStore {
@@ -48,10 +48,10 @@ export function thinkingTimerKey(timestamp: number, contentIndex: number): strin
 
 export function installThinkingTimerPatch(): void {
   const proto = AssistantMessageComponent.prototype as unknown as Record<PropertyKey, any>;
-  if (proto[THINKING_TIMER_PATCH_SYMBOL]) return;
+  if (proto[THINKING_TIMER_PATCH_KEY]) return;
   const originalUpdateContent = proto.updateContent;
   if (typeof originalUpdateContent !== "function") return;
-  proto[THINKING_TIMER_PATCH_SYMBOL] = true;
+  proto[THINKING_TIMER_PATCH_KEY] = true;
   proto.updateContent = function patchedUpdateContent(this: any, message: any): void {
     originalUpdateContent.call(this, message);
     try {
