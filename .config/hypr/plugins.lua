@@ -1,6 +1,6 @@
 hl.config({
   plugin = {
-    ["dynamic-cursors"] = {
+    dynamic_cursors = {
       enabled = true,
       mode = "stretch",
       threshold = 2,
@@ -10,15 +10,14 @@ hl.config({
       },
       tilt = {
         limit = 3500,
-        ["function"] = "negative_quadratic",
+        activation = "negative_quadratic",
       },
       stretch = {
         limit = 3000,
-        ["function"] = "quadratic",
+        activation = "quadratic",
       },
       shake = {
         enabled = true,
-        nearest = true,
         threshold = 5.0,
         base = 1.5,
         speed = 0.5,
@@ -27,7 +26,9 @@ hl.config({
         timeout = 0,
         effects = false,
       },
+      hyprcursor = {
+        nearest = false,
+      }
     },
   },
 })
-

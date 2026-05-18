@@ -132,13 +132,55 @@ export async function playQolNotificationSound(soundKind: SoundKind, cwd?: strin
 const _focusCache = new Map<string, { at: number; focused: boolean }>();
 const FOCUS_CACHE_MS = 2000;
 
+function _hyprctlActiveWindow(sessionName?: string): boolean {
+  const result = execFileSync("hyprctl", ["activewindow", "-j"], {
+    encoding: "utf8",
+    timeout: 2000,
+    windowsHide: true,
+    stdio: ["ignore", "pipe", "ignore"],
+  });
+  if (!result) return false;
+
+  let w: any;
+  try {
+    w = JSON.parse(result);
+  } catch {
+    return false;
+  }
+  if (!w?.title) return false;
+
+  const title: string = w.title;
+  if (!/^π /i.test(title)) return false;
+
+  if (sessionName) {
+    const pattern = `π - ${sessionName.slice(0, 30)}`;
+    const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (!new RegExp(`^${escaped}`, "i").test(title)) return false;
+  }
+
+  return true;
+}
+
 export function piWindowFocused(sessionName?: string, cwd?: string): boolean {
-  const scriptPath = settingStringAllowEmpty("notification.focusDetectionScript", DEFAULT_FOCUS_DETECTION_SCRIPT, cwd);
-  if (!scriptPath || !existsSync(scriptPath)) return false;
   const cacheKey = sessionName ?? "";
   const now = Date.now();
   const cached = _focusCache.get(cacheKey);
   if (cached && now - cached.at < FOCUS_CACHE_MS) return cached.focused;
+
+  // Inline Hyprland detection — no external script needed
+  if (platform() === "linux") {
+    try {
+      const focused = _hyprctlActiveWindow(sessionName);
+      _focusCache.set(cacheKey, { at: now, focused });
+      return focused;
+    } catch {
+      // hyprctl not available or failed — fall through to external script
+    }
+  }
+
+  // Fallback: external focus detection script for non-Hyprland environments
+  const scriptPath = settingStringAllowEmpty("notification.focusDetectionScript", DEFAULT_FOCUS_DETECTION_SCRIPT, cwd);
+  if (!scriptPath || !existsSync(scriptPath)) return false;
   const termTitle = settingStringAllowEmpty("notification.termInitialTitle", DEFAULT_TERM_INITIAL_TITLE, cwd);
   const args = termTitle ? [sessionName ?? "", termTitle] : [sessionName ?? ""];
   try {

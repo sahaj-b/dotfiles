@@ -3,5 +3,5 @@
 # ghostty --gtk-single-instance=true --class=scratch -e tmux new-session -A -s scratch
 # foot -a scratch -e tmux new-session -A -s "scratch"
 kitty -1 --class=scratch -e tmux new-session -A -s scratch
-sleep 1
+sleep 3
 tmux send-keys -t scratch.1 "f" ENTER
