@@ -112,7 +112,8 @@ export function registerBash(pi: ExtensionAPI, agent: any, cwd: string): void {
 			if (exitLabel) parts.push(theme.fg("error", exitLabel));
 			parts.push(theme.fg(exitLabel ? "dim" : "success", `${count} line${count === 1 ? "" : "s"}`));
 			if (resultTruncated(result)) parts.push(theme.fg("warning", "truncated"));
-			const summary = parts.length ? ` · ${parts.join(" · ")}` : "";
+			const sep = theme.fg("muted", " · ");
+const summary = parts.length ? `${sep}${parts.join(sep)}` : "";
 			const mode = bashOutputMode(effectiveCwd);
 			if (mode === "hidden") return makeEmpty();
 			let text = `${stackPrefix(theme)}${call}${summary}`;

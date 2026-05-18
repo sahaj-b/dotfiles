@@ -5,6 +5,7 @@ import type {
 	SearchOptions, SearchResponse,
 } from "../types.ts";
 import type { Capability, CrawlCapable, ExtractCapable, Provider, SearchCapable } from "./types.ts";
+import { httpError } from "../fallback.ts";
 
 const BASE = "https://api.firecrawl.dev";
 
@@ -28,7 +29,7 @@ export class FirecrawlProvider implements Provider, SearchCapable, CrawlCapable,
 			body: JSON.stringify({ query: options.query, limit: options.maxResults, scrapeOptions: { formats: ["markdown"] } }),
 			signal: sig,
 		});
-		if (!res.ok) throw new Error(`Firecrawl search ${res.status}: ${(await res.text()).slice(0, 300)}`);
+		if (!res.ok) throw await httpError(this.id, res, "Firecrawl");
 		const data = await res.json() as { data?: Array<{ url: string; title?: string; description?: string; markdown?: string; metadata?: { title?: string } }> };
 		return {
 			results: (data.data ?? []).filter(r => r.url).map((r, i) => ({
@@ -46,7 +47,7 @@ export class FirecrawlProvider implements Provider, SearchCapable, CrawlCapable,
 			body: JSON.stringify({ url: options.url, maxDepth: options.maxDepth, limit: options.maxPages, scrapeOptions: { formats: ["markdown"] } }),
 			signal: sig,
 		});
-		if (!startRes.ok) throw new Error(`Firecrawl crawl ${startRes.status}: ${(await startRes.text()).slice(0, 300)}`);
+		if (!startRes.ok) throw await httpError(this.id, startRes, "Firecrawl");
 		const { id } = await startRes.json() as { success: boolean; id?: string };
 		if (!id) throw new Error("Firecrawl crawl failed to start");
 

@@ -1,5 +1,5 @@
 import { AssistantMessageComponent, type ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { Text } from "@earendil-works/pi-tui";
+import { Spacer, Text } from "@earendil-works/pi-tui";
 import { THINKING_LABEL_DEFAULT, THINKING_TIMER_PATCH_KEY, THINKING_TIMER_STORE_SYMBOL } from "./constants";
 import { settingString } from "./_config";
 
@@ -78,6 +78,19 @@ export function installThinkingTimerPatch(): void {
         labelComponents.push(child as Text);
       }
       if (labelComponents.length === 0) return;
+
+      // Strip Spacers directly adjacent to hidden thinking labels
+      const children = this.contentContainer.children;
+      const toRemove: any[] = [];
+      for (const label of labelComponents) {
+        for (let ci = 0; ci < children.length; ci++) {
+          if (children[ci] !== label) continue;
+          if (ci > 0 && children[ci - 1] instanceof Spacer) toRemove.push(children[ci - 1]);
+          if (ci < children.length - 1 && children[ci + 1] instanceof Spacer) toRemove.push(children[ci + 1]);
+          break;
+        }
+      }
+      for (const s of toRemove) this.contentContainer.removeChild(s);
 
       const count = Math.min(thinkingIndices.length, labelComponents.length);
       for (let i = 0; i < count; i++) {

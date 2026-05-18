@@ -2,6 +2,7 @@
 
 import type { SearchOptions, SearchResponse, SearchResult } from "../types.ts";
 import type { Capability, CodeSearchCapable, Provider, SearchCapable } from "./types.ts";
+import { httpError } from "../fallback.ts";
 
 const EXA_SEARCH_URL = "https://api.exa.ai/search";
 
@@ -48,8 +49,7 @@ export class ExaApiProvider implements Provider, SearchCapable, CodeSearchCapabl
 			});
 
 			if (!response.ok) {
-				const errorText = await response.text();
-				throw new Error(`Exa API error ${response.status}: ${errorText.slice(0, 300)}`);
+				throw await httpError(this.id, response, "Exa API");
 			}
 
 			const data = await response.json() as ExaSearchResponse;
@@ -86,8 +86,7 @@ export class ExaApiProvider implements Provider, SearchCapable, CodeSearchCapabl
 		});
 
 		if (!response.ok) {
-			const errorText = await response.text();
-			throw new Error(`Exa API error ${response.status}: ${errorText.slice(0, 300)}`);
+			throw await httpError(this.id, response, "Exa API");
 		}
 
 		const data = await response.json() as ExaSearchResponse;

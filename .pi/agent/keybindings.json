@@ -3,5 +3,6 @@
     "shift+enter",
     "ctrl+j"
   ],
-  "app.exit": []
+  "app.exit": [],
+  "app.models.clearAll": []
 }

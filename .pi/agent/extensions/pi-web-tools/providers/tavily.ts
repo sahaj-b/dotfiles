@@ -5,6 +5,7 @@ import type {
 	SearchOptions, SearchResponse,
 } from "../types.ts";
 import type { Capability, CrawlCapable, ExtractCapable, Provider, SearchCapable } from "./types.ts";
+import { httpError } from "../fallback.ts";
 
 const BASE = "https://api.tavily.com";
 
@@ -25,7 +26,7 @@ export class TavilyProvider implements Provider, SearchCapable, CrawlCapable, Ex
 			body: JSON.stringify({ query: options.query, max_results: options.maxResults, include_answer: true }),
 			signal: sig,
 		});
-		if (!res.ok) throw new Error(`Tavily search ${res.status}: ${(await res.text()).slice(0, 300)}`);
+		if (!res.ok) throw await httpError(this.id, res, "Tavily");
 		const data = await res.json() as TavilySearchResponse;
 		return {
 			answer: data.answer || undefined,
@@ -54,7 +55,7 @@ export class TavilyProvider implements Provider, SearchCapable, CrawlCapable, Ex
 			body: JSON.stringify(body),
 			signal: sig,
 		});
-		if (!res.ok) throw new Error(`Tavily crawl ${res.status}: ${(await res.text()).slice(0, 300)}`);
+		if (!res.ok) throw await httpError(this.id, res, "Tavily");
 		const data = await res.json() as TavilyCrawlResponse;
 		return {
 			results: (data.results ?? []).map((p, i) => ({
@@ -75,7 +76,7 @@ export class TavilyProvider implements Provider, SearchCapable, CrawlCapable, Ex
 			body: JSON.stringify({ urls: options.urls }),
 			signal: sig,
 		});
-		if (!res.ok) throw new Error(`Tavily extract ${res.status}: ${(await res.text()).slice(0, 300)}`);
+		if (!res.ok) throw await httpError(this.id, res, "Tavily");
 		const data = await res.json() as TavilyExtractResponse;
 		return {
 			results: (data.results ?? []).map(r => ({

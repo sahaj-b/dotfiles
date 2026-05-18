@@ -152,7 +152,7 @@ function statuslineContextInfo(ctx: ExtensionContext): {
 
 function gitBadge(state: GitState, showDirtyMarker: boolean): string {
 	if (!state.branch) return "";
-	return ` (${state.branch}${state.dirty && showDirtyMarker ? "*" : ""})`;
+	return `(${state.branch}${state.dirty && showDirtyMarker ? "*" : ""})`;
 }
 
 export function makeFallbackGitState(cwd: string): GitState {

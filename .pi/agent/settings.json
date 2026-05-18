@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.75.1",
+  "lastChangelogVersion": "0.75.3",
   "packages": [
     "npm:pi-btw",
     "npm:pi-subagents",
@@ -8,7 +8,7 @@
     "npm:pi-workspace-history"
   ],
   "defaultProvider": "oc",
-  "defaultModel": "deepseek-v4-flash-free",
+  "defaultModel": "qwen3.6-plus-free",
   "defaultThinkingLevel": "high",
   "theme": "catppuccin-mocha",
   "vstack": {
@@ -43,8 +43,9 @@
       }
     }
   },
-  "hideThinkingBlock": true,
+  "hideThinkingBlock": false,
   "workspaceHistory": {
     "enabled": false
-  }
+  },
+  "skills": []
 }

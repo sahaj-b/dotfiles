@@ -158,28 +158,7 @@ function p() {
   local tmp=$(mktemp /tmp/pi-prompt-XXXXXXXX)
   ${EDITOR:-nvim} "$tmp" </dev/tty
   if [[ -s "$tmp" ]]; then
-    local -a file_args=()
-    local -a msg_words=()
-    local content="$(<$tmp)"
-
-    for word in ${(z)content}; do
-      if [[ "$word" == @* && "${#word}" -gt 1 ]]; then
-        file_args+=("$word")
-      else
-        msg_words+=("$word")
-      fi
-    done
-
-    if (( ${#file_args[@]} )); then
-      local message="${(j: :)msg_words}"
-      if [[ -n "$message" ]]; then
-        command pi "${file_args[@]}" "$message"
-      else
-        command pi "${file_args[@]}"
-      fi
-    else
-      command pi "$content"
-    fi
+    command pi "$(<$tmp)"
   fi
   rm -f "$tmp"
 }

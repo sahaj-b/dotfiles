@@ -6,6 +6,7 @@ metadata:
   author: three-agent-skills
   version: "2.1.0"
   three-version: "0.182.0+"
+disable-model-invocation: true
 ---
 
 # Three.js Best Practices

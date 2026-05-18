@@ -53,6 +53,38 @@ return {
     },
     config = function()
       local inlineAdapter = "opencodeM"
+
+      -- persistent session id for opencode api (generated once at startup)
+      local function gen_hex(len)
+        local chars = "0123456789abcdef"
+        local out = {}
+        for _ = 1, len do
+          table.insert(out, chars:sub(math.random(16), 1))
+        end
+        return table.concat(out)
+      end
+      local OC_SESSION_ID = "ses_" .. gen_hex(24)
+
+      -- shared env+headers for both opencode adapters
+      local function oc_env() return {
+        api_key = "cmd:echo -n $OPENCODE_API_KEY",
+        url = "https://opencode.ai/zen",
+        chat_url = "/v1/chat/completions",
+        session_id = OC_SESSION_ID,
+        request_id = function() return "msg_" .. gen_hex(24) end,
+      } end
+
+      local OC_HEADERS = {
+        ["Content-Type"] = "application/json",
+        Authorization = "Bearer ${api_key}",
+        ["User-Agent"] = "opencode/1.14.50 ai-sdk/provider-utils/4.0.23 runtime/bun/1.3.13",
+        Accept = "*/*",
+        ["x-opencode-session"] = "${session_id}",
+        ["x-opencode-request"] = "${request_id}",
+        ["x-opencode-project"] = "global",
+        ["x-opencode-client"] = "cli",
+      }
+
       require("codecompanion").setup({
         adapters = {
           http = {
@@ -68,11 +100,8 @@ return {
                 schema = {
                   model = { default = "minimax-m2.5-free" },
                 },
-                env = {
-                  api_key = "cmd:echo -n $OPENCODE_API_KEY",
-                  url = "https://opencode.ai/zen",
-                  chat_url = "/v1/chat/completions",
-                },
+                env = oc_env(),
+                headers = OC_HEADERS,
               })
             end,
             opencodeD = function()
@@ -80,11 +109,8 @@ return {
                 schema = {
                   model = { default = "deepseek-v4-flash-free" },
                 },
-                env = {
-                  api_key = "cmd:echo -n $OPENCODE_API_KEY",
-                  url = "https://opencode.ai/zen",
-                  chat_url = "/v1/chat/completions",
-                },
+                env = oc_env(),
+                headers = OC_HEADERS,
               })
             end,
             copilot_gpt = function()

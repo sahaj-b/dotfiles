@@ -3,6 +3,7 @@
 
 import type { SearchOptions, SearchResponse, SearchResult } from "../types.ts";
 import type { Capability, CodeSearchCapable, Provider, SearchCapable } from "./types.ts";
+import { httpError } from "../fallback.ts";
 
 const EXA_MCP_URL = "https://mcp.exa.ai/mcp";
 const DEFAULT_CONTEXT_MAX_CHARS = 3000;
@@ -40,8 +41,7 @@ async function callExaMcp(toolName: string, args: Record<string, unknown>, signa
 	});
 
 	if (!response.ok) {
-		const errorText = await response.text();
-		throw new Error(`Exa MCP error ${response.status}: ${errorText.slice(0, 300)}`);
+		throw await httpError("exa-free", response, "Exa MCP");
 	}
 
 	const body = await response.text();

@@ -48,9 +48,9 @@ export function installUserMessageRenderer(pi: ExtensionAPI, UserMessageComponen
 				const lines = state!.originalRender.call(this, Math.max(1, frameWidth));
 				const trimmed = trimUserMessagePadding(lines, theme, frameWidth, cwd);
 				const result = addUserMessageBorders(trimmed, frameWidth, theme, cwd);
-				return appendUserMessageBreak(result, width, cwd);
+				return appendUserMessageBreak(result);
 			}
-			return appendUserMessageBreak(state!.originalRender.call(this, width), width, cwd);
+			return appendUserMessageBreak(state!.originalRender.call(this, width));
 		};
 	}
 
@@ -102,9 +102,8 @@ function addUserMessageBorders(lines: string[], _width: number, theme: any, _cwd
 	return [oscStart + border, ...content, border + oscEnd];
 }
 
-function appendUserMessageBreak(lines: string[], width: number, cwd?: string): string[] {
-	if (lines.length === 0 || !settingBoolean("userMessageTrailingBlankLine", true, cwd)) return lines;
-	return [...lines, ""];
+function appendUserMessageBreak(lines: string[]): string[] {
+	return lines;
 }
 
 interface AssistantMessagePatchState {
