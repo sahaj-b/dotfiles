@@ -1,11 +1,10 @@
 import { type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-import { bashLiveOutputDelayMs, bashLiveTailLines, settingBoolean } from "./settings.js";
+import { bashLiveOutputDelayMs, bashLiveTailLines, bashCompletedTailLines, settingBoolean } from "./settings.js";
 import { stackPrefix, treeConnector } from "./theme.js";
 import {
 	bashCallText,
 	clearBlink,
-	commandExit,
 	lineCount,
 	makeEmpty,
 	makeTruncatedLines,
@@ -65,6 +64,20 @@ function renderBashTail(output: string, limit: number, theme: any, cwd?: string)
 	return tailLines.map((line) => `${connector}${theme.fg("dim", line)}`).join("\n");
 }
 
+function extractPiExitCode(text: string): number | null {
+	const match = text.match(/Command exited with code (\d+)/i);
+	return match ? Number.parseInt(match[1]!, 10) : null;
+}
+
+function stripPiNoOutputWrapper(text: string): { output: string; exitCode: number | null } {
+	const exitCode = extractPiExitCode(text);
+	// "(no output)\n\nCommand exited with code X" → no real output, just error wrapper
+	if (/^\(no[- ]output\)\s*\n+\s*Command exited with code \d+\s*$/i.test(text)) return { output: "", exitCode };
+	// standalone "(no output)" or "(no-output)"
+	if (/^\(no[- ]output\)\s*$/i.test(text)) return { output: "", exitCode: null };
+	return { output: text, exitCode };
+}
+
 function bashFullCallText(args: any, theme: any, cwd?: string): string {
 	const rawCommand = typeof args?.command === "string" ? args.command : "";
 	const commandLines = rawCommand.split(/\r?\n/);
@@ -94,7 +107,8 @@ export function registerBash(pi: ExtensionAPI, agent: any, cwd: string): void {
 		},
 		renderResult(result: any, { expanded, isPartial }: any, theme: any, context: any) {
 			const effectiveCwd = context?.cwd ?? cwd;
-			const output = textContent(result);
+			const raw = textContent(result);
+			const { output, exitCode } = stripPiNoOutputWrapper(raw);
 			const liveTailState = markBashStarted(context);
 
 			/* ---- live tail while command is running ---- */
@@ -118,8 +132,7 @@ export function registerBash(pi: ExtensionAPI, agent: any, cwd: string): void {
 			clearBlink(context);
 			clearBashLiveTailTimer(liveTailState);
 			const count = lineCount(output);
-			const exit = commandExit(output);
-			const exitLabel = exit != null && exit !== 0 ? `exit ${exit}` : null;
+			const exitLabel = exitCode != null && exitCode !== 0 ? `exit ${exitCode}` : null;
 			const parts: string[] = [];
 			if (exitLabel) parts.push(theme.fg("error", exitLabel));
 			parts.push(theme.fg(exitLabel ? "dim" : "success", `${count} line${count === 1 ? "" : "s"}`));
@@ -133,7 +146,7 @@ export function registerBash(pi: ExtensionAPI, agent: any, cwd: string): void {
 			let text = `${stackPrefix(theme)}${call}${summary}`;
 
 			if (settingBoolean("tailAfterComplete", false, effectiveCwd) && output.trim()) {
-				const tailText = renderBashTail(output, bashLiveTailLines(effectiveCwd), theme, effectiveCwd);
+				const tailText = renderBashTail(output, bashCompletedTailLines(effectiveCwd), theme, effectiveCwd);
 				if (tailText) text += `\n${tailText}`;
 			}
 

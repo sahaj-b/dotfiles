@@ -165,15 +165,8 @@ function startBlinkTimer(): void {
 	blinkTimer.unref?.();
 }
 
-function trackBlink(context: any): void {
-	const key = blinkKey(context);
-	if (!key || typeof context?.invalidate !== "function") return;
-	blinkEntries.set(key, { invalidate: () => context.invalidate() });
-	startBlinkTimer();
-}
-
-export const SPINNER_FRAMES = ["◐", "◓", "◑", "◒"];
-export const SPINNER_INTERVAL = 60;
+const SPINNER_FRAMES = ["◐", "◓", "◑", "◒"];
+const SPINNER_INTERVAL = 60;
 
 function startSpinner(context: any): void {
 	if (context.state._spinStarted) return;

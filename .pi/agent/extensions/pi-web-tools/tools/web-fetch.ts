@@ -65,7 +65,6 @@ export function createWebFetchTool(config: WebToolsConfig) {
 
 		renderResult(result: any, options: { expanded: boolean; isPartial: boolean }, theme: any, ctx: any) {
 			if (options.isPartial) return connectorText(ctx, theme, "Fetching...");
-			cleanupSpinner(ctx);
 			if (result.isError) return connectorText(ctx, theme, theme.fg("error", `✗ ${result.content?.[0]?.text || "Fetch failed"}`));
 			const d = result.details as FetchDetails | undefined;
 			let text = theme.fg("success", `${d?.mime || "content"} (${formatSize(d?.bytes ?? 0)})`);

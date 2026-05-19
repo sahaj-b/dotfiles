@@ -8,7 +8,7 @@ import { executeWithFallback } from "../fallback.ts";
 import type { Provider } from "../providers/types.ts";
 import { isExtractCapable } from "../providers/types.ts";
 import type { WebExtractDetails, WebToolsConfig } from "../types.ts";
-import { spinner, spinnerText, bullet } from "../spinner.ts";
+import { animatedBullet, cleanupSpinner, connectorText } from "../spinner.ts";
 
 function textContent(text: string): TextContent {
 	return { type: "text", text };
@@ -96,8 +96,8 @@ export function createWebExtractTool(
 			return { content: [textContent(lines.join("\n").trimEnd())], details };
 		},
 
-		renderCall(args: { urls: string[]; prompt?: string }, theme: any) {
-			let text = theme.fg("toolTitle", theme.bold("󰖟 Extract "));
+		renderCall(args: { urls: string[]; prompt?: string }, theme: any, ctx: any) {
+			let text = `${animatedBullet(ctx, theme)} ${theme.fg("toolTitle", theme.bold("󰖟 Extract "))}`;
 			text += theme.fg(
 				"accent",
 				args.urls.length === 1 ? args.urls[0] : `${args.urls.length} URLs`,

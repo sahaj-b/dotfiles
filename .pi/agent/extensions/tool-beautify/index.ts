@@ -4,10 +4,9 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { registerBash } from "./bash.js";
 import {
-	installToolChromePatch,
+	installToolExecutionRendererPatch,
 	installWorkingIndicator,
 	installWorkingLoaderAlignmentPatch,
-	registerToolChromeEvents,
 } from "./chrome.js";
 import {
 	installAssistantMessageRenderer,
@@ -27,8 +26,7 @@ export default async function toolBeautify(pi: ExtensionAPI): Promise<void> {
 	if (guard[INSTALL_SYMBOL]) return;
 	guard[INSTALL_SYMBOL] = true;
 
-	installToolChromePatch();
-	registerToolChromeEvents(pi);
+	installToolExecutionRendererPatch(pi);
 	installWorkingLoaderAlignmentPatch();
 	installWorkingIndicator(pi);
 	installMarkdownCodeBlockRenderer(pi);

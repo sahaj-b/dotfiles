@@ -2,7 +2,6 @@
   "lastChangelogVersion": "0.75.3",
   "packages": [
     "npm:pi-btw",
-    "npm:pi-subagents",
     "npm:@juicesharp/rpiv-ask-user-question",
     "npm:@plannotator/pi-extension"
   ],
@@ -42,7 +41,7 @@
       }
     }
   },
-  "hideThinkingBlock": false,
+  "hideThinkingBlock": true,
   "workspaceHistory": {
     "enabled": false
   },
@@ -50,8 +49,9 @@
   "doubleEscapeAction": "none",
   "toolBeautify": {
     "bashLiveOutputDelayMs": 1000,
-    "bashLiveTailLines": 1,
-    "tailAfterComplete": false,
+    "bashLiveTailLines": 4,
+    "bashCompletedTailLines": 1,
+    "tailAfterComplete": true,
     "commandPreviewChars": 96,
     "commandMaxLines": 3,
     "maxLineWidth": 1000,

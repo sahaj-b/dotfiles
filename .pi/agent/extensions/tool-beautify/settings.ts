@@ -99,7 +99,6 @@ export function settingEnum<T extends string>(key: string, allowed: readonly T[]
 export type ReadOutputMode = "hidden" | "summary" | "preview";
 export type SearchOutputMode = "hidden" | "count" | "preview";
 export type McpOutputMode = "hidden" | "summary" | "preview";
-export type ToolChromeMode = "off" | "transparent" | "outlines";
 
 export function readOutputMode(cwd?: string): ReadOutputMode {
 	return settingEnum("readOutputMode", ["hidden", "summary", "preview"] as const, "preview", cwd);
@@ -115,6 +114,10 @@ export function bashLiveOutputDelayMs(cwd?: string): number {
 
 export function bashLiveTailLines(cwd?: string): number {
 	return Math.max(1, Math.floor(settingNumber("bashLiveTailLines", 4, cwd)));
+}
+
+export function bashCompletedTailLines(cwd?: string): number {
+	return Math.max(0, Math.floor(settingNumber("bashCompletedTailLines", 4, cwd)));
 }
 
 export function mcpOutputMode(cwd?: string): McpOutputMode {
