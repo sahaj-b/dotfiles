@@ -120,6 +120,22 @@ export function bashCompletedTailLines(cwd?: string): number {
 	return Math.max(0, Math.floor(settingNumber("bashCompletedTailLines", 4, cwd)));
 }
 
+export function diffBackgroundEnabled(cwd?: string): boolean {
+	return settingBoolean("diffBackgrounds", true, cwd);
+}
+
+export function bashDiffRenderingEnabled(cwd?: string): boolean {
+	return settingBoolean("renderBashDiffs", false, cwd);
+}
+
 export function mcpOutputMode(cwd?: string): McpOutputMode {
 	return settingEnum("mcpOutputMode", ["hidden", "summary", "preview"] as const, "preview", cwd);
+}
+
+export function writeLiveLines(cwd?: string): number {
+	return Math.max(1, Math.floor(settingNumber("writeLiveLines", 10, cwd)));
+}
+
+export function writeCompletedLines(cwd?: string): number {
+	return Math.max(1, Math.floor(settingNumber("writeCompletedLines", 10, cwd)));
 }

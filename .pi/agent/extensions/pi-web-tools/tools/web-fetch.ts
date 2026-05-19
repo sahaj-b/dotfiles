@@ -57,7 +57,7 @@ export function createWebFetchTool(config: WebToolsConfig) {
 		},
 
 		renderCall(args: { url: string; format?: string }, theme: any, ctx: any) {
-			let text = `${animatedBullet(ctx, theme)} ${theme.fg("toolTitle", theme.bold("󰖟 Fetch "))}`;
+			let text = `${animatedBullet(ctx, theme)} ${theme.fg("toolTitle", theme.bold(theme.fg("border", "󰖟 ") + "Fetch "))}`;
 			text += theme.fg("accent", args.url);
 			if (args.format && args.format !== "markdown") text += theme.fg("dim", ` (${args.format})`);
 			return new Text(text, 0, 0);

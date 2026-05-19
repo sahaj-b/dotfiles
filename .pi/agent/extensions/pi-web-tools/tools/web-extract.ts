@@ -7,8 +7,8 @@ import { getToolConfig, getToolProviders } from "../config.ts";
 import { executeWithFallback } from "../fallback.ts";
 import type { Provider } from "../providers/types.ts";
 import { isExtractCapable } from "../providers/types.ts";
-import type { WebExtractDetails, WebToolsConfig } from "../types.ts";
 import { animatedBullet, cleanupSpinner, connectorText } from "../spinner.ts";
+import type { WebExtractDetails, WebToolsConfig } from "../types.ts";
 
 function textContent(text: string): TextContent {
 	return { type: "text", text };
@@ -96,8 +96,12 @@ export function createWebExtractTool(
 			return { content: [textContent(lines.join("\n").trimEnd())], details };
 		},
 
-		renderCall(args: { urls: string[]; prompt?: string }, theme: any, ctx: any) {
-			let text = `${animatedBullet(ctx, theme)} ${theme.fg("toolTitle", theme.bold("󰖟 Extract "))}`;
+		renderCall(
+			args: { urls: string[]; prompt?: string },
+			theme: any,
+			ctx: any,
+		) {
+			let text = `${animatedBullet(ctx, theme)} ${theme.fg("toolTitle", theme.bold(theme.fg("border", "󰖟 ") + "Extract "))}`;
 			text += theme.fg(
 				"accent",
 				args.urls.length === 1 ? args.urls[0] : `${args.urls.length} URLs`,
@@ -113,21 +117,18 @@ export function createWebExtractTool(
 			theme: any,
 			ctx: any,
 		) {
-			if (options.isPartial) return spinnerText(ctx, "Extracting...");
-			spinner(ctx);
+			if (options.isPartial) return connectorText(ctx, theme, "Extracting...");
+			cleanupSpinner(ctx);
 			if (result.isError)
-				return new Text(
-					theme.fg(
-						"error",
-						`✗ ${result.content?.[0]?.text || "Extract failed"}`,
-					),
-					0,
-					0,
+				return connectorText(
+					ctx,
+					theme,
+					theme.fg("error", `✗ ${result.content?.[0]?.text || "Extract failed"}`),
 				);
 			const d = result.details as WebExtractDetails | undefined;
-			let text = `${bullet(theme)}─ ${theme.fg("success", `${d?.resultCount ?? 0} extractions`)}`;
+			let text = theme.fg("success", `${d?.resultCount ?? 0} extractions`);
 			if (d?.provider) text += theme.fg("muted", ` (${d.provider})`);
-			return new Text(text, 0, 0);
+			return connectorText(ctx, theme, text);
 		},
 	};
 }

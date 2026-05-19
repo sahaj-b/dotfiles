@@ -18,6 +18,9 @@ import {
 } from "./messages.js";
 import { registerRead } from "./read.js";
 import { registerReadOnly } from "./search.js";
+import { registerEdit } from "./edit.js";
+import { registerWrite } from "./write.js";
+import { settingBoolean } from "./settings.js";
 
 const INSTALL_SYMBOL = Symbol("tool-beautify.installed");
 
@@ -47,4 +50,8 @@ export default async function toolBeautify(pi: ExtensionAPI): Promise<void> {
 	registerReadOnly(pi, agent, cwd, "grep");
 	registerReadOnly(pi, agent, cwd, "find");
 	registerReadOnly(pi, agent, cwd, "ls");
+	if (settingBoolean("renderMutationTools", false, cwd)) {
+		registerEdit(pi, agent, cwd);
+		registerWrite(pi, agent, cwd);
+	}
 }

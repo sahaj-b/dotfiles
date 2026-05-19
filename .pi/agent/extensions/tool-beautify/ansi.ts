@@ -5,6 +5,11 @@ export const ANSI_RED = "\x1b[31m";
 export const ANSI_FG_RESET = "\x1b[39m";
 export const ANSI_BG_RESET = "\x1b[49m";
 
+export interface AnsiParts {
+	close: string;
+	open: string;
+}
+
 export const ANSI_RE = /\x1b(?:\[[0-9;]*m|\]133;[ABC]\x07)/g;
 export const ANSI_PRESENT_RE = /\x1b\[[0-9;]*m/;
 
@@ -14,6 +19,30 @@ export function stripAnsi(text: string): string {
 
 export function hasAnsi(text: string): boolean {
 	return ANSI_PRESENT_RE.test(text);
+}
+
+export function ansiHasBackground(open: string): boolean {
+	for (const match of open.matchAll(/\x1b\[([0-9;:]*)m/g)) {
+		const params = match[1] || "0";
+		if (/(^|[;:])48([;:]|$)/.test(params)) return true;
+		if (/(^|[;:])(?:4[0-7]|10[0-7])([;:]|$)/.test(params)) return true;
+	}
+	return false;
+}
+
+export function sgrClearsBackground(code: string): boolean {
+	const match = code.match(/^\x1b\[([0-9;]*)m$/);
+	if (!match) return false;
+	const params = match[1] ? match[1].split(";").map((value) => Number.parseInt(value || "0", 10)) : [0];
+	return params.some((value) => value === 0 || value === 49);
+}
+
+export function updateActiveAnsiStyle(code: string): string {
+	const match = code.match(/^\x1b\[([0-9;]*)m$/);
+	if (!match) return "";
+	const params = match[1] ? match[1].split(";").map((value) => Number.parseInt(value || "0", 10)) : [0];
+	if (params.some((value) => value === 0 || value === 39)) return "";
+	return code;
 }
 
 export function visibleLength(text: string): number {
@@ -85,6 +114,13 @@ export function trimThinkingOnlyAssistantLines(lines: string[]): string[] {
 	const zoneStart = "\x1b]133;A\x07";
 	if (lines[0]?.includes(zoneStart) && !trimmed[0]?.includes(zoneStart)) trimmed[0] = `${zoneStart}${trimmed[0] ?? ""}`;
 	return trimmed;
+}
+
+export function ansiPartsFromStyled(styled: string): AnsiParts {
+	const marker = "\uE000";
+	const markerIndex = styled.indexOf(marker);
+	if (markerIndex < 0) return { open: "", close: "" };
+	return { open: styled.slice(0, markerIndex), close: styled.slice(markerIndex + marker.length) };
 }
 
 export function fgParts(theme: any, token: string): { open: string; close: string } {

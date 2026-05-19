@@ -6,41 +6,9 @@
     "npm:@plannotator/pi-extension"
   ],
   "defaultProvider": "oc",
-  "defaultModel": "qwen3.6-plus-free",
+  "defaultModel": "deepseek-v4-flash-free",
   "defaultThinkingLevel": "high",
   "theme": "catppuccin-mocha",
-  "vstack": {
-    "extensionManager": {
-      "disabledItems": [],
-      "config": {
-        "@vanillagreen/pi-tool-renderer": {
-          "batchMaxCalls": 20,
-          "renderMutationTools": true,
-          "workingIndicator": "pulse",
-          "pendingStatusAnimation": true,
-          "toolChrome": "off",
-          "styledCodeBlocks": false
-        },
-        "pi-qol": {
-          "notification.sound": true,
-          "notification.desktop": true,
-          "notification.suppressWhenFocused": true,
-          "notification.suppressSoundWhenFocused": false,
-          "notification.title": "Pi",
-          "notification.onAgentReady": true,
-          "notification.onDirectionNeeded": true,
-          "notification.onQuestion": true,
-          "notification.onTaskComplete": true,
-          "notification.onCritical": true,
-          "permissionGate.enabled": true,
-          "sessionAutoRename.model": "opencode/minimax-m2.5-free",
-          "compaction.model": "opencode/minimax-m2.5-free",
-          "compaction.customEnabled": false,
-          "compaction.idleEnabled": false
-        }
-      }
-    }
-  },
   "hideThinkingBlock": true,
   "workspaceHistory": {
     "enabled": false
@@ -48,12 +16,15 @@
   "skills": [],
   "doubleEscapeAction": "none",
   "toolBeautify": {
+    "renderMutationTools": true,
     "bashLiveOutputDelayMs": 1000,
     "bashLiveTailLines": 4,
     "bashCompletedTailLines": 1,
     "tailAfterComplete": true,
     "commandPreviewChars": 96,
     "commandMaxLines": 3,
+    "writeLiveLines": 10,
+    "writeCompletedLines": 10,
     "maxLineWidth": 1000,
     "readOutputMode": "preview",
     "readPreviewLines": 80,

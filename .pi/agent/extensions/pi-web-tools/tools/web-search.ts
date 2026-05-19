@@ -80,7 +80,7 @@ export function createWebSearchTool(config: WebToolsConfig, providers: Provider[
 		},
 
 		renderCall(args: { query: string; maxResults?: number; provider?: string }, theme: any, ctx: any) {
-			let text = `${animatedBullet(ctx, theme)} ${theme.fg("toolTitle", theme.bold("󰖟 Search "))}`;
+			let text = `${animatedBullet(ctx, theme)} ${theme.fg("toolTitle", theme.bold(theme.fg("border", "󰖟 ") + "Search "))}`;
 			text += theme.fg("accent", JSON.stringify(String(args.query)));
 			if (args.maxResults) text += theme.fg("dim", ` limit=${args.maxResults}`);
 			if (args.provider) text += theme.fg("muted", ` (${args.provider})`);

@@ -369,6 +369,12 @@ export function bashCallText(args: any, theme: any, cwd?: string): string {
 	return `${theme.fg("text", theme.bold("$ "))}${styledLines.join("\n")}`;
 }
 
+export function isGitDiffCommand(command: unknown): boolean {
+	if (typeof command !== "string" || !command.trim()) return false;
+	const normalized = command.replace(/\\\r?\n/g, " ").replace(/\s+/g, " ").trim();
+	return /(?:^|[;&|()]\s*)(?:(?:env\s+(?:-\S+\s+)*(?:[A-Za-z_][A-Za-z0-9_]*=\S+\s+)*)|(?:command\s+))*git(?:\s+(?!--?diff\b)(?:-[A-Za-z]\S*|--\S+)(?:\s+(?!diff(?:\s|$))\S+)*)*\s+diff(?:\s|$)/.test(normalized);
+}
+
 export function readOnlyCallText(
 	toolName: string,
 	args: any,
