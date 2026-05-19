@@ -32,3 +32,5 @@
   dshow = -c diff.external=difft show --ext-diff
   ddiff = -c diff.external=difft diff
   dt = "!f() { nvim -c \"DiffviewOpen $@\"; }; f"
+[core]
+	excludesfile = /home/sahaj/.gitignore_global

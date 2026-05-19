@@ -8,6 +8,7 @@ import { getToolConfig, getToolProviders } from "../config.ts";
 import { executeWithFallback } from "../fallback.ts";
 import { isSearchCapable } from "../providers/types.ts";
 import type { Provider } from "../providers/types.ts";
+import { animatedBullet, connectorText, cleanupSpinner, treeConnector } from "../spinner.ts";
 
 function textContent(text: string): TextContent { return { type: "text", text }; }
 
@@ -21,13 +22,15 @@ export function createWebSearchTool(config: WebToolsConfig, providers: Provider[
 
 	return {
 		name: "web_search",
-		label: "Web Search",
+		label: "󰖟 Search",
 		description: "Search the public web for current information and relevant URLs.",
 		parameters: Type.Object({
 			query: Type.String({ description: "Search query." }),
 			maxResults: Type.Optional(Type.Number({ description: "Maximum results to return (1-20)." })),
 			provider: Type.Optional(Type.String({ description: "Force a specific provider (skip fallback chain)." })),
 		}),
+
+			renderShell: "self",
 
 		async execute(
 			_toolCallId: string,
@@ -76,26 +79,27 @@ export function createWebSearchTool(config: WebToolsConfig, providers: Provider[
 			return { content: [textContent(output)], details };
 		},
 
-		renderCall(args: { query: string; maxResults?: number; provider?: string }, theme: any) {
-			let text = theme.fg("toolTitle", theme.bold("web_search "));
+		renderCall(args: { query: string; maxResults?: number; provider?: string }, theme: any, ctx: any) {
+			let text = `${animatedBullet(ctx, theme)} ${theme.fg("toolTitle", theme.bold("󰖟 Search "))}`;
 			text += theme.fg("accent", JSON.stringify(String(args.query)));
 			if (args.maxResults) text += theme.fg("dim", ` limit=${args.maxResults}`);
 			if (args.provider) text += theme.fg("muted", ` (${args.provider})`);
 			return new Text(text, 0, 0);
 		},
 
-		renderResult(result: any, options: { expanded: boolean; isPartial: boolean }, theme: any) {
-			if (options.isPartial) return new Text(theme.fg("warning", "Searching..."), 0, 0);
-			if (result.isError) return new Text(theme.fg("error", `✗ ${result.content?.[0]?.text || "Search failed"}`), 0, 0);
+		renderResult(result: any, options: { expanded: boolean; isPartial: boolean }, theme: any, ctx: any) {
+			if (options.isPartial) return connectorText(ctx, theme, "Searching...");
+			cleanupSpinner(ctx);
+			if (result.isError) return connectorText(ctx, theme, theme.fg("error", `✗ ${result.content?.[0]?.text || "Search failed"}`));
 			const d = result.details as WebSearchDetails | undefined;
-			let text = theme.fg("success", `✓ ${d?.resultCount ?? 0} results`);
+			let text = theme.fg("success", `${d?.resultCount ?? 0} results`);
 			if (d?.provider) text += theme.fg("muted", ` (${d.provider})`);
 			if (d?.fallbacksUsed?.length) text += theme.fg("dim", ` [fallbacks: ${d.fallbacksUsed.join(", ")}]`);
 			if (options.expanded && result.content?.[0]?.text) {
 				const lines = result.content[0].text.split("\n").slice(0, 16);
 				for (const line of lines) text += `\n${theme.fg("dim", line.slice(0, 220))}`;
 			}
-			return new Text(text, 0, 0);
+			return connectorText(ctx, theme, text);
 		},
 	};
 }

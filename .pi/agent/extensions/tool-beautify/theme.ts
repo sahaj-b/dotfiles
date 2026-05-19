@@ -43,7 +43,7 @@ export function borderMuted(theme: any, text: string): string {
 	return subtleRule(theme, text);
 }
 
-export function treeConnector(theme: any, branch: "├" | "└" | "│" = "├", cwd?: string): string {
+export function treeConnector(theme: any, branch: "├" | "└" | "│" | "╰" = "├", cwd?: string): string {
 	return toolRule(theme, `  ${branch === "│" ? "│ " : `${branch}─ `}`);
 }
 

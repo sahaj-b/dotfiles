@@ -1,1 +1,0 @@
-/home/sahaj/notes/prompts/opencode.md

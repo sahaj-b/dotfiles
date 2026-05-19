@@ -1,6 +1,14 @@
-import { CompactionSummaryMessageComponent, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
-
-import { installToolChromePatch, installWorkingIndicator, installWorkingLoaderAlignmentPatch, registerToolChromeEvents, installToolExecutionRendererPatch } from "./chrome.js";
+import {
+	CompactionSummaryMessageComponent,
+	type ExtensionAPI,
+} from "@earendil-works/pi-coding-agent";
+import { registerBash } from "./bash.js";
+import {
+	installToolChromePatch,
+	installWorkingIndicator,
+	installWorkingLoaderAlignmentPatch,
+	registerToolChromeEvents,
+} from "./chrome.js";
 import {
 	installAssistantMessageRenderer,
 	installCompactionSummaryRenderer,
@@ -9,7 +17,6 @@ import {
 	installSkillInvocationRenderer,
 	installUserMessageRenderer,
 } from "./messages.js";
-import { registerBash } from "./bash.js";
 import { registerRead } from "./read.js";
 import { registerReadOnly } from "./search.js";
 
@@ -20,7 +27,6 @@ export default async function toolBeautify(pi: ExtensionAPI): Promise<void> {
 	if (guard[INSTALL_SYMBOL]) return;
 	guard[INSTALL_SYMBOL] = true;
 
-	installToolExecutionRendererPatch(pi);
 	installToolChromePatch();
 	registerToolChromeEvents(pi);
 	installWorkingLoaderAlignmentPatch();
@@ -32,7 +38,10 @@ export default async function toolBeautify(pi: ExtensionAPI): Promise<void> {
 	installUserMessageRenderer(pi, agent.UserMessageComponent);
 	installAssistantMessageRenderer(pi, agent.AssistantMessageComponent);
 	installCustomMessageSpacingPatch(pi, (agent as any).CustomMessageComponent);
-	installSkillInvocationRenderer(pi, (agent as any).SkillInvocationMessageComponent);
+	installSkillInvocationRenderer(
+		pi,
+		(agent as any).SkillInvocationMessageComponent,
+	);
 
 	const cwd = process.cwd();
 	registerRead(pi, agent, cwd);

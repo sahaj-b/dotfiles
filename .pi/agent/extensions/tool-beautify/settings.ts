@@ -96,13 +96,8 @@ export function settingEnum<T extends string>(key: string, allowed: readonly T[]
 	return typeof value === "string" && (allowed as readonly string[]).includes(value) ? (value as T) : fallback;
 }
 
-export function rightMarginGuardEnabled(_cwd?: string): boolean {
-	return true;
-}
-
 export type ReadOutputMode = "hidden" | "summary" | "preview";
 export type SearchOutputMode = "hidden" | "count" | "preview";
-export type BashOutputMode = "hidden" | "summary" | "opencode" | "preview";
 export type McpOutputMode = "hidden" | "summary" | "preview";
 export type ToolChromeMode = "off" | "transparent" | "outlines";
 
@@ -112,10 +107,6 @@ export function readOutputMode(cwd?: string): ReadOutputMode {
 
 export function searchOutputMode(cwd?: string): SearchOutputMode {
 	return settingEnum("searchOutputMode", ["hidden", "count", "preview"] as const, "preview", cwd);
-}
-
-export function bashOutputMode(cwd?: string): BashOutputMode {
-	return settingEnum("bashOutputMode", ["hidden", "summary", "opencode", "preview"] as const, "opencode", cwd);
 }
 
 export function bashLiveOutputDelayMs(cwd?: string): number {
@@ -128,12 +119,4 @@ export function bashLiveTailLines(cwd?: string): number {
 
 export function mcpOutputMode(cwd?: string): McpOutputMode {
 	return settingEnum("mcpOutputMode", ["hidden", "summary", "preview"] as const, "preview", cwd);
-}
-
-export function toolChromeMode(_cwd?: string): ToolChromeMode {
-	return "off";
-}
-
-export function pendingStatusAnimation(_cwd?: string): boolean {
-	return false;
 }

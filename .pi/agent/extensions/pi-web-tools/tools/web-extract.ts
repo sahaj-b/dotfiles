@@ -8,6 +8,7 @@ import { executeWithFallback } from "../fallback.ts";
 import type { Provider } from "../providers/types.ts";
 import { isExtractCapable } from "../providers/types.ts";
 import type { WebExtractDetails, WebToolsConfig } from "../types.ts";
+import { spinner, spinnerText, bullet } from "../spinner.ts";
 
 function textContent(text: string): TextContent {
 	return { type: "text", text };
@@ -26,7 +27,7 @@ export function createWebExtractTool(
 
 	return {
 		name: "web_extract",
-		label: "Web Extract",
+		label: "󰖟 Extract",
 		description:
 			"Extract clean content from URLs using a good engine, better than web_fetch for JS-heavy or protected pages. Use when a web_fetch returns incomplete content, especially for github PRs/Issues/Discussions",
 		parameters: Type.Object({
@@ -40,6 +41,8 @@ export function createWebExtractTool(
 				}),
 			),
 		}),
+
+		renderShell: "self",
 
 		async execute(
 			_toolCallId: string,
@@ -94,7 +97,7 @@ export function createWebExtractTool(
 		},
 
 		renderCall(args: { urls: string[]; prompt?: string }, theme: any) {
-			let text = theme.fg("toolTitle", theme.bold("web_extract "));
+			let text = theme.fg("toolTitle", theme.bold("󰖟 Extract "));
 			text += theme.fg(
 				"accent",
 				args.urls.length === 1 ? args.urls[0] : `${args.urls.length} URLs`,
@@ -108,9 +111,10 @@ export function createWebExtractTool(
 			result: any,
 			options: { expanded: boolean; isPartial: boolean },
 			theme: any,
+			ctx: any,
 		) {
-			if (options.isPartial)
-				return new Text(theme.fg("warning", "Extracting..."), 0, 0);
+			if (options.isPartial) return spinnerText(ctx, "Extracting...");
+			spinner(ctx);
 			if (result.isError)
 				return new Text(
 					theme.fg(
@@ -121,7 +125,7 @@ export function createWebExtractTool(
 					0,
 				);
 			const d = result.details as WebExtractDetails | undefined;
-			let text = theme.fg("success", `✓ ${d?.resultCount ?? 0} extractions`);
+			let text = `${bullet(theme)}─ ${theme.fg("success", `${d?.resultCount ?? 0} extractions`)}`;
 			if (d?.provider) text += theme.fg("muted", ` (${d.provider})`);
 			return new Text(text, 0, 0);
 		},

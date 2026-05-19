@@ -152,7 +152,7 @@ function statuslineContextInfo(ctx: ExtensionContext): {
 
 function gitBadge(state: GitState, showDirtyMarker: boolean): string {
 	if (!state.branch) return "";
-	return `(${state.branch}${state.dirty && showDirtyMarker ? "*" : ""})`;
+	return `${state.branch}${state.dirty && showDirtyMarker ? "*" : ""}`;
 }
 
 export function makeFallbackGitState(cwd: string): GitState {
@@ -228,7 +228,7 @@ export function renderStatusLine(
 					? "warning"
 					: "success";
 	const separatorColored = theme.fg("muted", statusSeparator);
-	const leftColored = `${theme.fg("accent", modelChunk)}${separatorColored}${theme.fg(THINKING_TOKEN[thinkingLevel], thinkingChunk)}${gitChunk ? separatorColored : ""}${theme.fg("accent", gitChunk)}`;
+	const leftColored = `${theme.fg("accent", modelChunk)}${separatorColored}${theme.fg(THINKING_TOKEN[thinkingLevel], thinkingChunk)}${gitChunk ? separatorColored : ""}${theme.fg("mdCode", gitChunk)}`;
 	const right = `${theme.fg("muted", `${used}/${contextWindow}`)} ${theme.fg(percentColor, percentPlain)}`;
 
 	const minimumGap = 1;

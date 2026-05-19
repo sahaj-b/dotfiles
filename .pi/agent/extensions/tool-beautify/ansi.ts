@@ -1,6 +1,5 @@
 import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 
-import { rightMarginGuardEnabled } from "./settings.js";
 
 export const ANSI_GREEN = "\x1b[32m";
 export const ANSI_RED = "\x1b[31m";
@@ -31,9 +30,9 @@ export function truncateAnsi(text: string, width: number): string {
 	return truncateToWidth(text, Math.max(1, width), "");
 }
 
-export function stableRenderWidth(width: number, cwd?: string): number {
+export function stableRenderWidth(width: number, _cwd?: string): number {
 	const safe = Math.max(1, Math.floor(width || 1));
-	return rightMarginGuardEnabled(cwd) && safe > 1 ? safe - 1 : safe;
+	return safe > 1 ? safe - 1 : safe;
 }
 
 export function terminalWidth(cwd?: string): number {

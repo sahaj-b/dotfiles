@@ -4,8 +4,7 @@
     "npm:pi-btw",
     "npm:pi-subagents",
     "npm:@juicesharp/rpiv-ask-user-question",
-    "npm:@plannotator/pi-extension",
-    "npm:pi-workspace-history"
+    "npm:@plannotator/pi-extension"
   ],
   "defaultProvider": "oc",
   "defaultModel": "qwen3.6-plus-free",
@@ -47,5 +46,27 @@
   "workspaceHistory": {
     "enabled": false
   },
-  "skills": []
+  "skills": [],
+  "doubleEscapeAction": "none",
+  "toolBeautify": {
+    "bashLiveOutputDelayMs": 1000,
+    "bashLiveTailLines": 1,
+    "tailAfterComplete": false,
+    "commandPreviewChars": 96,
+    "commandMaxLines": 3,
+    "maxLineWidth": 1000,
+    "readOutputMode": "preview",
+    "readPreviewLines": 80,
+    "searchOutputMode": "preview",
+    "searchPreviewLines": 80,
+    "mcpOutputMode": "preview",
+    "mcpPreviewLines": 80,
+    "styledCodeBlocks": true,
+    "pendingStatusAnimation": false,
+    "workingIndicator": "default",
+    "compactUserMessages": true,
+    "alignAssistantMessages": true,
+    "compactCompactionMessages": true,
+    "compactSkillMessages": true
+  }
 }

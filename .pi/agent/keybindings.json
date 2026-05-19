@@ -4,5 +4,8 @@
     "ctrl+j"
   ],
   "app.exit": [],
-  "app.models.clearAll": []
+  "app.models.clearAll": [],
+  "app.message.dequeue": [
+    "ctrl+alt+k"
+  ]
 }

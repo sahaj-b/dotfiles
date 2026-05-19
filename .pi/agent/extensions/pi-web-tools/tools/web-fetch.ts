@@ -15,6 +15,7 @@ import {
 	parseContentType, decodeTextBuffer, createOperationSignal,
 	shouldRetryWithFallbackUserAgent, DEFAULT_USER_AGENT, FALLBACK_USER_AGENT,
 } from "../network.ts";
+import { animatedBullet, connectorText, cleanupSpinner, treeConnector } from "../spinner.ts";
 
 function textContent(text: string): TextContent { return { type: "text", text }; }
 
@@ -23,13 +24,15 @@ export function createWebFetchTool(config: WebToolsConfig) {
 
 	return {
 		name: "web_fetch",
-		label: "Web Fetch",
+		label: "󰖟 Fetch",
 		description: "Fetch a single URL and return its content as markdown, text, or raw HTML",
 		parameters: Type.Object({
 			url: Type.String({ description: "URL to fetch." }),
 			format: Type.Optional(Type.Union([Type.Literal("markdown"), Type.Literal("text"), Type.Literal("html")], { description: "Return format." })),
 			timeout: Type.Optional(Type.Number({ description: "Timeout in seconds." })),
 		}),
+
+			renderShell: "self",
 
 		async execute(
 			_toolCallId: string,
@@ -53,24 +56,25 @@ export function createWebFetchTool(config: WebToolsConfig) {
 			} finally { op.cleanup(); }
 		},
 
-		renderCall(args: { url: string; format?: string }, theme: any) {
-			let text = theme.fg("toolTitle", theme.bold("web_fetch "));
+		renderCall(args: { url: string; format?: string }, theme: any, ctx: any) {
+			let text = `${animatedBullet(ctx, theme)} ${theme.fg("toolTitle", theme.bold("󰖟 Fetch "))}`;
 			text += theme.fg("accent", args.url);
 			if (args.format && args.format !== "markdown") text += theme.fg("dim", ` (${args.format})`);
 			return new Text(text, 0, 0);
 		},
 
-		renderResult(result: any, options: { expanded: boolean; isPartial: boolean }, theme: any) {
-			if (options.isPartial) return new Text(theme.fg("warning", "Fetching..."), 0, 0);
-			if (result.isError) return new Text(theme.fg("error", `✗ ${result.content?.[0]?.text || "Fetch failed"}`), 0, 0);
+		renderResult(result: any, options: { expanded: boolean; isPartial: boolean }, theme: any, ctx: any) {
+			if (options.isPartial) return connectorText(ctx, theme, "Fetching...");
+			cleanupSpinner(ctx);
+			if (result.isError) return connectorText(ctx, theme, theme.fg("error", `✗ ${result.content?.[0]?.text || "Fetch failed"}`));
 			const d = result.details as FetchDetails | undefined;
-			let text = theme.fg("success", `✓ ${d?.mime || "content"} (${formatSize(d?.bytes ?? 0)})`);
+			let text = theme.fg("success", `${d?.mime || "content"} (${formatSize(d?.bytes ?? 0)})`);
 			if (d?.truncated) text += theme.fg("warning", " [truncated]");
 			if (options.expanded && result.content?.[0]?.text) {
 				const lines = result.content[0].text.split("\n").slice(0, 12);
 				for (const line of lines) text += `\n${theme.fg("dim", line.slice(0, 200))}`;
 			}
-			return new Text(text, 0, 0);
+			return connectorText(ctx, theme, text);
 		},
 	};
 }

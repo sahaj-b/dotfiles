@@ -41,8 +41,7 @@ export function installUserMessageRenderer(pi: ExtensionAPI, UserMessageComponen
 		prototype.render = function compactUserMessageRender(this: any, width: number): string[] {
 			const ctx = state?.activeCtx;
 			const cwd = ctx?.cwd ?? process.cwd();
-			const compact = settingBoolean("compactUserMessages", true, cwd);
-			if (compact && ctx?.hasUI) {
+			if (ctx?.hasUI) {
 				const theme = ctx.ui?.theme ?? FALLBACK_THEME;
 				const frameWidth = stableRenderWidth(width, cwd);
 				const lines = state!.originalRender.call(this, Math.max(1, frameWidth));
@@ -145,8 +144,7 @@ export function installAssistantMessageRenderer(pi: ExtensionAPI, AssistantMessa
 		};
 		prototype.updateContent = function alignedAssistantUpdateContent(this: any, message: any): void {
 			state!.originalUpdateContent.call(this, message);
-			const cwd = state?.activeCtx?.cwd ?? process.cwd();
-			if (settingBoolean("alignAssistantMessages", true, cwd)) alignAssistantContent(this);
+			alignAssistantContent(this);
 		};
 	}
 
@@ -371,7 +369,7 @@ export function installMarkdownCodeBlockRenderer(pi: ExtensionAPI): void {
 		};
 		prototype[MARKDOWN_CODE_BLOCK_PATCH_SYMBOL] = state;
 		prototype.renderToken = function styledCodeBlockRenderToken(this: any, token: any, width: number, nextTokenType?: string, styleContext?: unknown): string[] {
-			if (token?.type === "code" && settingBoolean("styledCodeBlocks", true, state?.activeCtx?.cwd)) {
+			if (token?.type === "code") {
 				const codeLines = renderStyledCodeBlock(token, width, this?.theme, state?.activeCtx);
 				if (nextTokenType && nextTokenType !== "space") return [...codeLines, ""];
 				return codeLines;

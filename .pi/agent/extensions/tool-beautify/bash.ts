@@ -1,7 +1,7 @@
 import { type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-import { bashLiveOutputDelayMs, bashLiveTailLines, bashOutputMode, settingNumber } from "./settings.js";
-import { stackPrefix, toolLabel, treeConnector } from "./theme.js";
+import { bashLiveOutputDelayMs, bashLiveTailLines, settingBoolean } from "./settings.js";
+import { stackPrefix, treeConnector } from "./theme.js";
 import {
 	bashCallText,
 	clearBlink,
@@ -11,7 +11,6 @@ import {
 	makeTruncatedLines,
 	preview,
 	renderPendingCall,
-	renderPendingDetail,
 	resultTruncated,
 	textContent,
 } from "./text.js";
@@ -66,6 +65,17 @@ function renderBashTail(output: string, limit: number, theme: any, cwd?: string)
 	return tailLines.map((line) => `${connector}${theme.fg("dim", line)}`).join("\n");
 }
 
+function bashFullCallText(args: any, theme: any, cwd?: string): string {
+	const rawCommand = typeof args?.command === "string" ? args.command : "";
+	const commandLines = rawCommand.split(/\r?\n/);
+	const [firstLine = "", ...continuationLines] = commandLines;
+	const styledFirstLine = theme.fg("accent", firstLine);
+	const styledContinuation = continuationLines.length > 0
+		? `\n${continuationLines.map((line) => theme.fg("accent", line)).join("\n")}`
+		: "";
+	return `${theme.fg("text", theme.bold("$ "))}${styledFirstLine}${styledContinuation}`;
+}
+
 export function registerBash(pi: ExtensionAPI, agent: any, cwd: string): void {
 	const original = getBuiltInTool(agent, cwd, "bash");
 	if (!original) return;
@@ -84,13 +94,13 @@ export function registerBash(pi: ExtensionAPI, agent: any, cwd: string): void {
 		},
 		renderResult(result: any, { expanded, isPartial }: any, theme: any, context: any) {
 			const effectiveCwd = context?.cwd ?? cwd;
-			const call = bashCallText(context?.args ?? {}, theme, effectiveCwd);
 			const output = textContent(result);
 			const liveTailState = markBashStarted(context);
+
+			/* ---- live tail while command is running ---- */
 			if (isPartial) {
 				const trimmedOutput = output.trim();
-				const partialMode = bashOutputMode(effectiveCwd);
-				if (partialMode !== "summary" && partialMode !== "hidden" && trimmedOutput) {
+				if (trimmedOutput) {
 					const delayMs = bashLiveOutputDelayMs(effectiveCwd);
 					const startedAt = liveTailState.startedAt ?? Date.now();
 					if (Date.now() - startedAt >= delayMs) {
@@ -103,38 +113,30 @@ export function registerBash(pi: ExtensionAPI, agent: any, cwd: string): void {
 				}
 				return makeEmpty();
 			}
+
+			/* ---- command finished ---- */
 			clearBlink(context);
 			clearBashLiveTailTimer(liveTailState);
-			const exit = commandExit(output);
 			const count = lineCount(output);
+			const exit = commandExit(output);
 			const exitLabel = exit != null && exit !== 0 ? `exit ${exit}` : null;
-			const parts = [];
+			const parts: string[] = [];
 			if (exitLabel) parts.push(theme.fg("error", exitLabel));
 			parts.push(theme.fg(exitLabel ? "dim" : "success", `${count} line${count === 1 ? "" : "s"}`));
 			if (resultTruncated(result)) parts.push(theme.fg("warning", "truncated"));
 			const sep = theme.fg("muted", " · ");
-const summary = parts.length ? `${sep}${parts.join(sep)}` : "";
-			const mode = bashOutputMode(effectiveCwd);
-			if (mode === "hidden") return makeEmpty();
+			const summary = parts.length ? `${sep}${parts.join(sep)}` : "";
+
+			const call = expanded
+				? bashFullCallText(context?.args ?? {}, theme, effectiveCwd)
+				: bashCallText(context?.args ?? {}, theme, effectiveCwd);
 			let text = `${stackPrefix(theme)}${call}${summary}`;
-			if (mode === "preview" && output) {
-				const limit = Math.max(1, Math.floor(settingNumber(expanded ? "bashPreviewLines" : "bashCollapsedLines", expanded ? 80 : 10, effectiveCwd)));
-				text += `\n${preview(output, limit, "tail", effectiveCwd)
-					.split(/\r?\n/)
-					.map((line) => `${treeConnector(theme, "│")}${theme.fg("dim", line)}`)
-					.join("\n")}`;
-				if (count > limit) text += `\n${treeConnector(theme, "│")}${theme.fg("muted", `… ${count - limit} older line(s)`)}`;
-			} else if (mode === "opencode" && expanded && output) {
-				const limit = Math.max(1, Math.floor(settingNumber("bashPreviewLines", 80, effectiveCwd)));
-				text += `\n${preview(output, limit, "tail", effectiveCwd)
-					.split(/\r?\n/)
-					.map((line) => `${treeConnector(theme, "│")}${theme.fg("dim", line)}`)
-					.join("\n")}`;
-				if (count > limit) text += `\n${treeConnector(theme, "│")}${theme.fg("muted", `… ${count - limit} older line(s)`)}`;
-			} else if (mode === "opencode" && liveTailState.tailShown && output) {
+
+			if (settingBoolean("tailAfterComplete", false, effectiveCwd) && output.trim()) {
 				const tailText = renderBashTail(output, bashLiveTailLines(effectiveCwd), theme, effectiveCwd);
 				if (tailText) text += `\n${tailText}`;
 			}
+
 			return makeTruncatedLines(text);
 		},
 	});

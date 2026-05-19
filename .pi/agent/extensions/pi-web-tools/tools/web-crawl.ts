@@ -8,6 +8,7 @@ import { getToolConfig, getToolProviders } from "../config.ts";
 import { executeWithFallback } from "../fallback.ts";
 import { isCrawlCapable } from "../providers/types.ts";
 import type { Provider } from "../providers/types.ts";
+import { animatedBullet, cleanupSpinner, treeConnector, connectorText } from "../spinner.ts";
 
 function textContent(text: string): TextContent { return { type: "text", text }; }
 
@@ -21,7 +22,7 @@ export function createWebCrawlTool(config: WebToolsConfig, providers: Provider[]
 
 	return {
 		name: "web_crawl",
-		label: "Web Crawl",
+		label: "󰖟 Crawl",
 		description: "Crawl a website starting from a URL, discovering and extracting content from linked pages. Useful for documentation sites.",
 		parameters: Type.Object({
 			url: Type.String({ description: "Starting URL to crawl." }),
@@ -29,6 +30,8 @@ export function createWebCrawlTool(config: WebToolsConfig, providers: Provider[]
 			maxPages: Type.Optional(Type.Number({ description: "Max pages to crawl (default 10)." })),
 			instructions: Type.Optional(Type.String({ description: "Natural language instructions to guide the crawler." })),
 		}),
+
+		renderShell: "self",
 
 		async execute(
 			_toolCallId: string,
@@ -70,21 +73,22 @@ export function createWebCrawlTool(config: WebToolsConfig, providers: Provider[]
 			return { content: [textContent(lines.join("\n").trimEnd())], details };
 		},
 
-		renderCall(args: { url: string; maxDepth?: number; maxPages?: number }, theme: any) {
-			let text = theme.fg("toolTitle", theme.bold("web_crawl "));
+		renderCall(args: { url: string; maxDepth?: number; maxPages?: number }, theme: any, ctx: any) {
+			let text = `${animatedBullet(ctx, theme)} ${theme.fg("toolTitle", theme.bold("󰖟 Crawl "))}`;
 			text += theme.fg("accent", args.url);
 			if (args.maxDepth) text += theme.fg("dim", ` depth=${args.maxDepth}`);
 			if (args.maxPages) text += theme.fg("dim", ` pages=${args.maxPages}`);
 			return new Text(text, 0, 0);
 		},
 
-		renderResult(result: any, options: { expanded: boolean; isPartial: boolean }, theme: any) {
-			if (options.isPartial) return new Text(theme.fg("warning", "Crawling..."), 0, 0);
-			if (result.isError) return new Text(theme.fg("error", `✗ ${result.content?.[0]?.text || "Crawl failed"}`), 0, 0);
+		renderResult(result: any, options: { expanded: boolean; isPartial: boolean }, theme: any, ctx: any) {
+			if (options.isPartial) return connectorText(ctx, theme, "Crawling...");
+			cleanupSpinner(ctx);
+			if (result.isError) return connectorText(ctx, theme, theme.fg("error", `✗ ${result.content?.[0]?.text || "Crawl failed"}`));
 			const d = result.details as WebCrawlDetails | undefined;
-			let text = theme.fg("success", `✓ ${d?.pageCount ?? 0} pages`);
+			let text = theme.fg("success", `${d?.pageCount ?? 0} pages`);
 			if (d?.provider) text += theme.fg("muted", ` (${d.provider})`);
-			return new Text(text, 0, 0);
+			return connectorText(ctx, theme, text);
 		},
 	};
 }
