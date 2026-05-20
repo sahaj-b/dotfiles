@@ -47,6 +47,7 @@ import {
 	refreshGitState,
 	renderStatusLine,
 	setSpinnerActive,
+	registerPlanProgressListener,
 } from "./statusline";
 import {
 	getThinkingTimerStore,
@@ -58,6 +59,8 @@ import {
 export default function (pi: ExtensionAPI) {
 	if ((globalThis as any)[INSTALL_SYMBOL]) return;
 	(globalThis as any)[INSTALL_SYMBOL] = true;
+
+	registerPlanProgressListener(pi);
 
 	let currentTui: any;
 	let currentCtx: any;

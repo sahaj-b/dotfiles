@@ -2,8 +2,7 @@
   "lastChangelogVersion": "0.75.3",
   "packages": [
     "npm:pi-btw",
-    "npm:@juicesharp/rpiv-ask-user-question",
-    "npm:@plannotator/pi-extension"
+    "npm:@juicesharp/rpiv-ask-user-question"
   ],
   "defaultProvider": "oc",
   "defaultModel": "deepseek-v4-flash-free",

@@ -61,6 +61,7 @@ if [[ -f ~/yeah.sh ]]; then
   source ~/yeah.sh
 fi
 
+alias ll='latexmk -lualatex'
 alias drpaste="wl-paste > .tempimg.png && dragon-drop .tempimg.png"
 alias mdata="sudo mount -t ntfs3 /dev/nvme0n1p6 /media/data"
 alias mwindows="sudo mount -t ntfs3 /dev/nvme0n1p3 /media/windows"

@@ -59,6 +59,21 @@ let spinnerActive = false;
 let spinnerFrame = 0;
 let spinnerTimer: ReturnType<typeof setInterval> | undefined;
 
+let planPhase: "idle" | "planning" | "executing" = "idle";
+let planProgress = { completed: 0, total: 0 };
+
+export function registerPlanProgressListener(pi: ExtensionAPI): void {
+	pi.events.on("plannotator:progress", (data: any) => {
+		if (data?.phase) {
+			planPhase = data.phase;
+		}
+		if (typeof data?.completed === "number" && typeof data?.total === "number") {
+			planPhase = "executing";
+			planProgress = { completed: data.completed, total: data.total };
+		}
+	});
+}
+
 export interface GitState {
 	projectName: string;
 	branch?: string;
@@ -213,7 +228,12 @@ export function renderStatusLine(
 	const statusSeparator = " ∙ ";
 	const thinkingLevel = normalizeThinkingLevel(pi.getThinkingLevel());
 	const thinkingChunk = thinkingLevel;
-	const leftPlain = `${modelChunk}${statusSeparator}${thinkingChunk}${gitChunk ? statusSeparator : ""}${gitChunk}`;
+	const planChunk = planPhase === "planning"
+		? `${statusSeparator}${theme.fg("warning", "Plan")}`
+		: planPhase === "executing" && planProgress.total > 0
+			? `${statusSeparator}${theme.fg("success", `󰱑 ${planProgress.completed}/${planProgress.total}`)}`
+			: "";
+	const leftPlain = `${modelChunk}${statusSeparator}${thinkingChunk}${planPhase === "planning" ? statusSeparator + "Plan" : ""}${gitChunk ? statusSeparator : ""}${gitChunk}`;
 
 	const percentPlain = percent === null ? "…" : `${percent}`;
 	const contextWindow = statuslineContextInfo(ctx).window;
@@ -228,7 +248,7 @@ export function renderStatusLine(
 					? "warning"
 					: "success";
 	const separatorColored = theme.fg("muted", statusSeparator);
-	const leftColored = `${theme.fg("accent", modelChunk)}${separatorColored}${theme.fg(THINKING_TOKEN[thinkingLevel], thinkingChunk)}${gitChunk ? separatorColored : ""}${theme.fg("mdCode", gitChunk)}`;
+	const leftColored = `${theme.fg("accent", modelChunk)}${separatorColored}${theme.fg(THINKING_TOKEN[thinkingLevel], thinkingChunk)}${planChunk}${gitChunk ? separatorColored : ""}${theme.fg("mdCode", gitChunk)}`;
 	const right = `${theme.fg("muted", `${used}/${contextWindow}`)} ${theme.fg(percentColor, percentPlain)}`;
 
 	const minimumGap = 1;

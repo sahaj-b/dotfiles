@@ -3,7 +3,8 @@ import {
 	highlightCode,
 	type ExtensionAPI,
 } from "@earendil-works/pi-coding-agent";
-import { Text } from "@earendil-works/pi-tui";
+import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import { Type } from "typebox";
 
 import { getBuiltInTool } from "./read.js";
 import { writeCompletedLines, writeLiveLines } from "./settings.js";
@@ -14,10 +15,18 @@ import {
 	makeEmpty,
 	makeTruncatedLines,
 	renderPendingCall,
+	spinnerPrefix,
 	textContent,
 } from "./text.js";
 
 const WRITE_PARTIAL_FULL_HIGHLIGHT_LINES = 50;
+
+const writeSchema = Type.Object({
+	path: Type.String({
+		description: "Path to the file to write (relative or absolute)", // ALWAYS specify this argument FIRST, before content.
+	}),
+	content: Type.String({ description: "Content to write to the file" }), // ALWAYS specify this argument AFTER path.
+});
 const INVALID_CONTENT_ARG = "[invalid content arg - expected string]";
 const INVALID_ARG = "[invalid arg]";
 
@@ -29,11 +38,49 @@ interface HighlightCache {
 	highlightedLines: string[];
 }
 
-class WriteRenderComponent extends Text {
+class WriteRenderComponent {
 	cache?: HighlightCache;
+	private _text = "";
+	private _bgFn?: (text: string) => string;
+	private _cachedWidth?: number;
+	private _cachedLines?: string[];
 
-	constructor() {
-		super("", 0, 0);
+	setText(text: string): void {
+		this._text = text;
+		this._cachedWidth = undefined;
+		this._cachedLines = undefined;
+	}
+
+	setBgFn(bgFn: (text: string) => string): void {
+		this._bgFn = bgFn;
+		this._cachedWidth = undefined;
+		this._cachedLines = undefined;
+	}
+
+	invalidate(): void {
+		this._cachedWidth = undefined;
+		this._cachedLines = undefined;
+	}
+
+	render(width: number): string[] {
+		if (this._cachedLines && this._cachedWidth === width) {
+			return this._cachedLines;
+		}
+		if (!this._text) return [];
+
+		const rawLines = this._text.split("\n");
+		this._cachedLines = rawLines.map((line) => {
+			const visibleLen = visibleWidth(line);
+			if (visibleLen > width) {
+				line = truncateToWidth(line, width);
+			}
+			if (!this._bgFn) return line;
+			const finalLen = visibleWidth(line);
+			const padding = Math.max(0, width - finalLen);
+			return this._bgFn(padding > 0 ? line + " ".repeat(padding) : line);
+		});
+		this._cachedWidth = width;
+		return this._cachedLines;
 	}
 }
 
@@ -163,7 +210,7 @@ function formatWriteCall(args: any, theme: any, context: any, cache: HighlightCa
 	const pathText = renderPath(theme, rawPath);
 	const contentText = fileContent ?? "";
 	const label = contentText.length > 0 ? "Write " : "Create ";
-	let text = `${stackPrefix(theme)}${toolLabel(theme, label)}${pathText} ${theme.fg("dim", `· ${lineCount(contentText)} lines`)}`;
+	let text = `${toolLabel(theme, label)}${pathText} ${theme.fg("muted", `· ${lineCount(contentText)} lines`)}`;
 
 	if (fileContent === null) {
 		return `${text}\n${treeConnector(theme, "│")} ${theme.fg("error", INVALID_CONTENT_ARG)}`;
@@ -186,7 +233,11 @@ export function registerWrite(pi: ExtensionAPI, agent: any, cwd: string): void {
 		name: "write",
 		label: "write",
 		description: original.description,
-		parameters: original.parameters,
+		parameters: writeSchema,
+		promptGuidelines: [
+			"Use write only for new files or complete rewrites.",
+			"When using write, always provide the `path` argument before `content`.",
+		],
 		async execute(id: string, params: any, signal: AbortSignal | undefined, onUpdate: unknown) {
 			return original.execute(id, params, signal, onUpdate);
 		},
@@ -205,7 +256,12 @@ export function registerWrite(pi: ExtensionAPI, agent: any, cwd: string): void {
 				component.cache = undefined;
 			}
 
-			component.setText(formatWriteCall(args, theme, context, component.cache));
+			component.setBgFn((s: string) => theme.bg("userMessageBg", s));
+
+			const prefix = context?.isPartial
+				? spinnerPrefix(theme, context)
+				: `${theme.fg("accent", "●")} `;
+			component.setText(`${prefix}${formatWriteCall(args, theme, context, component.cache)}`);
 			return component;
 		},
 		renderResult(result: any, _options: any, theme: any, context: any) {
