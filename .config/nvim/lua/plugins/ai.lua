@@ -25,16 +25,17 @@ return {
     keys = {
       {
         "<leader>ai",
-        function()
-          local config = require("codecompanion.config")
-          local is_visual = vim.fn.mode():find("[vV]")
-          vim.ui.input({ prompt = config.display.action_palette.prompt, default = "#{b} #{d} " }, function(input)
-            if not input or vim.trim(input) == "" then
-              return
-            end
-            require("codecompanion").inline({ args = input, range = is_visual and 1 or nil })
-          end)
-        end,
+        ":CodeCompanion<cr>",
+        -- function()
+        --   local config = require("codecompanion.config")
+        --   local is_visual = vim.fn.mode():find("[vV]")
+        --   vim.ui.input({ prompt = config.display.action_palette.prompt, default = "#{b} #{d} " }, function(input)
+        --     if not input or vim.trim(input) == "" then
+        --       return
+        --     end
+        --     require("codecompanion").inline({ args = input, range = is_visual and 1 or nil })
+        --   end)
+        -- end,
         desc = "CodeCompanion",
         mode = { "n", "v" },
       },
@@ -52,7 +53,7 @@ return {
       },
     },
     config = function()
-      local inlineAdapter = "opencodeM"
+      local inlineAdapter = "gemini"
 
       -- persistent session id for opencode api (generated once at startup)
       local function gen_hex(len)
@@ -66,13 +67,15 @@ return {
       local OC_SESSION_ID = "ses_" .. gen_hex(24)
 
       -- shared env+headers for both opencode adapters
-      local function oc_env() return {
-        api_key = "cmd:echo -n $OPENCODE_API_KEY",
-        url = "https://opencode.ai/zen",
-        chat_url = "/v1/chat/completions",
-        session_id = OC_SESSION_ID,
-        request_id = function() return "msg_" .. gen_hex(24) end,
-      } end
+      local function oc_env()
+        return {
+          api_key = "cmd:echo -n $OPENCODE_API_KEY",
+          url = "https://opencode.ai/zen",
+          chat_url = "/v1/chat/completions",
+          session_id = OC_SESSION_ID,
+          request_id = function() return "msg_" .. gen_hex(24) end,
+        }
+      end
 
       local OC_HEADERS = {
         ["Content-Type"] = "application/json",
@@ -122,6 +125,9 @@ return {
             end,
             gemini = function()
               return require("codecompanion.adapters").extend("gemini", {
+                schema = {
+                  model = { default = "gemini-3.1-flash-lite" },
+                },
                 env = {
                   api_key = "cmd:echo -n $GOOGLE_API_KEY",
                 },

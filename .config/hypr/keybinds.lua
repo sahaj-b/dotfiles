@@ -142,8 +142,9 @@ hl.bind(mod2 .. " + period", hl.dsp.exec_cmd("vicinae deeplink 'vicinae://extens
 -- Bluetooth
 hl.bind(mod .. " + A",
   hl.dsp.exec_cmd(
-    "rfkill unblock bluetooth && bluetoothctl power on && busctl call org.bluez /org/bluez/hci0/dev_B0_A3_F2_6A_E3_DB org.bluez.Device1 Disconnect; busctl call org.bluez /org/bluez/hci0/dev_B0_A3_F2_6A_E3_DB org.bluez.Device1 Connect"))
-hl.bind(mod2 .. " + Z", hl.dsp.exec_cmd("~/scripts/blu toggle"))
+    "rfkill unblock bluetooth && bluetoothctl power on && busctl call org.bluez /org/bluez/hci0/dev_B0_A3_F2_6A_E3_DB org.bluez.Device1 Disconnect; busctl call org.bluez /org/bluez/hci0/dev_B0_A3_F2_6A_E3_DB org.bluez.Device1 Connect"),
+  { locked = true })
+hl.bind(mod2 .. " + Z", hl.dsp.exec_cmd("~/scripts/blu toggle"), { locked = true })
 
 -- Screenshots
 hl.bind(mod2 .. " + SHIFT + S", hl.dsp.exec_cmd("~/scripts/grimblast copy area && notify-send -t 1000 'SS Copied'"))
@@ -184,16 +185,20 @@ hl.bind("CTRL + SHIFT + SPACE", hl.dsp.exec_cmd("makoctl dismiss -a"))
 local pprev = "playerctl previous -p 'YoutubeMusic, spotify, chromium, %any'"
 local pnext = "playerctl next -p 'YoutubeMusic, spotify, chromium, %any'"
 local ppause = "playerctl play-pause -p 'YoutubeMusic, spotify, chromium, %any'"
-local ppause2 = "playerctl play-pause -p 'firefox, brave, chromium, mpv'"
+local ppauseMedia = "playerctl play-pause -p 'firefox, brave, chromium, mpv'"
+local ppauseSmart =
+[[bash -c 'if playerctl -a status 2>/dev/null | grep -q "Playing"; then playerctl pause -a; else playerctl play-pause -p "YoutubeMusic, spotify, chromium, %any"; fi']]
 
 hl.bind(mod2 .. " + left", hl.dsp.exec_cmd(pprev))
 hl.bind(mod2 .. " + right", hl.dsp.exec_cmd(pnext))
 hl.bind(mod2 .. " + down", hl.dsp.exec_cmd(ppause))
-hl.bind(mod2 .. " + up", hl.dsp.exec_cmd(ppause2))
+hl.bind(mod2 .. " + up", hl.dsp.exec_cmd(ppauseMedia))
 hl.bind(mod .. " + down", hl.dsp.exec_cmd("playerctl pause -a"))
 
-hl.bind("XF86AudioPlay", hl.dsp.exec_cmd(ppause), { locked = true, repeating = true })
-hl.bind("XF86AudioPause", hl.dsp.exec_cmd(ppause), { locked = true, repeating = true })
+hl.bind("XF86AudioPlay", hl.dsp.exec_cmd(ppauseSmart), { locked = true, repeating = true })
+-- hl.bind("XF86AudioPlay", hl.dsp.exec_cmd(ppause), { locked = true, repeating = true })
+-- hl.bind("XF86AudioPause", hl.dsp.exec_cmd(ppause), { locked = true, repeating = true })
+hl.bind("XF86AudioPause", hl.dsp.exec_cmd(ppauseSmart), { locked = true, repeating = true })
 hl.bind("XF86AudioNext", hl.dsp.exec_cmd(pnext), { locked = true, repeating = true })
 hl.bind("XF86AudioPrev", hl.dsp.exec_cmd(pprev), { locked = true, repeating = true })
 
@@ -238,7 +243,7 @@ hl.bind(mod .. " + SHIFT + E",
 hl.gesture({ fingers = 3, direction = "left", action = function() hl.exec_cmd(pprev) end })
 hl.gesture({ fingers = 3, direction = "right", action = function() hl.exec_cmd(pnext) end })
 hl.gesture({ fingers = 3, direction = "down", action = function() hl.exec_cmd(ppause) end })
-hl.gesture({ fingers = 3, direction = "up", action = function() hl.exec_cmd(ppause2) end })
+hl.gesture({ fingers = 3, direction = "up", action = function() hl.exec_cmd(ppauseMedia) end })
 
 hl.gesture({
   fingers = 4,

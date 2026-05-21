@@ -141,7 +141,7 @@ alias duration="ffprobe -show_entries format=duration -v quiet -of csv='p=0' -i"
 alias ga="git add -A"
 alias ga.="git add ."
 alias gd="git dt --staged"
-alias gdg="git diff --staged | gpt write a short commit message"
+alias gdg="git diff --staged | l l write a short commit message, single line response"
 alias gr="git restore --staged"
 alias gc="git commit -m"
 alias gca="git commit --amend"
@@ -152,6 +152,28 @@ alias pd="pnpm dev"
 alias bd="bun run dev"
 
 # bros
+fpi="/home/sahaj/projects/fast-pi/dist/fast-pi.js"
+alias fpi="$fpi"
+
+l() {
+  local model=""
+  local thinking=""
+  case "$1" in
+    o) model="groq/openai/gpt-oss-120b" ; shift ;;
+    m) model="oc/minimax-m2.5-free" ; shift ;;
+    q) model="oc/qwen3.6-plus-free" ; shift ;;
+    d) model="oc/deepseek-v4-flash-free" ; shift ;;
+    g) model="github-copilot/gpt-4.1" ; shift ;;
+    l) model="google/gemini-3.1-flash-lite" ; shift ;;
+    f) model="google/gemini-3-flash-preview" ; shift ;;
+  esac
+
+  local args=()
+  [[ -n "$model" ]] && args=("-m" "$model")
+  
+  $fpi "${args[@]}" "$@" | sd
+}
+
 alias gpt='mods -m gpt-4.1'
 alias gfl='mods -m 2.5-flash-lite'
 

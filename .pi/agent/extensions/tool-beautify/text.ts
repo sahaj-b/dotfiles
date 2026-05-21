@@ -201,6 +201,10 @@ export function clearBlink(context: any): void {
 
 export function spinnerPrefix(theme: any, context: any): string {
 	if (!context?.invalidate) return theme.fg("warning", "● ");
+	// Don't animate when expanded — spinner invalidates line 0 every 60ms,
+	// which triggers fullRender() since viewport is scrolled way past line 0
+	// when showing all lines in expanded mode.
+	if (context?.expanded) return theme.fg("warning", "◉ ");
 	startSpinner(context);
 	const frame = SPINNER_FRAMES[context.state._fi] ?? SPINNER_FRAMES[0];
 	return theme.fg("warning", `${frame} `);
@@ -326,7 +330,7 @@ export function renderPathListPreview(
 		const label = isDir
 			? theme.fg("accent", theme.bold(clean))
 			: theme.fg("dim", clean);
-		return `${treeConnector(theme, branch as "├" | "└", cwd)}${icon} ${label}`;
+		return `${treeConnector(theme, branch as "├" | "└")}${icon} ${label}`;
 	});
 	const remaining = rawItems.length - shown.length;
 	if (remaining > 0) {
@@ -337,7 +341,7 @@ export function renderPathListPreview(
 					: "entries"
 				: `file${remaining === 1 ? "" : "s"}`;
 		lines.push(
-			`${treeConnector(theme, "└", cwd)}${theme.fg("muted", `… ${remaining} more ${noun}`)}`,
+			`${treeConnector(theme, "└")}${theme.fg("muted", `… ${remaining} more ${noun}`)}`,
 		);
 	}
 	return lines.join("\n");

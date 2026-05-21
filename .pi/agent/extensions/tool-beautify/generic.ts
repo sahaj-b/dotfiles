@@ -179,13 +179,13 @@ export function renderUnknownToolResult(name: string, result: any, { expanded, i
 	let text = `${stackPrefix(theme)}${toolLabel(theme, `${humanizeToolName(name)} `)}${summarizeUnknownToolCall(name, args, theme)}${theme.fg("dim", " · ")}${status}`;
 	if (!expanded) return makeTruncatedLines(`${text}${theme.fg("dim", " · ctrl+o to expand")}`);
 	const json = JSON.stringify(args, null, 2).split(/\r?\n/);
-	text += `\n${treeConnector(theme, raw ? "├" : "└", context?.cwd)}${theme.fg("muted", "args")}`;
-	text += `\n${json.map((line) => `${treeStem(theme, raw ? "├" : "└", context?.cwd)}${theme.fg("dim", clipLine(line, context?.cwd))}`).join("\n")}`;
+	text += `\n${treeConnector(theme, raw ? "├" : "└")}${theme.fg("muted", "args")}`;
+	text += `\n${json.map((line) => `${treeStem(theme, raw ? "├" : "└")}${theme.fg("dim", clipLine(line, context?.cwd))}`).join("\n")}`;
 	if (raw) {
 		const lines = raw.split(/\r?\n/);
-		text += `\n${treeConnector(theme, "└", context?.cwd)}${theme.fg(context?.isError ? "error" : "muted", clipLine(lines[0] ?? raw, context?.cwd))}`;
-		for (const line of lines.slice(1, 8)) text += `\n${treeStem(theme, "└", context?.cwd)}${theme.fg("dim", clipLine(line, context?.cwd))}`;
-		if (lines.length > 8) text += `\n${treeStem(theme, "└", context?.cwd)}${theme.fg("muted", `… ${lines.length - 8} more line(s)`)}`;
+		text += `\n${treeConnector(theme, "└")}${theme.fg(context?.isError ? "error" : "muted", clipLine(lines[0] ?? raw, context?.cwd))}`;
+		for (const line of lines.slice(1, 8)) text += `\n${treeStem(theme, "└")}${theme.fg("dim", clipLine(line, context?.cwd))}`;
+		if (lines.length > 8) text += `\n${treeStem(theme, "└")}${theme.fg("muted", `… ${lines.length - 8} more line(s)`)}`;
 	}
 	return makeTruncatedLines(text);
 }

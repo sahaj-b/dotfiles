@@ -372,20 +372,31 @@ function updateUI(ctx: ExtensionContext, state: RalphState | null): void {
 	ctx.ui.setStatus("ralph", label);
 }
 
-async function completeState(cwd: string, reason: string): Promise<RalphState | null> {
-	const state = await loadState(cwd);
-	if (!state) return null;
-	state.status = "completed";
-	state.awaitingAgent = false;
-	state.advanceQueued = false;
-	state.readyForNextIteration = false;
-	state.stopRequested = false;
-	await saveState(cwd, state);
-	await appendRunFooter(state.summaryPath, reason);
-	return state;
-}
-
 export default function (pi: ExtensionAPI) {
+	async function setRalphDoneActive(active: boolean, ctx: ExtensionContext): Promise<void> {
+		const current = pi.getActiveTools();
+		const hasRalphDone = current.includes("ralph_done");
+		if (active && !hasRalphDone) {
+			pi.setActiveTools([...current, "ralph_done"]);
+		} else if (!active && hasRalphDone) {
+			pi.setActiveTools(current.filter((n) => n !== "ralph_done"));
+		}
+	}
+
+	async function completeState(ctx: ExtensionContext, reason: string): Promise<RalphState | null> {
+		const state = await loadState(ctx.cwd);
+		if (!state) return null;
+		state.status = "completed";
+		state.awaitingAgent = false;
+		state.advanceQueued = false;
+		state.readyForNextIteration = false;
+		state.stopRequested = false;
+		await saveState(ctx.cwd, state);
+		await appendRunFooter(state.summaryPath, reason);
+		await setRalphDoneActive(false, ctx);
+		return state;
+	}
+
 	async function launchIteration(ctx: ExtensionContext, state: RalphState): Promise<void> {
 		if (state.awaitingAgent) {
 			updateUI(ctx, state);
@@ -404,7 +415,7 @@ export default function (pi: ExtensionAPI) {
 
 		if (state.readyForNextIteration) {
 			if (state.maxIterations > 0 && state.iteration >= state.maxIterations) {
-				const completed = await completeState(ctx.cwd, `max iterations (${state.maxIterations}) reached`);
+				const completed = await completeState(ctx, `max iterations (${state.maxIterations}) reached`);
 				updateUI(ctx, completed);
 				ctx.ui.notify(`Ralph loop hit max iterations (${state.maxIterations})`, "warning");
 				return;
@@ -512,6 +523,7 @@ export default function (pi: ExtensionAPI) {
 			`Ralph loop started: ${displayPath(ctx.cwd, taskFile)} (${parsed.mode}, max ${parsed.max})`,
 			"info",
 		);
+		await setRalphDoneActive(true, ctx);
 		await launchIteration(ctx, state);
 	}
 
@@ -634,7 +646,10 @@ export default function (pi: ExtensionAPI) {
 				}
 
 				state.stopRequested = true;
-				if (!state.awaitingAgent) state.status = "paused";
+				if (!state.awaitingAgent) {
+					state.status = "paused";
+					await setRalphDoneActive(false, ctx);
+				}
 				state.advanceQueued = false;
 				await saveState(ctx.cwd, state);
 				updateUI(ctx, state);
@@ -699,7 +714,7 @@ export default function (pi: ExtensionAPI) {
 
 		if (isComplete) {
 			await appendSummary(state.summaryPath, state.iteration, "completed", lastMessage);
-			const completed = await completeState(ctx.cwd, `completed after iteration ${state.iteration}`);
+			const completed = await completeState(ctx, `completed after iteration ${state.iteration}`);
 			updateUI(ctx, completed);
 			ctx.ui.notify(`Ralph loop complete after ${state.iteration} iterations`, "success");
 			return;
@@ -718,22 +733,25 @@ export default function (pi: ExtensionAPI) {
 
 			if (state.maxIterations > 0 && state.iteration >= state.maxIterations) {
 				await appendSummary(state.summaryPath, state.iteration, "max iterations reached", lastMessage);
-				const completed = await completeState(ctx.cwd, `max iterations (${state.maxIterations}) reached`);
+				const completed = await completeState(ctx, `max iterations (${state.maxIterations}) reached`);
 				updateUI(ctx, completed);
 				ctx.ui.notify(`Ralph loop hit max iterations (${state.maxIterations})`, "warning");
 				return;
 			}
 
-			state.status = state.stopRequested ? "paused" : state.status;
+			if (state.stopRequested) {
+				state.status = "paused";
+				await saveState(ctx.cwd, state);
+				await setRalphDoneActive(false, ctx);
+				await appendSummary(state.summaryPath, state.iteration, "paused after requested stop", lastMessage);
+				updateUI(ctx, state);
+				ctx.ui.notify("Ralph paused after the current iteration", "info");
+				return;
+			}
+
 			await saveState(ctx.cwd, state);
-			await appendSummary(
-				state.summaryPath,
-				state.iteration,
-				state.stopRequested ? "paused after requested stop" : "iteration recorded",
-				lastMessage,
-			);
+			await appendSummary(state.summaryPath, state.iteration, "iteration recorded", lastMessage);
 			updateUI(ctx, state);
-			if (state.stopRequested) ctx.ui.notify("Ralph paused after the current iteration", "info");
 			return;
 		}
 
@@ -743,6 +761,7 @@ export default function (pi: ExtensionAPI) {
 		state.status = "paused";
 		state.advanceQueued = false;
 		await saveState(ctx.cwd, state);
+		await setRalphDoneActive(false, ctx);
 		await appendSummary(state.summaryPath, state.iteration, "paused: missing ralph_done or final marker", lastMessage);
 		updateUI(ctx, state);
 		ctx.ui.notify("Ralph paused because the iteration ended without ralph_done or the final completion marker", "warning");
@@ -751,10 +770,14 @@ export default function (pi: ExtensionAPI) {
 	pi.on("session_start", async (_event, ctx) => {
 		const state = await loadState(ctx.cwd);
 		updateUI(ctx, state);
+		if (!state || state.status !== "active" || !state.awaitingAgent) {
+			await setRalphDoneActive(false, ctx);
+		}
 	});
 
 	pi.on("session_shutdown", async (_event, ctx) => {
 		const state = await loadState(ctx.cwd);
 		updateUI(ctx, state);
+		await setRalphDoneActive(false, ctx);
 	});
 }

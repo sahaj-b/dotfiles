@@ -120,6 +120,10 @@ export function bashCompletedTailLines(cwd?: string): number {
 	return Math.max(0, Math.floor(settingNumber("bashCompletedTailLines", 4, cwd)));
 }
 
+export function bashOutputPreviewLines(cwd?: string): number {
+	return Math.max(1, Math.floor(settingNumber("bashOutputPreviewLines", 80, cwd)));
+}
+
 export function diffBackgroundEnabled(cwd?: string): boolean {
 	return settingBoolean("diffBackgrounds", true, cwd);
 }

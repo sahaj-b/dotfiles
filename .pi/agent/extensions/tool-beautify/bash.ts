@@ -1,6 +1,6 @@
 import { type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-import { bashLiveOutputDelayMs, bashLiveTailLines, bashCompletedTailLines, settingBoolean } from "./settings.js";
+import { bashLiveOutputDelayMs, bashLiveTailLines, bashCompletedTailLines, bashOutputPreviewLines, settingBoolean } from "./settings.js";
 import { stackPrefix, treeConnector } from "./theme.js";
 import {
 	bashCallText,
@@ -60,7 +60,7 @@ function renderBashTail(output: string, limit: number, theme: any, cwd?: string)
 	const trimmed = output.replace(/(?:\r?\n)+$/, "");
 	if (!trimmed) return "";
 	const tailLines = preview(trimmed, limit, "tail", cwd).split(/\r?\n/);
-	const connector = treeConnector(theme, "│", cwd);
+	const connector = treeConnector(theme, "│");
 	return tailLines.map((line) => `${connector}${theme.fg("dim", line)}`).join("\n");
 }
 
@@ -120,7 +120,10 @@ export function registerBash(pi: ExtensionAPI, agent: any, cwd: string): void {
 					if (Date.now() - startedAt >= delayMs) {
 						clearBashLiveTailTimer(liveTailState);
 						liveTailState.tailShown = true;
-						const tailText = renderBashTail(output, bashLiveTailLines(effectiveCwd), theme, effectiveCwd);
+						const tailLines = expanded
+							? bashOutputPreviewLines(effectiveCwd)
+							: bashLiveTailLines(effectiveCwd);
+						const tailText = renderBashTail(output, tailLines, theme, effectiveCwd);
 						if (tailText) return makeTruncatedLines(tailText);
 					}
 					scheduleBashLiveTailRerender(liveTailState, context, delayMs);
@@ -145,7 +148,18 @@ export function registerBash(pi: ExtensionAPI, agent: any, cwd: string): void {
 				: bashCallText(context?.args ?? {}, theme, effectiveCwd);
 			let text = `${stackPrefix(theme)}${call}${summary}`;
 
-			if (settingBoolean("tailAfterComplete", false, effectiveCwd) && output.trim()) {
+			/* ---- show output preview when expanded ---- */
+			if (expanded && output) {
+				const limit = bashOutputPreviewLines(effectiveCwd);
+				const lines = output.split(/\r?\n/);
+				const shown = lines.slice(0, limit);
+				for (const line of shown) {
+					text += `\n${treeConnector(theme, "│", effectiveCwd)}${theme.fg("dim", line)}`;
+				}
+				if (count > limit) {
+					text += `\n${treeConnector(theme, "│", effectiveCwd)}${theme.fg("muted", `… ${count - limit} more line(s)`)}`;
+				}
+			} else if (settingBoolean("tailAfterComplete", false, effectiveCwd) && output.trim()) {
 				const tailText = renderBashTail(output, bashCompletedTailLines(effectiveCwd), theme, effectiveCwd);
 				if (tailText) text += `\n${tailText}`;
 			}

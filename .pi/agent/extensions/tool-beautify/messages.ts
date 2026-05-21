@@ -200,7 +200,7 @@ export function installCompactionSummaryRenderer(pi: ExtensionAPI, Component: an
 			this.addChild?.(makeTruncatedLines(`${stackPrefix(theme)}${toolLabel(theme, "Compacted ")}${theme.fg("success", `${tokenStr} tokens`)}${hint}`));
 
 			if (expanded) {
-				this.addChild?.(makeTruncatedLines(`${treeConnector(theme, "└", cwd)}${theme.fg("muted", "Summary")}`));
+				this.addChild?.(makeTruncatedLines(`${treeConnector(theme, "└")}${theme.fg("muted", "Summary")}`));
 				this.addChild?.(new Markdown(summary, 0, 0, this?.markdownTheme ?? getMarkdownTheme(), {
 					color: (text: string) => theme.fg("customMessageText", text),
 				}));

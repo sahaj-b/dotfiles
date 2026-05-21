@@ -33,7 +33,7 @@ import {
 	pendingStatusPrefix,
 	type TruncatedLines,
 } from "./text.js";
-import { borderMuted, stackPrefix, toolLabel, treeConnector } from "./theme.js";
+import { stackPrefix, toolLabel, treeConnector } from "./theme.js";
 
 const DIFF_SPLIT_MIN_WIDTH = 150;
 const DIFF_SPLIT_MIN_CODE_WIDTH = 60;
@@ -95,7 +95,7 @@ function highlightDiffContent(
 	cwd?: string,
 ): string {
 	const display = diffDisplayContent(content);
-	if (!display || !settingBoolean("shikiDiffs", true, cwd)) return display;
+	if (!display || !settingBoolean("highlightDiffs", true, cwd)) return display;
 	if (display.length > 5000) return display;
 	const language = languageForPath(path);
 	if (!language) return display;
@@ -302,7 +302,7 @@ function applyFullLineBg(
 function diffLineBgToken(line: StructuredDiffLine | null): string | undefined {
 	if (line?.type === "add") return DIFF_ADD_BG_TOKEN;
 	if (line?.type === "del") return DIFF_DEL_BG_TOKEN;
-	if (line?.type === "sep") return DIFF_SEP_BG_TOKEN;
+	// if (line?.type === "sep") return DIFF_SEP_BG_TOKEN;
 	return undefined;
 }
 
@@ -534,7 +534,6 @@ function compactStructuredDiffLines(
 		previousEnd = range.end;
 		isFirstRange = false;
 	}
-	const trailingHidden = lines.length - previousEnd - 1;
 	return compacted;
 }
 
@@ -608,7 +607,7 @@ function colorDiffText(
 	ranges: Array<[number, number]> = [],
 	cwd?: string,
 ): string {
-	if (line.type === "sep") return theme.fg("toolOutput", text);
+	if (line.type === "sep") return theme.fg("muted", text);
 	if (line.type === "ctx")
 		return hasAnsi(text) ? text : theme.fg("toolDiffContext", text);
 
@@ -703,16 +702,19 @@ function renderUnifiedDiff(
 		...diff.lines.map((line) => Math.max(line.oldNum ?? 0, line.newNum ?? 0)),
 	);
 	const numWidth = Math.max(2, String(maxNum).length);
-	const leftBorder = borderMuted(theme, "│");
-	const rightBorder = borderMuted(theme, "│");
+	const leftBorder = theme.fg("borderMuted", "│");
+	const rightBorder = theme.fg("borderMuted", "│");
 	const cellWidth = Math.max(
 		1,
 		tableWidth - visibleLength(leftBorder) - visibleLength(rightBorder),
 	);
 	const contentWidth = Math.max(1, cellWidth - 2);
-	const ruleSegment = borderMuted(theme, "─".repeat(Math.max(1, cellWidth)));
+	const ruleSegment = theme.fg(
+		"borderMuted",
+		"─".repeat(Math.max(1, cellWidth)),
+	);
 	const out: string[] = [
-		`${borderMuted(theme, "┌")}${ruleSegment}${borderMuted(theme, "┐")}`,
+		`${theme.fg("borderMuted", "┌")}${ruleSegment}${theme.fg("borderMuted", "┐")}`,
 	];
 	const pushLine = (line: StructuredDiffLine, renderedLine: string) => {
 		const cell = ` ${padVisible(renderedLine, contentWidth)} `;
@@ -778,7 +780,7 @@ function renderUnifiedDiff(
 		}
 	}
 	out.push(
-		`${borderMuted(theme, "└")}${ruleSegment}${borderMuted(theme, "┘")}`,
+		`${theme.fg("borderMuted", "└")}${ruleSegment}${theme.fg("borderMuted", "┘")}`,
 	);
 	return out;
 }
@@ -903,9 +905,9 @@ function renderSplitDiff(
 		...diff.lines.map((line) => Math.max(line.oldNum ?? 0, line.newNum ?? 0)),
 	);
 	const numWidth = Math.max(2, String(maxNum).length);
-	const leftBorder = borderMuted(theme, "│");
-	const divider = borderMuted(theme, "│");
-	const rightBorder = borderMuted(theme, "│");
+	const leftBorder = theme.fg("borderMuted", "│");
+	const divider = theme.fg("borderMuted", "│");
+	const rightBorder = theme.fg("borderMuted", "│");
 	const innerWidth = Math.max(
 		2,
 		tableWidth -
@@ -915,10 +917,10 @@ function renderSplitDiff(
 	);
 	const leftCellWidth = Math.max(1, Math.floor(innerWidth / 2));
 	const rightCellWidth = Math.max(1, innerWidth - leftCellWidth);
-	const ruleSegment = (width: number) =>
-		borderMuted(theme, "─".repeat(Math.max(1, width)));
-	const topRule = `${borderMuted(theme, "┌")}${ruleSegment(leftCellWidth)}${borderMuted(theme, "┬")}${ruleSegment(rightCellWidth)}${borderMuted(theme, "┐")}`;
-	const bottomRule = `${borderMuted(theme, "└")}${ruleSegment(leftCellWidth)}${borderMuted(theme, "┴")}${ruleSegment(rightCellWidth)}${borderMuted(theme, "┘")}`;
+	const ruleSegment = (w: number) =>
+		theme.fg("borderMuted", "─".repeat(Math.max(1, w)));
+	const topRule = `${theme.fg("borderMuted", "┌")}${ruleSegment(leftCellWidth)}${theme.fg("borderMuted", "┬")}${ruleSegment(rightCellWidth)}${theme.fg("borderMuted", "┐")}`;
+	const bottomRule = `${theme.fg("borderMuted", "└")}${ruleSegment(leftCellWidth)}${theme.fg("borderMuted", "┴")}${ruleSegment(rightCellWidth)}${theme.fg("borderMuted", "┘")}`;
 	const out = [topRule];
 	for (const pair of pairDiffRows(rows)) {
 		const leftRanges =
@@ -1002,23 +1004,18 @@ export function renderStructuredDiff(
 		? renderSplitDiff(diff, rows, width, theme, path ?? diff.path, cwd)
 		: renderUnifiedDiff(diff, rows, width, theme, path ?? diff.path, cwd);
 	const remaining = diff.lines.length - rows.length;
-	if (remaining > 0)
-		rendered.push(
-			theme.bg(
-				"customMessageBg",
-				theme.fg(
-					"dim",
-					collapsedDiffHint(
-						remaining,
-						hiddenHunksAfter(diff.lines, rows),
-						expanded,
-						rows.length,
-						diff.lines.length,
-						width,
-					),
-				),
-			),
+	if (remaining > 0) {
+		const hintText = collapsedDiffHint(
+			remaining,
+			hiddenHunksAfter(diff.lines, rows),
+			expanded,
+			rows.length,
+			diff.lines.length,
+			width,
 		);
+		const styledHint = padVisible(theme.fg("toolOutput", hintText), width);
+		rendered.push(theme.bg(DIFF_SEP_BG_TOKEN, styledHint));
+	}
 	return rendered.join("\n");
 }
 
@@ -1364,14 +1361,21 @@ export function renderBashDiffOutput(
 	const hiddenFiles = files.length - renderedFiles;
 	if (hiddenFiles > 0) {
 		const hint = `… ${hiddenFiles} more file diff${hiddenFiles === 1 ? "" : "s"}${expanded ? ` · UI cap ${Math.max(0, renderedFiles)}/${files.length}` : " · ctrl+o to expand"}`;
-		rendered.push(theme.bg("customMessageBg", theme.fg("muted", hint)));
-	}
-	else if (
+		const styledHint = padVisible(
+			theme.fg("toolOutput", hint),
+			terminalWidth(),
+		);
+		rendered.push(theme.bg(DIFF_SEP_BG_TOKEN, styledHint));
+	} else if (
 		remainingRows !== null &&
 		totalLines > configuredDiffRowLimit(expanded, cwd)!
 	) {
 		const hint = expanded ? "diff UI cap reached" : "ctrl+o to expand";
-		rendered.push(theme.bg("customMessageBg", theme.fg("muted", hint)));
+		const styledHint = padVisible(
+			theme.fg("toolOutput", hint),
+			terminalWidth(),
+		);
+		rendered.push(theme.bg(DIFF_SEP_BG_TOKEN, styledHint));
 	}
 	return rendered.join("\n");
 }
@@ -1496,8 +1500,8 @@ export function renderMutationCallPreview(
 	for (let index = 0; index < maxShown; index++) {
 		const diff = diffs[index]!;
 		if (diffs.length > 1)
-			text += `\n${treeConnector(theme, "├", cwd)}${theme.fg("muted", `edit ${index + 1}/${diffs.length}`)} ${diffSummary(diff, theme, cwd)}`;
-		const stem = treeConnector(theme, "│", cwd);
+			text += `\n${treeConnector(theme, "├")}${theme.fg("muted", `edit ${index + 1}/${diffs.length}`)} ${diffSummary(diff, theme, cwd)}`;
+		const stem = treeConnector(theme, "│");
 		const rendered = renderStructuredDiff(
 			diff,
 			theme,
@@ -1514,7 +1518,7 @@ export function renderMutationCallPreview(
 	}
 	const hidden = diffs.length - maxShown;
 	if (hidden > 0)
-		text += `\n${treeConnector(theme, "└", cwd)}${theme.fg("muted", `… ${hidden} more edit block${hidden === 1 ? "" : "s"} · ctrl+o to expand`)}`;
+		text += `\n${treeConnector(theme, "└")}${theme.fg("muted", `… ${hidden} more edit block${hidden === 1 ? "" : "s"} · ctrl+o to expand`)}`;
 	return makeTruncatedLines(text);
 }
 

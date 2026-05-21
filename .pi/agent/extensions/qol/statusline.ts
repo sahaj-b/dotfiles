@@ -61,6 +61,7 @@ let spinnerTimer: ReturnType<typeof setInterval> | undefined;
 
 let planPhase: "idle" | "planning" | "executing" = "idle";
 let planProgress = { completed: 0, total: 0 };
+let currentMode: { label: string; color: string } = { label: "", color: "muted" };
 
 export function registerPlanProgressListener(pi: ExtensionAPI): void {
 	pi.events.on("plannotator:progress", (data: any) => {
@@ -70,6 +71,14 @@ export function registerPlanProgressListener(pi: ExtensionAPI): void {
 		if (typeof data?.completed === "number" && typeof data?.total === "number") {
 			planPhase = "executing";
 			planProgress = { completed: data.completed, total: data.total };
+		}
+	});
+}
+
+export function registerModeListener(pi: ExtensionAPI): void {
+	pi.events.on("mode:changed", (data: any) => {
+		if (typeof data?.mode === "string") {
+			currentMode = { label: data.mode, color: data.color ?? "muted" };
 		}
 	});
 }
@@ -228,12 +237,18 @@ export function renderStatusLine(
 	const statusSeparator = " ∙ ";
 	const thinkingLevel = normalizeThinkingLevel(pi.getThinkingLevel());
 	const thinkingChunk = thinkingLevel;
-	const planChunk = planPhase === "planning"
-		? `${statusSeparator}${theme.fg("warning", "Plan")}`
+	const planLabel = planPhase === "planning"
+		? "Plan"
 		: planPhase === "executing" && planProgress.total > 0
-			? `${statusSeparator}${theme.fg("success", `󰱑 ${planProgress.completed}/${planProgress.total}`)}`
+			? `󰱑 ${planProgress.completed}/${planProgress.total}`
 			: "";
-	const leftPlain = `${modelChunk}${statusSeparator}${thinkingChunk}${planPhase === "planning" ? statusSeparator + "Plan" : ""}${gitChunk ? statusSeparator : ""}${gitChunk}`;
+	const planChunk = planLabel
+		? theme.fg(planPhase === "planning" ? "warning" : "success", planLabel)
+		: "";
+	const modeChunk = currentMode.label
+		? theme.fg(currentMode.color as any, currentMode.label)
+		: "";
+	const leftPlain = `${modelChunk}${statusSeparator}${thinkingChunk}${modeChunk ? statusSeparator + currentMode.label : ""}${planLabel ? statusSeparator + planLabel : ""}${gitChunk ? statusSeparator : ""}${gitChunk}`;
 
 	const percentPlain = percent === null ? "…" : `${percent}`;
 	const contextWindow = statuslineContextInfo(ctx).window;
@@ -248,7 +263,7 @@ export function renderStatusLine(
 					? "warning"
 					: "success";
 	const separatorColored = theme.fg("muted", statusSeparator);
-	const leftColored = `${theme.fg("accent", modelChunk)}${separatorColored}${theme.fg(THINKING_TOKEN[thinkingLevel], thinkingChunk)}${planChunk}${gitChunk ? separatorColored : ""}${theme.fg("mdCode", gitChunk)}`;
+	const leftColored = `${theme.fg("accent", modelChunk)}${separatorColored}${theme.fg(THINKING_TOKEN[thinkingLevel], thinkingChunk)}${modeChunk ? separatorColored + modeChunk : ""}${planChunk ? separatorColored : ""}${planChunk}${gitChunk ? separatorColored : ""}${theme.fg("mdCode", gitChunk)}`;
 	const right = `${theme.fg("muted", `${used}/${contextWindow}`)} ${theme.fg(percentColor, percentPlain)}`;
 
 	const minimumGap = 1;
