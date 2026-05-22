@@ -170,8 +170,23 @@ l() {
 
   local args=()
   [[ -n "$model" ]] && args=("-m" "$model")
-  
-  $fpi "${args[@]}" "$@" | sd
+  while [[ "$1" == -* ]]; do
+    args+=("$1")
+    shift
+  done
+  if [[ $# -gt 0 ]]; then
+    $fpi "${args[@]}" "$@" | sd
+    return
+  fi
+
+  # open nvim if no prompt given
+  local tmp=$(mktemp /tmp/pi-prompt-XXXXXXXX)
+  nvim +startinsert "$tmp" </dev/tty
+  if [[ -s "$tmp" ]]; then
+    # $fpi "${args[@]}" "$@" | sd
+    command $fpi "${args[@]}" "$(<$tmp)" | sd
+  fi
+  rm -f "$tmp"
 }
 
 alias gpt='mods -m gpt-4.1'
@@ -179,7 +194,7 @@ alias gfl='mods -m 2.5-flash-lite'
 
 function p() {
   local tmp=$(mktemp /tmp/pi-prompt-XXXXXXXX)
-  ${EDITOR:-nvim} "$tmp" </dev/tty
+  nvim +startinsert "$tmp" </dev/tty
   if [[ -s "$tmp" ]]; then
     command pi "$(<$tmp)"
   fi

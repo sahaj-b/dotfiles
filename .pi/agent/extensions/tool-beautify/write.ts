@@ -10,6 +10,7 @@ import { getBuiltInTool } from "./read.js";
 import { writeCompletedLines, writeLiveLines } from "./settings.js";
 import {
 	clearBlink,
+	displayPath,
 	lineCount,
 	makeEmpty,
 	makeTruncatedLines,
@@ -204,10 +205,10 @@ function getHighlightedLines(
 	}
 }
 
-function renderPath(theme: any, rawPath: string | null): string {
+function renderPath(theme: any, rawPath: string | null, cwd?: string): string {
 	if (rawPath === null) return theme.fg("error", INVALID_ARG);
 	if (!rawPath) return theme.fg("dim", "...");
-	return theme.fg("accent", rawPath);
+	return theme.fg("accent", displayPath(rawPath, cwd));
 }
 
 function previewLines(
@@ -245,7 +246,7 @@ function formatWriteCall(
 ): string {
 	const rawPath = argString(args?.file_path ?? args?.path);
 	const fileContent = argString(args?.content);
-	const pathText = renderPath(theme, rawPath);
+	const pathText = renderPath(theme, rawPath, context?.cwd);
 	const contentText = fileContent ?? "";
 	const label = contentText.length > 0 ? "Write " : "Create ";
 	let text = `${toolLabel(theme, label)}${pathText} ${theme.fg("toolOutput", `· ${lineCount(contentText)} lines`)}`;
@@ -319,7 +320,7 @@ export function registerWrite(pi: ExtensionAPI, agent: any, cwd: string): void {
 		renderResult(result: any, _options: any, theme: any, context: any) {
 			const args = context?.args ?? {};
 			const rawPath = argString(args.path ?? args.file_path);
-			const pathText = renderPath(theme, rawPath);
+			const pathText = renderPath(theme, rawPath, context?.cwd);
 			clearBlink(context);
 
 			if (context?.isError || result?.isError) {

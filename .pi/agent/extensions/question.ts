@@ -8,6 +8,7 @@ import {
 	wrapTextWithAnsi,
 } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
+import { terminalWidth } from "./tool-beautify/ansi.js";
 
 // Lightweight state tracking. (Cleaned up in renderResult so it stops memory leaking).
 const toolStateMap = new Map<
@@ -193,6 +194,8 @@ async function askQuestionDialog(ctx: any, params: any): Promise<any> {
 					);
 
 				}
+
+				out.push("");
 				return out;
 			}
 
@@ -315,8 +318,16 @@ export default function askQuestion(pi: ExtensionAPI) {
 			else if (answer.kind === "multi")
 				answerText = (answer.selected || []).join(", ");
 
+			const maxCollapsed = Math.max(
+				40,
+				Math.floor(terminalWidth() * 0.85),
+			);
+			const displayText = answerText.length > maxCollapsed
+				? answerText.slice(0, maxCollapsed) + "…"
+				: answerText;
+
 			return new Text(
-				`${theme.fg("muted", "╰─ ")}${theme.fg("text", answerText)}`,
+				`${theme.fg("muted", "╰─ ")}${theme.fg("text", displayText)}`,
 				0,
 				0,
 			);

@@ -27,14 +27,8 @@ import {
 	settingBoolean,
 	settingNumber,
 } from "./settings.js";
-import {
-	isGitDiffCommand,
-	makeEmpty,
-	makeTruncatedLines,
-	pendingStatusPrefix,
-	type TruncatedLines,
-} from "./text.js";
-import { stackPrefix, toolLabel, treeConnector } from "./theme.js";
+import { isGitDiffCommand } from "./text.js";
+import { toolLabel } from "./theme.js";
 
 const DIFF_SPLIT_MIN_WIDTH = 150;
 const DIFF_SPLIT_MIN_CODE_WIDTH = 60;
@@ -43,18 +37,16 @@ const DIFF_SPLIT_MAX_WRAP_RATIO = 0.2;
 const DIFF_LCS_CELL_LIMIT = 250_000;
 const DIFF_CONTEXT_LINES = 3;
 export const MAX_DIFF_INPUT_BYTES = 1000 * 1024;
-const DIFF_HIGHLIGHT_MAX_CHARS = 180_000;
 const DIFF_BOTTOM_HINT_BG = "\x1b[48;2;147;153;178m";
 const RESET = "\x1b[22m\x1b[39m\x1b[49m";
 export const DIFF_ADD_BG_TOKEN = "toolSuccessBg";
 export const DIFF_DEL_BG_TOKEN = "toolErrorBg";
 export const DIFF_WORD_ADD_BG_TOKEN = "toolDiffAddedBg";
 export const DIFF_WORD_DEL_BG_TOKEN = "toolDiffRemovedBg";
-export const DIFF_SEP_BG_TOKEN = "userMessageBg";
-export const DIFF_ADD_BG_FALLBACK = "\x1b[48;2;24;58;38m";
-export const DIFF_DEL_BG_FALLBACK = "\x1b[48;2;66;31;43m";
-export const DIFF_WORD_ADD_BG_FALLBACK = "\x1b[48;2;63;104;80m";
-export const DIFF_WORD_DEL_BG_FALLBACK = "\x1b[48;2;104;63;80m";
+const DIFF_ADD_BG_FALLBACK = "\x1b[48;2;24;58;38m";
+const DIFF_DEL_BG_FALLBACK = "\x1b[48;2;66;31;43m";
+const DIFF_WORD_ADD_BG_FALLBACK = "\x1b[48;2;63;104;80m";
+const DIFF_WORD_DEL_BG_FALLBACK = "\x1b[48;2;104;63;80m";
 const WORD_DIFF_BG_RESET = "\x1b[49m";
 const WORD_DIFF_CELL_LIMIT = 32_000;
 const WORD_DIFF_MIN_SIMILARITY = 0.2;
@@ -75,8 +67,6 @@ export interface StructuredDiff {
 	path?: string;
 	removals: number;
 }
-
-const themeDiffBgParts = new WeakMap<object, Map<string, AnsiParts>>();
 
 function diffDisplayContent(content: string): string {
 	return content.replace(/\t/g, "  ");
@@ -236,54 +226,42 @@ function maybeBg(
 	return theme.bg(token, text);
 }
 
-function fallbackDiffBgOpen(token: string): string {
-	if (token === DIFF_ADD_BG_TOKEN) return DIFF_ADD_BG_FALLBACK;
-	if (token === DIFF_DEL_BG_TOKEN) return DIFF_DEL_BG_FALLBACK;
-	return "";
-}
+const bgPartsCache = new WeakMap<object, Map<string, AnsiParts>>();
 
-function cacheThemeBgParts(theme: any, token: string): AnsiParts | undefined {
-	const marker = "\uE000";
-	if (
-		!theme ||
-		(typeof theme !== "object" && typeof theme !== "function") ||
-		!theme.bg
-	)
-		return undefined;
+function bgParts(theme: any, token: string): AnsiParts {
+	if (!theme || (typeof theme !== "object" && typeof theme !== "function") || !theme.bg)
+		return { open: "", close: "" };
+
+	let cache = bgPartsCache.get(theme);
+	if (!cache) {
+		cache = new Map();
+		bgPartsCache.set(theme, cache);
+	}
+
+	const cached = cache.get(token);
+	if (cached) return cached;
+
 	try {
-		const parts = ansiPartsFromStyled(theme.bg(token, marker));
-		if (!ansiHasBackground(parts.open)) return undefined;
-		let cached = themeDiffBgParts.get(theme);
-		if (!cached) {
-			cached = new Map();
-			themeDiffBgParts.set(theme, cached);
+		const parts = ansiPartsFromStyled(theme.bg(token, "\uE000"));
+		if (ansiHasBackground(parts.open)) {
+			cache.set(token, parts);
+			return parts;
 		}
-		cached.set(token, parts);
-		return parts;
 	} catch {
 		// Keep rendering readable if the active theme cannot provide this token.
 	}
-	return undefined;
-}
 
-function cachedThemeBgParts(theme: any, token: string): AnsiParts | undefined {
-	if (!theme || (typeof theme !== "object" && typeof theme !== "function"))
-		return undefined;
-	return themeDiffBgParts.get(theme)?.get(token);
-}
+	if (token === DIFF_ADD_BG_TOKEN) {
+		const fallback: AnsiParts = { open: DIFF_ADD_BG_FALLBACK, close: ANSI_BG_RESET };
+		cache.set(token, fallback);
+		return fallback;
+	}
+	if (token === DIFF_DEL_BG_TOKEN) {
+		const fallback: AnsiParts = { open: DIFF_DEL_BG_FALLBACK, close: ANSI_BG_RESET };
+		cache.set(token, fallback);
+		return fallback;
+	}
 
-export function captureDiffBackgroundTheme(theme: any): void {
-	cacheThemeBgParts(theme, DIFF_ADD_BG_TOKEN);
-	cacheThemeBgParts(theme, DIFF_DEL_BG_TOKEN);
-}
-
-function bgParts(theme: any, token: string): AnsiParts {
-	const live = cacheThemeBgParts(theme, token);
-	if (live) return live;
-	const cached = cachedThemeBgParts(theme, token);
-	if (cached) return cached;
-	const fallbackOpen = fallbackDiffBgOpen(token);
-	if (fallbackOpen) return { open: fallbackOpen, close: ANSI_BG_RESET };
 	return { open: "", close: "" };
 }
 
@@ -305,7 +283,6 @@ function applyFullLineBg(
 function diffLineBgToken(line: StructuredDiffLine | null): string | undefined {
 	if (line?.type === "add") return DIFF_ADD_BG_TOKEN;
 	if (line?.type === "del") return DIFF_DEL_BG_TOKEN;
-	// if (line?.type === "sep") return DIFF_SEP_BG_TOKEN;
 	return undefined;
 }
 
@@ -1461,111 +1438,11 @@ export function attachDiffDetails(
 	return result;
 }
 
-export function editOperationsFromArgs(
-	args: any,
-): Array<{ oldText: string; newText: string }> {
-	if (Array.isArray(args?.edits)) {
-		return args.edits
-			.map((edit: any) => ({
-				oldText:
-					typeof edit?.oldText === "string"
-						? edit.oldText
-						: typeof edit?.old_text === "string"
-							? edit.old_text
-							: "",
-				newText:
-					typeof edit?.newText === "string"
-						? edit.newText
-						: typeof edit?.new_text === "string"
-							? edit.new_text
-							: "",
-			}))
-			.filter(
-				(edit: { oldText: string; newText: string }) =>
-					edit.oldText.length > 0 && edit.oldText !== edit.newText,
-			);
-	}
-	const oldText =
-		typeof args?.oldText === "string"
-			? args.oldText
-			: typeof args?.old_text === "string"
-				? args.old_text
-				: "";
-	const newText =
-		typeof args?.newText === "string"
-			? args.newText
-			: typeof args?.new_text === "string"
-				? args.new_text
-				: "";
-	return oldText.length > 0 && oldText !== newText
-		? [{ oldText, newText }]
-		: [];
-}
 
-export function summarizeDiffs(diffs: StructuredDiff[]): StructuredDiff {
-	return {
-		additions: diffs.reduce((sum, diff) => sum + diff.additions, 0),
-		chars: diffs.reduce((sum, diff) => sum + diff.chars, 0),
-		hunks: diffs.reduce(
-			(sum, diff) => sum + (diff.hunks ?? countStructuredHunks(diff.lines)),
-			0,
-		),
-		lines: diffs.flatMap((diff, index) =>
-			index === 0 ? diff.lines : [hiddenDiffLine(0), ...diff.lines],
-		),
-		removals: diffs.reduce((sum, diff) => sum + diff.removals, 0),
-	};
-}
 
-export function renderMutationCallPreview(
-	kind: "Edit" | "Write" | "Create",
-	targetPath: string,
-	diffs: StructuredDiff[],
-	theme: any,
-	context: any,
-	cwd: string,
-): TruncatedLines | ReturnType<typeof makeEmpty> {
-	if (context?.executionStarted && !context?.isPartial) return makeEmpty();
-	if (!settingBoolean("mutationCallPreview", true, cwd) || diffs.length === 0)
-		return makeEmpty();
-	const total = summarizeDiffs(diffs);
-	const prefix =
-		context?.executionStarted && context?.isPartial
-			? pendingStatusPrefix(theme, context, cwd)
-			: stackPrefix(theme);
-	let text = `${prefix}${toolLabel(theme, `${kind} `)}${theme.fg("accent", targetPath)}${theme.fg("dim", " · preview · ")}${diffSummary(total, theme, cwd)}`;
-	const maxShown = context?.expanded ? diffs.length : Math.min(1, diffs.length);
-	const perDiffLimit = Math.max(
-		4,
-		Math.floor(
-			settingNumber("mutationCallPreviewLines", 16, cwd) /
-				Math.max(1, maxShown),
-		),
-	);
-	for (let index = 0; index < maxShown; index++) {
-		const diff = diffs[index]!;
-		if (diffs.length > 1)
-			text += `\n${treeConnector(theme, "├")}${theme.fg("muted", `edit ${index + 1}/${diffs.length}`)} ${diffSummary(diff, theme, cwd)}`;
-		const stem = treeConnector(theme, "│");
-		const rendered = renderStructuredDiff(
-			diff,
-			theme,
-			Boolean(context?.expanded),
-			cwd,
-			perDiffLimit,
-			targetPath,
-			visibleWidth(stem),
-		);
-		text += `\n${rendered
-			.split(/\r?\n/)
-			.map((line) => `${stem}${line}`)
-			.join("\n")}`;
-	}
-	const hidden = diffs.length - maxShown;
-	if (hidden > 0)
-		text += `\n${treeConnector(theme, "└")}${theme.fg("muted", `… ${hidden} more edit block${hidden === 1 ? "" : "s"} · ctrl+o to expand`)}`;
-	return makeTruncatedLines(text);
-}
+
+
+
 
 /**
  * A reactive component that re-renders the structured diff table whenever
@@ -1625,9 +1502,3 @@ export class DiffResult {
 	}
 }
 
-export function existingSmallTextOrUndefined(
-	targetPath: string,
-	cwd: string,
-): string | undefined {
-	return readTextForDiff(targetPath, cwd);
-}

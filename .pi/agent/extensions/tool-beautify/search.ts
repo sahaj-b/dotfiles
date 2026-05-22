@@ -37,6 +37,16 @@ export function registerReadOnly(pi: ExtensionAPI, agent: any, cwd: string, tool
 			if (isPartial) return renderPendingDetail(`${toolName}…`, theme);
 			clearBlink(context);
 			const output = textContent(result);
+			const firstLine = output.split(/\r?\n/)[0] || "";
+			if (context?.isError || result?.isError) {
+				const isNotFound = /ENOENT|no such file|not found/i.test(firstLine);
+				const label = isNotFound ? "not found" : firstLine;
+				let text = `${stackPrefix(theme)}${call}${theme.fg("dim", " · ")}${theme.fg("error", label)}`;
+				if (expanded && firstLine) {
+					text += `\n${treeConnector(theme, "│")}${theme.fg("dim", firstLine)}`;
+				}
+				return makeTruncatedLines(text);
+			}
 			const count = output.trim() ? lineCount(output) : 0;
 			const label = toolName === "grep"
 				? `${count} match${count === 1 ? "" : "es"}`

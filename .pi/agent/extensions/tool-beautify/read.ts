@@ -64,10 +64,10 @@ export function registerRead(pi: ExtensionAPI, agent: any, cwd: string): void {
 			return getBuiltInTool(agent, contextCwd(context, cwd), "read").execute(id, params, signal, onUpdate);
 		},
 		renderCall(args: any, theme: any, context: any) {
-			return renderPendingCall(readCallText(args ?? {}, theme), theme, context, cwd);
+			return renderPendingCall(readCallText(args ?? {}, theme, contextCwd(context, cwd)), theme, context, cwd);
 		},
 		renderResult(result: any, { expanded, isPartial }: any, theme: any, context: any) {
-			const call = readCallText(context?.args ?? {}, theme);
+			const call = readCallText(context?.args ?? {}, theme, contextCwd(context, cwd));
 			if (isPartial) return renderPendingDetail("reading…", theme);
 			clearBlink(context);
 			const mode = readOutputMode(context?.cwd ?? cwd);

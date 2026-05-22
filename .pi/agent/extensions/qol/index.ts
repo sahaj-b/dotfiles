@@ -265,6 +265,16 @@ export default function (pi: ExtensionAPI) {
 				finalizeThinkingBlock(
 					`${partial.timestamp}:${streamEvent.contentIndex}`,
 				);
+				return;
+			}
+
+			// Safety net: some providers (e.g., OpenAI completions) emit
+			// toolcall_start before thinking_end. Finalize any pending thinking
+			// blocks so the timer stops when tool calls begin.
+			if (streamEvent.type === "toolcall_start") {
+				for (const key of [...timerStore.starts.keys()]) {
+					finalizeThinkingBlock(key);
+				}
 			}
 		});
 

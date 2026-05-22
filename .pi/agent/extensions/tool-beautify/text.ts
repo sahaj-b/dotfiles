@@ -1,4 +1,4 @@
-import { basename, extname } from "node:path";
+import { basename, extname, relative } from "node:path";
 import { wrapTextWithAnsi } from "@earendil-works/pi-tui";
 
 import { stableRenderWidth, stripAnsi } from "./ansi.js";
@@ -347,12 +347,45 @@ export function renderPathListPreview(
 	return lines.join("\n");
 }
 
-export function readCallText(args: any, theme: any): string {
+export function displayPath(path: string, cwd?: string): string {
+	if (!path) return path;
+
+	// Try relative to cwd — handles same-fs subdirs and parent dirs
+	if (cwd) {
+		try {
+			const rel = relative(cwd, path);
+			if (rel === "") return ".";
+			// Only show relative path if it's inside cwd, not parent dirs
+			if (
+				!rel.startsWith("..") &&
+				!rel.startsWith("/") &&
+				!rel.startsWith("\\") &&
+				!/^[A-Za-z]:/.test(rel)
+			) {
+				return rel;
+			}
+		} catch {
+			// ignore
+		}
+	}
+
+	// Compact $HOME to ~
+	const home = process.env.HOME || "";
+	if (home && path.startsWith(home)) {
+		const rest = path.slice(home.length);
+		return rest ? `~${rest}` : "~";
+	}
+
+	return path;
+}
+
+export function readCallText(args: any, theme: any, cwd?: string): string {
+	const display = displayPath(args?.path ?? "", cwd);
 	const range =
 		args?.offset || args?.limit
 			? `:${args.offset ?? 1}${args.limit ? `-${Number(args.offset ?? 1) + Number(args.limit) - 1}` : ""}`
 			: "";
-	return `${theme.fg("text", theme.bold("  "))}${theme.fg("accent", `${args?.path ?? ""}${range}`)}`;
+	return `${theme.fg("text", theme.bold("  "))}${theme.fg("accent", `${display}${range}`)}`;
 }
 
 export function bashCallText(args: any, theme: any, cwd?: string): string {

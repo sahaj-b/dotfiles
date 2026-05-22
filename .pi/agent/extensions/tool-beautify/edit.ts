@@ -2,19 +2,16 @@ import { type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 import {
 	attachDiffDetails,
-	buildStructuredDiff,
 	DiffResult,
 	diffSummary,
-	editOperationsFromArgs,
 	readTextForDiff,
-	renderMutationCallPreview,
 	type StructuredDiff,
 } from "./diff.js";
 import { contextCwd, getBuiltInTool } from "./read.js";
 import { stackPrefix, toolLabel } from "./theme.js";
 import {
 	clearBlink,
-	componentHasVisibleLines,
+	displayPath,
 	makeTruncatedLines,
 	renderPendingCall,
 	renderPendingDetail,
@@ -39,19 +36,15 @@ export function registerEdit(pi: ExtensionAPI, agent: any, cwd: string): void {
 			return attachDiffDetails(result, before, after, typeof targetPath === "string" ? targetPath : undefined);
 		},
 		renderCall(args: any, theme: any, context: any) {
-			const effectiveCwd = context?.cwd ?? cwd;
 			const targetPath = args?.path ?? args?.file_path ?? "";
-			if (context?.argsComplete) {
-				const diffs = editOperationsFromArgs(args).map((edit) => ({ ...buildStructuredDiff(edit.oldText, edit.newText), path: targetPath }));
-				const previewComponent = renderMutationCallPreview("Edit", String(targetPath), diffs, theme, context, effectiveCwd);
-				if (componentHasVisibleLines(previewComponent)) return previewComponent;
-			}
-			return renderPendingCall(`${toolLabel(theme, "Edit ")}${theme.fg("accent", targetPath)}`, theme, context, cwd);
+			const displayTarget = displayPath(targetPath, context?.cwd ?? cwd);
+			return renderPendingCall(`${toolLabel(theme, "Edit ")}${theme.fg("accent", displayTarget)}`, theme, context, cwd);
 		},
 		renderResult(result: any, { expanded, isPartial }: any, theme: any, context: any) {
 			const args = context?.args ?? {};
 			const targetPath = args.path ?? args.file_path ?? "";
-			const call = `${toolLabel(theme, "Edit ")}${theme.fg("accent", targetPath)}`;
+			const displayTarget = displayPath(targetPath, context?.cwd ?? cwd);
+			const call = `${toolLabel(theme, "Edit ")}${theme.fg("accent", displayTarget)}`;
 			if (isPartial) return renderPendingDetail("editing…", theme);
 			clearBlink(context);
 			const structured = result?.details?.toolDiff as StructuredDiff | undefined;

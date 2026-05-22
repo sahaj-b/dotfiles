@@ -1,8 +1,6 @@
 {
   "lastChangelogVersion": "0.75.4",
-  "packages": [
-    "npm:pi-btw"
-  ],
+  "packages": [],
   "defaultProvider": "oc",
   "defaultModel": "deepseek-v4-flash-free",
   "defaultThinkingLevel": "high",

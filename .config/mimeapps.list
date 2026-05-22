@@ -255,6 +255,7 @@ text/x-tcl=nvim.desktop
 text/x-tex=nvim.desktop
 text/x-c=nvim.desktop
 text/x-c++=nvim.desktop
+x-scheme-handler/antigravity=antigravity.desktop
 
 [Added Associations]
 x-scheme-handler/http=userapp-Zen-AN1SB3.desktop;zen.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-9O1UA3.desktop;brave-browser.desktop;
