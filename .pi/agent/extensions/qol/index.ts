@@ -412,14 +412,11 @@ export default function (pi: ExtensionAPI) {
 
 	// Question notification via tool_call interception
 	pi.on("tool_call", async (event: any, ctx: any) => {
-		if (event.toolName !== "ask_user_question") return;
+		if (event.toolName !== "ask_question") return;
 		if (!settingBoolean("notification.enabled", true, ctx.cwd)) return;
-		// rpiv nests params under questions[0]
-		const questions = event.input?.questions;
-		const header =
-			Array.isArray(questions) && questions.length > 0 && questions[0]?.header
-				? questions[0].header
-				: event.input?.header || "Input required";
+		
+		const question = typeof event.input?.question === "string" ? event.input.question : "Input required";
+		const header = question.length > 80 ? question.slice(0, 77) + "..." : question;
 		notifyQuestionOpened(ctx, header);
 	});
 

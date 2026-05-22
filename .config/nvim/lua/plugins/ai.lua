@@ -1,4 +1,55 @@
 return {
+  -- {
+  --   dir = "~/projects/askline.nvim",
+  --   dependencies = { "j-hui/fidget.nvim" },
+  --   config = function()
+  --     require("askline").setup({
+  --       model = "oc/deepseek-v4-flash-free",
+  --       system_prompt = "",
+  --       executable = "~/projects/fast-pi/dist/fast-pi.js",
+  --     })
+  --
+  --     vim.keymap.set({ "n", "v" }, "<leader>ai", function()
+  --       require("askline").prompt()
+  --     end, { desc = "Askline: Prompt" })
+  --
+  --     vim.keymap.set("n", "<leader>ga", function()
+  --       require("askline").accept_diff()
+  --     end, { desc = "Askline: Accept diff" })
+  --
+  --     vim.keymap.set("n", "<leader>gr", function()
+  --       require("askline").reject_diff()
+  --     end, { desc = "Askline: Reject diff" })
+  --
+  --     vim.keymap.set("n", "<leader>gx", function()
+  --       require("askline").cancel()
+  --     end, { desc = "Askline: Cancel" })
+  --
+  --     -- Fidget integration
+  --     local progress = require("fidget.progress")
+  --     local handle = nil
+  --     vim.api.nvim_create_autocmd("User", {
+  --       pattern = "AsklineRequestStarted",
+  --       callback = function(args)
+  --         handle = progress.handle.create({
+  --           title = "Askline",
+  --           message = "Waiting for " .. (args.data.model or "AI") .. "...",
+  --           lsp_client = { name = "askline" },
+  --         })
+  --       end,
+  --     })
+  --     vim.api.nvim_create_autocmd("User", {
+  --       pattern = "AsklineRequestFinished",
+  --       callback = function(args)
+  --         if handle then
+  --           local msg = args.data.model == "cancelled" and "Cancelled" or "Done"
+  --           handle:finish({ message = msg })
+  --           handle = nil
+  --         end
+  --       end,
+  --     })
+  --   end
+  -- },
   {
     "olimorris/codecompanion.nvim",
     dependencies = {

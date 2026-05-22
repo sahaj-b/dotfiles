@@ -8,8 +8,8 @@ import {
 	lineCount,
 	makeEmpty,
 	makeTruncatedLines,
+	pendingStatusPrefix,
 	preview,
-	renderPendingCall,
 	resultTruncated,
 	textContent,
 } from "./text.js";
@@ -42,9 +42,7 @@ function clearBashLiveTailTimer(state: BashLiveTailState): void {
 }
 
 function scheduleBashLiveTailRerender(state: BashLiveTailState, context: any, delayMs: number): void {
-	if (state.tailShown || state.timer || typeof context?.invalidate !== "function") return;
-	const startedAt = state.startedAt ?? Date.now();
-	const remaining = Math.max(0, startedAt + delayMs - Date.now());
+	if (state.timer || typeof context?.invalidate !== "function") return;
 	state.timer = setTimeout(() => {
 		state.timer = undefined;
 		try {
@@ -52,7 +50,7 @@ function scheduleBashLiveTailRerender(state: BashLiveTailState, context: any, de
 		} catch {
 			// best-effort
 		}
-	}, remaining);
+	}, delayMs);
 	state.timer.unref?.();
 }
 
@@ -71,9 +69,7 @@ function extractPiExitCode(text: string): number | null {
 
 function stripPiNoOutputWrapper(text: string): { output: string; exitCode: number | null } {
 	const exitCode = extractPiExitCode(text);
-	// "(no output)\n\nCommand exited with code X" → no real output, just error wrapper
 	if (/^\(no[- ]output\)\s*\n+\s*Command exited with code \d+\s*$/i.test(text)) return { output: "", exitCode };
-	// standalone "(no output)" or "(no-output)"
 	if (/^\(no[- ]output\)\s*$/i.test(text)) return { output: "", exitCode: null };
 	return { output: text, exitCode };
 }
@@ -102,38 +98,56 @@ export function registerBash(pi: ExtensionAPI, agent: any, cwd: string): void {
 			return getBuiltInTool(agent, contextCwd(context, cwd), "bash").execute(id, params, signal, onUpdate);
 		},
 		renderCall(args: any, theme: any, context: any) {
+			if (!context?.executionStarted || !context?.isPartial) return makeEmpty();
+
 			markBashStarted(context);
-			return renderPendingCall(bashCallText(args ?? {}, theme, context?.cwd ?? cwd), theme, context, cwd);
+			const effectiveCwd = context?.cwd ?? cwd;
+			const liveTailState = bashLiveTailState(context);
+			const call = bashCallText(args ?? {}, theme, effectiveCwd);
+			const prefix = pendingStatusPrefix(theme, context, effectiveCwd);
+			const partialOutput = context.state?._tbBashPartialOutput as string | undefined;
+			const trimmedOutput = partialOutput?.trim();
+
+			if (trimmedOutput) {
+				const delayMs = bashLiveOutputDelayMs(effectiveCwd);
+				const delayElapsed = Date.now() - (liveTailState.startedAt ?? Date.now()) >= delayMs;
+				const shouldShow = context?.expanded || delayElapsed || liveTailState.tailShown;
+
+				if (shouldShow) {
+					liveTailState.tailShown = true;
+					const tailLines = context?.expanded
+						? bashOutputPreviewLines(effectiveCwd)
+						: bashLiveTailLines(effectiveCwd);
+					const tailText = renderBashTail(partialOutput, tailLines, theme, effectiveCwd);
+					if (tailText) {
+						scheduleBashLiveTailRerender(liveTailState, context, delayMs);
+						return makeTruncatedLines(`${prefix}${call}\n${tailText}`);
+					}
+				}
+
+				scheduleBashLiveTailRerender(liveTailState, context, delayMs);
+				return makeTruncatedLines(`${prefix}${call}`);
+			}
+
+			scheduleBashLiveTailRerender(liveTailState, context, bashLiveOutputDelayMs(effectiveCwd));
+			return makeTruncatedLines(`${prefix}${call}`);
 		},
-		renderResult(result: any, { expanded, isPartial }: any, theme: any, context: any) {
+		renderResult(result: any, _options: any, theme: any, context: any) {
 			const effectiveCwd = context?.cwd ?? cwd;
 			const raw = textContent(result);
 			const { output, exitCode } = stripPiNoOutputWrapper(raw);
-			const liveTailState = markBashStarted(context);
 
-			/* ---- live tail while command is running ---- */
-			if (isPartial) {
-				const trimmedOutput = output.trim();
-				if (trimmedOutput) {
-					const delayMs = bashLiveOutputDelayMs(effectiveCwd);
-					const startedAt = liveTailState.startedAt ?? Date.now();
-					if (Date.now() - startedAt >= delayMs) {
-						clearBashLiveTailTimer(liveTailState);
-						liveTailState.tailShown = true;
-						const tailLines = expanded
-							? bashOutputPreviewLines(effectiveCwd)
-							: bashLiveTailLines(effectiveCwd);
-						const tailText = renderBashTail(output, tailLines, theme, effectiveCwd);
-						if (tailText) return makeTruncatedLines(tailText);
-					}
-					scheduleBashLiveTailRerender(liveTailState, context, delayMs);
-				}
+			/* stash partial output so renderCall can pick it up on the next cycle */
+			if (context?.isPartial) {
+				context.state._tbBashPartialOutput = output;
 				return makeEmpty();
 			}
 
-			/* ---- command finished ---- */
+			/* command finished */
 			clearBlink(context);
-			clearBashLiveTailTimer(liveTailState);
+			clearBashLiveTailTimer(bashLiveTailState(context));
+			delete context.state._tbBashPartialOutput;
+
 			const count = lineCount(output);
 			const exitLabel = exitCode != null && exitCode !== 0 ? `exit ${exitCode}` : null;
 			const parts: string[] = [];
@@ -143,13 +157,12 @@ export function registerBash(pi: ExtensionAPI, agent: any, cwd: string): void {
 			const sep = theme.fg("muted", " · ");
 			const summary = parts.length ? `${sep}${parts.join(sep)}` : "";
 
-			const call = expanded
+			const call = context?.expanded
 				? bashFullCallText(context?.args ?? {}, theme, effectiveCwd)
 				: bashCallText(context?.args ?? {}, theme, effectiveCwd);
 			let text = `${stackPrefix(theme)}${call}${summary}`;
 
-			/* ---- show output preview when expanded ---- */
-			if (expanded && output) {
+			if (context?.expanded && output) {
 				const limit = bashOutputPreviewLines(effectiveCwd);
 				const lines = output.split(/\r?\n/);
 				const shown = lines.slice(0, limit);

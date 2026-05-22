@@ -1,14 +1,13 @@
 {
   "lastChangelogVersion": "0.75.4",
   "packages": [
-    "npm:pi-btw",
-    "npm:@juicesharp/rpiv-ask-user-question"
+    "npm:pi-btw"
   ],
   "defaultProvider": "oc",
-  "defaultModel": "qwen3.6-plus-free",
+  "defaultModel": "deepseek-v4-flash-free",
   "defaultThinkingLevel": "high",
   "theme": "catppuccin-mocha",
-  "hideThinkingBlock": false,
+  "hideThinkingBlock": true,
   "workspaceHistory": {
     "enabled": false
   },
@@ -29,7 +28,7 @@
     "bashCompletedTailLines": 1,
     "bashOutputPreviewLines": 80,
     "tailAfterComplete": true,
-    "diffPreviewLines": 40,
+    "diffPreviewLines": 50,
     "diffExpandedLines": 4000,
     "highlightDiffs": true,
     "showDiffHunkMeta": true,

@@ -1,16 +1,22 @@
 /**
  * Read-only mode toggle.
  *
- * /ro → toggle read-only mode on/off
- * Alt+M → toggle read-only on/off
+ * /ro OR Alt+m → toggle read-only mode on/off
  *
  * Emits "mode:changed" events with { mode: string, color: ThemeColor }
  * so other extensions (e.g. statusline) can render the indicator.
  *
  * Tools are NOT restricted — write/edit are blocked at call time,
- * and bash write-like commands are intercepted. All other tools
- * (including custom ones like web_search) remain available.
+ * and bash write-like commands are intercepted. All other tools remain available.
+ *
+ * In RO mode, the agent CAN:
+ *   - create new .md / .mdx files (write tool)
+ *   - edit .md / .mdx files it created this session (write / edit tools)
+ * Everything else (bash writes, non-.md writes, editing pre-existing files) stays blocked.
  */
+
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 import type {
 	ExtensionAPI,
@@ -19,7 +25,16 @@ import type {
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 import { Key } from "@earendil-works/pi-tui";
 
-const BLOCKED_TOOLS = new Set(["write", "edit"]);
+const ALLOWED_MARKDOWN_EXT = new Set([".md", ".mdx"]);
+
+// Tracks files the agent created during this session.
+// Gates write/edit permission for .md/.mdx files.
+const createdFiles = new Set<string>();
+
+function isMarkdownPath(p: string): boolean {
+	const ext = path.extname(p).toLowerCase();
+	return ALLOWED_MARKDOWN_EXT.has(ext);
+}
 
 const WRITE_PATTERNS = [
 	// Output redirection: > or >> (but not >> inside words or === comparisons)
@@ -81,9 +96,40 @@ export default function readOnly(pi: ExtensionAPI): void {
 	pi.on("tool_call", async (event, ctx) => {
 		if (!roActive) return;
 
-		// Block write/edit tool calls directly
-		if (BLOCKED_TOOLS.has(event.toolName)) {
-			return { block: true, reason: TOOL_BLOCK_MSG };
+		// --- write tool: allow only new/existing .md/.mdx files we created ---
+		if (event.toolName === "write") {
+			const filePath = event.input.path as string;
+			if (!filePath || !isMarkdownPath(filePath)) {
+				return { block: true, reason: TOOL_BLOCK_MSG };
+			}
+			const absPath = path.resolve(filePath);
+			// If the file already exists and wasn't created by us this session, block
+			if (fs.existsSync(absPath) && !createdFiles.has(absPath)) {
+				return {
+					block: true,
+					reason:
+						"BLOCKED: that file already exists and wasn't created by you this session. You can only write .md/.mdx files you created, or make a new one.",
+				};
+			}
+			createdFiles.add(absPath);
+			return; // allow
+		}
+
+		// --- edit tool: allow only .md/.mdx files we created ---
+		if (event.toolName === "edit") {
+			const filePath = event.input.path as string;
+			if (!filePath) {
+				return { block: true, reason: TOOL_BLOCK_MSG };
+			}
+			const absPath = path.resolve(filePath);
+			if (!createdFiles.has(absPath)) {
+				return {
+					block: true,
+					reason:
+						"BLOCKED: you can only edit .md/.mdx files YOU created this session.",
+				};
+			}
+			return; // allow
 		}
 
 		// Block write-like bash commands
@@ -101,7 +147,7 @@ export default function readOnly(pi: ExtensionAPI): void {
 			pi.sendMessage(
 				{
 					customType: "mode:tool-change",
-					content: `[READ-ONLY MODE ACTIVE. You CANNOT write, edit, or modify files. The tools "write" and "edit" are fucking BLOCKED. Bash is available but write/delete commands will be BLOCKED.]`,
+					content: `[READ-ONLY MODE ACTIVE. You CAN create/edit .md/.mdx files. All other writes/edits are BLOCKED. Bash write/delete commands are also BLOCKED. dont write md/mdx files unless user EXPLICITLY say so]`,
 					display: false,
 				},
 				{ deliverAs: "nextTurn" },
@@ -110,7 +156,7 @@ export default function readOnly(pi: ExtensionAPI): void {
 			pi.sendMessage(
 				{
 					customType: "mode:tool-change",
-					content: `[READ-ONLY MODE OFF. You CAN write, edit, and execute commands again.]`,
+					content: `[READ-ONLY MODE OFF. You CAN write, edit, and execute any commands now]`,
 					display: false,
 				},
 				{ deliverAs: "nextTurn" },
@@ -146,6 +192,7 @@ export default function readOnly(pi: ExtensionAPI): void {
 
 	pi.on("session_start", async () => {
 		roActive = false;
+		createdFiles.clear();
 		pi.events.emit("mode:changed", { mode: "", color: "muted" });
 	});
 }

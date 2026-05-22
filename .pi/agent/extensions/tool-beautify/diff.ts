@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { resolve } from "node:path";
 import {
 	getLanguageFromPath,
@@ -41,8 +42,10 @@ const DIFF_SPLIT_MAX_WRAP_LINES = 8;
 const DIFF_SPLIT_MAX_WRAP_RATIO = 0.2;
 const DIFF_LCS_CELL_LIMIT = 250_000;
 const DIFF_CONTEXT_LINES = 3;
-export const MAX_DIFF_INPUT_BYTES = 700 * 1024;
+export const MAX_DIFF_INPUT_BYTES = 1000 * 1024;
 const DIFF_HIGHLIGHT_MAX_CHARS = 180_000;
+const DIFF_BOTTOM_HINT_BG = "\x1b[48;2;147;153;178m";
+const RESET = "\x1b[22m\x1b[39m\x1b[49m";
 export const DIFF_ADD_BG_TOKEN = "toolSuccessBg";
 export const DIFF_DEL_BG_TOKEN = "toolErrorBg";
 export const DIFF_WORD_ADD_BG_TOKEN = "toolDiffAddedBg";
@@ -695,6 +698,7 @@ function renderUnifiedDiff(
 	theme: any,
 	path?: string,
 	cwd?: string,
+	bottomHint?: string,
 ): string[] {
 	const tableWidth = Math.max(40, width);
 	const maxNum = Math.max(
@@ -778,6 +782,15 @@ function renderUnifiedDiff(
 					),
 				);
 		}
+	}
+	if (bottomHint !== undefined) {
+		const pad = Math.max(0, contentWidth - visibleLength(bottomHint));
+		const leftPad = Math.floor(pad / 2);
+		const rightPad = Math.ceil(pad / 2);
+		const centered = `${" ".repeat(leftPad)}${bottomHint}${" ".repeat(rightPad)}`;
+		const padded = ` ${centered} `;
+		const styled = `${DIFF_BOTTOM_HINT_BG}\x1b[38;2;30;30;46m\x1b[1m${padded}${RESET}`;
+		out.push(`${leftBorder}${styled}${rightBorder}`);
 	}
 	out.push(
 		`${theme.fg("borderMuted", "└")}${ruleSegment}${theme.fg("borderMuted", "┘")}`,
@@ -898,6 +911,7 @@ function renderSplitDiff(
 	theme: any,
 	path?: string,
 	cwd?: string,
+	bottomHint?: string,
 ): string[] {
 	const tableWidth = Math.max(DIFF_SPLIT_MIN_WIDTH, width);
 	const maxNum = Math.max(
@@ -930,6 +944,16 @@ function renderSplitDiff(
 		out.push(
 			`${leftBorder}${renderDiffCell(pair.left, "old", leftCellWidth, numWidth, theme, path ?? diff.path, cwd, leftRanges)}${divider}${renderDiffCell(pair.right, "new", rightCellWidth, numWidth, theme, path ?? diff.path, cwd, rightRanges)}${rightBorder}`,
 		);
+	}
+	if (bottomHint !== undefined) {
+		const hintPadWidth = Math.max(1, leftCellWidth + rightCellWidth - 1);
+		const pad = Math.max(0, hintPadWidth - visibleLength(bottomHint));
+		const leftPad = Math.floor(pad / 2);
+		const rightPad = Math.ceil(pad / 2);
+		const centered = `${" ".repeat(leftPad)}${bottomHint}${" ".repeat(rightPad)}`;
+		const padded = ` ${centered} `;
+		const styled = `${DIFF_BOTTOM_HINT_BG}\x1b[38;2;30;30;46m\x1b[1m${padded}${RESET}`;
+		out.push(`${leftBorder}${styled}${rightBorder}`);
 	}
 	out.push(bottomRule);
 	return out;
@@ -1000,9 +1024,7 @@ export function renderStructuredDiff(
 	const useSplit =
 		settingBoolean("splitDiffs", true, cwd) &&
 		shouldUseSplitDiff(diff, rows, width);
-	const rendered = useSplit
-		? renderSplitDiff(diff, rows, width, theme, path ?? diff.path, cwd)
-		: renderUnifiedDiff(diff, rows, width, theme, path ?? diff.path, cwd);
+	let bottomHint: string | undefined;
 	const remaining = diff.lines.length - rows.length;
 	if (remaining > 0) {
 		const hintText = collapsedDiffHint(
@@ -1013,9 +1035,28 @@ export function renderStructuredDiff(
 			diff.lines.length,
 			width,
 		);
-		const styledHint = padVisible(theme.fg("toolOutput", hintText), width);
-		rendered.push(theme.bg(DIFF_SEP_BG_TOKEN, styledHint));
+		// raw text — styling happens in render fns (padding first, then ANSI wrap so bg spans full cell width)
+		bottomHint = hintText;
 	}
+	const rendered = useSplit
+		? renderSplitDiff(
+				diff,
+				rows,
+				width,
+				theme,
+				path ?? diff.path,
+				cwd,
+				bottomHint,
+			)
+		: renderUnifiedDiff(
+				diff,
+				rows,
+				width,
+				theme,
+				path ?? diff.path,
+				cwd,
+				bottomHint,
+			);
 	return rendered.join("\n");
 }
 
@@ -1362,22 +1403,26 @@ export function renderBashDiffOutput(
 	if (hiddenFiles > 0) {
 		const hint = `… ${hiddenFiles} more file diff${hiddenFiles === 1 ? "" : "s"}${expanded ? ` · UI cap ${Math.max(0, renderedFiles)}/${files.length}` : " · ctrl+o to expand"}`;
 		const styledHint = padVisible(
-			theme.fg("toolOutput", hint),
+			theme.fg("userMessageText", hint),
 			terminalWidth(),
 		);
-		rendered.push(theme.bg(DIFF_SEP_BG_TOKEN, styledHint));
+		rendered.push(styledHint);
 	} else if (
 		remainingRows !== null &&
 		totalLines > configuredDiffRowLimit(expanded, cwd)!
 	) {
 		const hint = expanded ? "diff UI cap reached" : "ctrl+o to expand";
 		const styledHint = padVisible(
-			theme.fg("toolOutput", hint),
+			theme.fg("userMessageText", hint),
 			terminalWidth(),
 		);
-		rendered.push(theme.bg(DIFF_SEP_BG_TOKEN, styledHint));
+		rendered.push(styledHint);
 	}
 	return rendered.join("\n");
+}
+
+function expandTilde(path: string): string {
+	return path.replace(/^~(?=$|\/)/, homedir());
 }
 
 export function readTextForDiff(
@@ -1385,7 +1430,7 @@ export function readTextForDiff(
 	cwd: string,
 ): string | undefined {
 	if (typeof pathValue !== "string" || !pathValue.trim()) return undefined;
-	const target = resolve(cwd, pathValue);
+	const target = resolve(cwd, expandTilde(pathValue));
 	try {
 		if (!existsSync(target)) return undefined;
 		const text = readFileSync(target, "utf8");

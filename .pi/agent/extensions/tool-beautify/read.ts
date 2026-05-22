@@ -70,11 +70,21 @@ export function registerRead(pi: ExtensionAPI, agent: any, cwd: string): void {
 			const call = readCallText(context?.args ?? {}, theme);
 			if (isPartial) return renderPendingDetail("reading…", theme);
 			clearBlink(context);
+			const mode = readOutputMode(context?.cwd ?? cwd);
+			if (mode === "hidden") return makeEmpty();
+			if (context?.isError || result?.isError) {
+				const firstLine = textContent(result).split(/\r?\n/)[0] || "";
+				const isNotFound = /ENOENT|no such file|not found/i.test(firstLine);
+				const label = isNotFound ? "not found" : firstLine;
+				let text = `${stackPrefix(theme)}${call}${theme.fg("dim", " · ")}${theme.fg("error", label)}`;
+				if (expanded && firstLine) {
+					text += `\n${treeConnector(theme, "│")}${theme.fg("dim", firstLine)}`;
+				}
+				return makeTruncatedLines(text);
+			}
 			const content = textContent(result);
 			const count = lineCount(content);
 			const summary = readResultSummary(result, context?.args ?? {}, theme);
-			const mode = readOutputMode(context?.cwd ?? cwd);
-			if (mode === "hidden") return makeEmpty();
 			let text = `${stackPrefix(theme)}${call}${theme.fg("dim", " · ")}${summary}`;
 			if (mode === "preview" && expanded && content) {
 				const limit = Math.max(1, Math.floor(settingNumber("readPreviewLines", 80, context?.cwd)));
