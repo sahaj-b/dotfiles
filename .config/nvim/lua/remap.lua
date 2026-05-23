@@ -521,3 +521,8 @@ map("n", "<leader><leader>r", "<cmd>Rest run<CR>")
 if vim.g.vscode then
   require("vscode-remaps")
 end
+
+-- diagram.nvim
+map("n", "<leader>do", function()
+  require("diagram-tools").open_big()
+end, { desc = "Open diagram with system viewer" })

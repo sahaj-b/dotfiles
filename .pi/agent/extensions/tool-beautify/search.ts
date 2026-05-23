@@ -17,6 +17,9 @@ import {
 } from "./text.js";
 import { contextCwd, getBuiltInTool } from "./read.js";
 
+/** Known informational messages the built-in tools return when they find nothing */
+const NO_RESULT_MSG = /^(no files? found matching pattern|no matches? found|\(empty directory\))$/i;
+
 export function registerReadOnly(pi: ExtensionAPI, agent: any, cwd: string, toolName: "grep" | "find" | "ls"): void {
 	const original = getBuiltInTool(agent, cwd, toolName);
 	if (!original) return;
@@ -47,7 +50,10 @@ export function registerReadOnly(pi: ExtensionAPI, agent: any, cwd: string, tool
 				}
 				return makeTruncatedLines(text);
 			}
-			const count = output.trim() ? lineCount(output) : 0;
+			// Built-in tools return an informational message (not an error) when they
+			// find nothing — treat it as zero results instead of counting the message
+			const noResult = NO_RESULT_MSG.test(output.trim());
+			const count = noResult ? 0 : (output.trim() ? lineCount(output) : 0);
 			const label = toolName === "grep"
 				? `${count} match${count === 1 ? "" : "es"}`
 				: toolName === "ls"
@@ -59,7 +65,11 @@ export function registerReadOnly(pi: ExtensionAPI, agent: any, cwd: string, tool
 			if (mode === "hidden") return makeEmpty();
 			let text = `${stackPrefix(theme)}${call}${theme.fg("dim", " · ")}${summary}`;
 			if (mode === "preview" && expanded && output) {
-				if (toolName === "find" || toolName === "ls") {
+				if (noResult) {
+					// Show the tool's own message (e.g. "No files found matching pattern")
+					// dimmed on a sub-line, same pattern as read.ts for errors
+					text += `\n${treeConnector(theme, "│")}${theme.fg("dim", output.trim())}`;
+				} else if (toolName === "find" || toolName === "ls") {
 					text += `\n${renderPathListPreview(output, toolName, theme, expanded, context?.cwd)}`;
 				} else {
 					const limit = Math.max(1, Math.floor(settingNumber("searchPreviewLines", 80, context?.cwd)));

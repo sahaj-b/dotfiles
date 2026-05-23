@@ -103,7 +103,9 @@ export function registerBash(pi: ExtensionAPI, agent: any, cwd: string): void {
 			markBashStarted(context);
 			const effectiveCwd = context?.cwd ?? cwd;
 			const liveTailState = bashLiveTailState(context);
-			const call = bashCallText(args ?? {}, theme, effectiveCwd);
+			const call = context?.expanded
+				? bashFullCallText(args ?? {}, theme, effectiveCwd)
+				: bashCallText(args ?? {}, theme, effectiveCwd);
 			const prefix = pendingStatusPrefix(theme, context, effectiveCwd);
 			const partialOutput = context.state?._tbBashPartialOutput as string | undefined;
 			const trimmedOutput = partialOutput?.trim();

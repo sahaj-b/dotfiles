@@ -1,5 +1,16 @@
 return {
   {
+    "3rd/diagram.nvim",
+    dependencies = { "3rd/image.nvim" },
+    ft = { "markdown" },
+    opts = {}
+  },
+  {
+    "3rd/image.nvim",
+    ft = { "markdown" },
+    opts = {}
+  },
+  {
     dir = "/home/sahaj/gomodifytags.nvim",
     cmd = { "GoAddTags", "GoRemoveTags", "GoInstallModifyTagsBin" },
     dependencies = {

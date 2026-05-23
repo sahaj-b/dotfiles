@@ -223,9 +223,8 @@ function previewLines(
 	// const stem = treeConnector(theme, "│");
 	return (
 		lines
-			.slice(0, maxLines)
+			.slice(-maxLines)
 			.map((line) => `${line}`)
-			// .map((line) => `${stem} ${line}`)
 			.join("\n")
 	);
 }
