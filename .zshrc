@@ -120,7 +120,7 @@ alias ts="~/scripts/tmux-sessionizer"
 alias dblur="hyprctl keyword decoration:blur:enabled false, decoration:shadow:enabled false"
 # alias h="harsh"
 alias tp="trash-put"
-# alias rm="echo hell naw bro"
+alias rm="echo hell naww bru"
 alias dunstHist="dunstctl history | jq '.data[0][] | .summary.data + \": \" + .body.data' -r"
 alias refl="sudo reflector -c India --save /etc/pacman.d/mirrorlist"
 alias scratch='$TERM_CMD --class=scratch -e tmux new-session -A -s scratch'
@@ -175,7 +175,7 @@ l() {
     shift
   done
   if [[ $# -gt 0 ]]; then
-    $fpi "${args[@]}" "$@" | sd
+    $fpi "${args[@]}" "$@" | streamd
     return
   fi
 
@@ -183,10 +183,10 @@ l() {
   local tmp=$(mktemp /tmp/pi-prompt-XXXXXXXX)
   nvim +startinsert "$tmp" </dev/tty
   if [[ -s "$tmp" ]]; then
-    # $fpi "${args[@]}" "$@" | sd
-    command $fpi "${args[@]}" "$(<$tmp)" | sd
+    # $fpi "${args[@]}" "$@" | streamd
+    command $fpi "${args[@]}" "$(<$tmp)" | streamd
   fi
-  rm -f "$tmp"
+  \rm -f "$tmp"
 }
 
 alias gpt='mods -m gpt-4.1'
@@ -198,7 +198,7 @@ function p() {
   if [[ -s "$tmp" ]]; then
     command pi "$(<$tmp)"
   fi
-  rm -f "$tmp"
+  \rm -f "$tmp"
 }
 
 function gifcompress() {

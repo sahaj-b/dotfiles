@@ -1,4 +1,4 @@
-import { execFile, execFileSync, spawn, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { existsSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,7 +14,6 @@ import {
   DEFAULT_SOUND_ENABLED,
   DEFAULT_SUPPRESS_WHEN_FOCUSED,
   DEFAULT_TERM_INITIAL_TITLE,
-  DEFAULT_TMUX_MESSAGE_DURATION_MS,
   QUESTION_NOTIFY_DEDUP_MS,
 } from "./constants";
 import { settingBoolean, settingNumber, settingString, settingStringAllowEmpty } from "./_config";
@@ -70,9 +69,6 @@ async function _runSoundCmd(command: string, args: string[]): Promise<void> {
   });
 }
 
-// BT earbuds enter sleep after ~5s of idle and take ~2s to wake up.
-// Short notification sounds finish before the earbuds even activate,
-// so we play 1s of silence first to warm up the BT audio path.
 async function _wakeUpEarbuds(): Promise<void> {
   const dir = findSoundsDir();
   if (!dir) return;
@@ -84,22 +80,7 @@ async function _wakeUpEarbuds(): Promise<void> {
 async function _playOnLinux(soundPath: string): Promise<void> {
   await _wakeUpEarbuds();
   await _runSoundCmd("paplay", [soundPath]);
-  // const players = [
-  //   { command: "aplay", args: [soundPath] },
-  //   { command: "mpv", args: ["--no-video", "--no-terminal", soundPath] },
-  //   { command: "ffplay", args: ["-nodisp", "-autoexit", "-loglevel", "quiet", soundPath] },
-  // ];
-  // for (const player of players) {
-  //   try {
-  //     await _runSoundCmd(player.command, player.args);
-  //     return;
-  //   } catch {}
-  // }
 }
-
-// async function _playOnMac(soundPath: string): Promise<void> {
-//   await _runSoundCmd("afplay", [soundPath]);
-// }
 
 async function _playOnWindows(soundPath: string): Promise<void> {
   await _runSoundCmd("powershell", ["-c", `(New-Object Media.SoundPlayer '${soundPath.replace(/'/g, "''")}').PlaySync()`]);
@@ -114,9 +95,6 @@ export async function playQolNotificationSound(soundKind: SoundKind, cwd?: strin
   if (!soundPath) return;
   try {
     switch (platform()) {
-      // case "darwin":
-      //   await _playOnMac(soundPath);
-      //   break;
       case "linux":
         await _playOnLinux(soundPath);
         break;
@@ -167,14 +145,13 @@ export function piWindowFocused(sessionName?: string, cwd?: string): boolean {
   const cached = _focusCache.get(cacheKey);
   if (cached && now - cached.at < FOCUS_CACHE_MS) return cached.focused;
 
-  // Inline Hyprland detection — no external script needed
   if (platform() === "linux") {
     try {
       const focused = _hyprctlActiveWindow(sessionName);
       _focusCache.set(cacheKey, { at: now, focused });
       return focused;
     } catch {
-      // hyprctl not available or failed — fall through to external script
+      // hyprctl not available — fall through to external script
     }
   }
 
@@ -190,6 +167,14 @@ export function piWindowFocused(sessionName?: string, cwd?: string): boolean {
     _focusCache.set(cacheKey, { at: now, focused: false });
   }
   return _focusCache.get(cacheKey)!.focused;
+}
+
+// ===== Bell =====
+
+function writeTerminalBell(): void {
+  try {
+    process.stdout.write("\x07");
+  } catch {}
 }
 
 // ===== Desktop Notifications =====
@@ -215,9 +200,6 @@ export function notifyDesktop(title: string, body: string, cwd?: string): void {
 
 const lastNotificationAt = new Map<string, number>();
 const lastQuestionNotificationAt = new Map<string, number>();
-let tmuxMarkedTarget: string | undefined;
-let tmuxOriginalWindowName: string | undefined;
-let tmuxWindowMarkTimer: ReturnType<typeof setTimeout> | undefined;
 
 export function sanitizeNotificationPart(input: string, maxChars = DEFAULT_NOTIFICATION_BODY_MAX_CHARS): string {
   const cleaned = input
@@ -225,180 +207,6 @@ export function sanitizeNotificationPart(input: string, maxChars = DEFAULT_NOTIF
     .replace(/\s+/g, " ")
     .trim();
   return cleaned.length > maxChars ? `${cleaned.slice(0, Math.max(0, maxChars - 1))}…` : cleaned;
-}
-
-function windowsToastScript(title: string, body: string): string {
-  const escapedTitle = title.replace(/'/g, "''");
-  const escapedBody = body.replace(/'/g, "''");
-  const type = "Windows.UI.Notifications";
-  const mgr = `[${type}.ToastNotificationManager, ${type}, ContentType = WindowsRuntime]`;
-  const template = `[${type}.ToastTemplateType]::ToastText02`;
-  const toast = `[${type}.ToastNotification]::new($xml)`;
-  return [
-    `${mgr} > $null`,
-    `$xml = [${type}.ToastNotificationManager]::GetTemplateContent(${template})`,
-    `$xml.GetElementsByTagName('text')[0].AppendChild($xml.CreateTextNode('${escapedTitle}')) > $null`,
-    `$xml.GetElementsByTagName('text')[1].AppendChild($xml.CreateTextNode('${escapedBody}')) > $null`,
-    `[${type}.ToastNotificationManager]::CreateToastNotifier('${escapedTitle}').Show(${toast})`,
-  ].join("; ");
-}
-
-function tmuxPassthrough(sequence: string): string {
-  return `\x1bPtmux;${sequence.replace(/\x1b/g, "\x1b\x1b")}\x1b\\`;
-}
-
-function sourcePaneTty(): string | undefined {
-  try {
-    if (!process.env.TMUX_PANE) return undefined;
-    const tty = execFileSync("tmux", ["display-message", "-p", "-t", process.env.TMUX_PANE, "#{pane_tty}"], { encoding: "utf8" }).trim();
-    return tty || undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function sourceTmuxSession(): string | undefined {
-  try {
-    if (!process.env.TMUX_PANE) return undefined;
-    const session = execFileSync("tmux", ["display-message", "-p", "-t", process.env.TMUX_PANE, "#{session_name}"], { encoding: "utf8" }).trim();
-    return session || undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-export function sourceTmuxWindowActive(): boolean {
-  try {
-    if (!process.env.TMUX_PANE) return false;
-    const active = execFileSync("tmux", ["display-message", "-p", "-t", process.env.TMUX_PANE, "#{window_active}"], { encoding: "utf8" }).trim();
-    return active === "1";
-  } catch {
-    return false;
-  }
-}
-
-function tmuxClientTtys(): string[] {
-  try {
-    if (!process.env.TMUX) return [];
-    const session = sourceTmuxSession();
-    const args = ["list-clients", "-F", "#{client_tty}"];
-    if (session) args.splice(1, 0, "-t", session);
-    const output = execFileSync("tmux", args, { encoding: "utf8" });
-    return [...new Set(output.split(/\r?\n/).map((line) => line.trim()).filter(Boolean))];
-  } catch {
-    return [];
-  }
-}
-
-function writeRawToPaths(paths: string[], output: string): boolean {
-  let wrote = false;
-  for (const path of paths) {
-    try {
-      writeFileSync(path, output, "utf8");
-      wrote = true;
-    } catch {}
-  }
-  return wrote;
-}
-
-function writeToTerminal(output: string): void {
-  const tty = sourcePaneTty();
-  try {
-    writeFileSync(tty ?? "/dev/tty", output, "utf8");
-    return;
-  } catch {}
-  try {
-    if (process.stdout.isTTY) process.stdout.write(output);
-  } catch {}
-}
-
-function writeTerminalSequence(sequence: string, cwd?: string): void {
-  if (process.env.TMUX && settingBoolean("notification.tmuxNativeClientTty", true, cwd)) {
-    if (writeRawToPaths(tmuxClientTtys(), sequence)) return;
-  }
-  const output = process.env.TMUX && settingBoolean("notification.tmuxPassthrough", true, cwd) ? tmuxPassthrough(sequence) : sequence;
-  writeToTerminal(output);
-}
-
-function writeTerminalBell(): void {
-  writeToTerminal("\x07");
-}
-
-function notifyOSC777(title: string, body: string, cwd?: string): void {
-  writeTerminalSequence(`\x1b]777;notify;${title};${body}\x07`, cwd);
-}
-
-function notifyOSC99(title: string, body: string, cwd?: string): void {
-  writeTerminalSequence(`\x1b]99;i=1:d=0;${title}\x1b\\`, cwd);
-  writeTerminalSequence(`\x1b]99;i=1:p=body;${body}\x1b\\`, cwd);
-}
-
-function notifyWindows(title: string, body: string): void {
-  execFile("powershell.exe", ["-NoProfile", "-Command", windowsToastScript(title, body)], () => undefined);
-}
-
-function notifyNativeTerminal(title: string, body: string, cwd?: string): void {
-  const protocol = settingString("notification.oscProtocol", "auto", cwd);
-  if (process.env.WT_SESSION) {
-    notifyWindows(title, body);
-    return;
-  }
-  if (protocol === "off") return;
-  if (protocol === "osc99" || (protocol === "auto" && process.env.KITTY_WINDOW_ID)) {
-    notifyOSC99(title, body, cwd);
-    return;
-  }
-  notifyOSC777(title, body, cwd);
-}
-
-function notifyTmux(title: string, body: string, cwd?: string): void {
-  if (!process.env.TMUX && !process.env.TMUX_PANE) return;
-  const duration = Math.max(500, Math.floor(settingNumber("notification.tmuxMessageDurationMs", DEFAULT_TMUX_MESSAGE_DURATION_MS, cwd)));
-  const message = `${title}: ${body}`;
-  const args = ["display-message", "-d", String(duration)];
-  if (process.env.TMUX_PANE) args.push("-t", process.env.TMUX_PANE);
-  args.push(message);
-  execFile("tmux", args, () => undefined);
-}
-
-export function clearTmuxWindowMark(): void {
-  if (tmuxWindowMarkTimer) clearTimeout(tmuxWindowMarkTimer);
-  tmuxWindowMarkTimer = undefined;
-  const target = tmuxMarkedTarget;
-  const original = tmuxOriginalWindowName;
-  tmuxMarkedTarget = undefined;
-  tmuxOriginalWindowName = undefined;
-  if (!target || !original) return;
-  execFile("tmux", ["rename-window", "-t", target, original], () => undefined);
-}
-
-function markTmuxWindow(cwd?: string): void {
-  if (!settingBoolean("notification.tmuxWindowMark", false, cwd)) return;
-  if (!process.env.TMUX || !process.env.TMUX_PANE) return;
-  const mark = sanitizeNotificationPart(settingString("notification.tmuxWindowMarkText", "!", cwd), 12) || "!";
-  const prefix = `${mark} `;
-  execFile("tmux", ["display-message", "-p", "-t", process.env.TMUX_PANE, "#{session_name}:#{window_index}"], (targetError, targetStdout) => {
-    if (targetError) return;
-    const target = targetStdout.trim();
-    if (!target) return;
-    execFile("tmux", ["display-message", "-p", "-t", process.env.TMUX_PANE!, "#W"], (nameError, nameStdout) => {
-      if (nameError) return;
-      const current = nameStdout.replace(/\r?\n$/, "");
-      if (!current) return;
-      const original = current.startsWith(prefix) ? current.slice(prefix.length) : current;
-      if (!tmuxMarkedTarget || tmuxMarkedTarget !== target) {
-        tmuxMarkedTarget = target;
-        tmuxOriginalWindowName = original;
-      }
-      if (!current.startsWith(prefix)) execFile("tmux", ["rename-window", "-t", target, `${prefix}${current}`], () => undefined);
-      const duration = Math.max(0, Math.floor(settingNumber("notification.tmuxWindowMarkDurationMs", 0, cwd)));
-      if (tmuxWindowMarkTimer) clearTimeout(tmuxWindowMarkTimer);
-      if (duration > 0) {
-        tmuxWindowMarkTimer = setTimeout(clearTmuxWindowMark, duration);
-        tmuxWindowMarkTimer.unref?.();
-      }
-    });
-  });
 }
 
 function notificationEnabledFor(kind: QolNotificationKind, cwd?: string): boolean {
@@ -430,7 +238,7 @@ export function sendQolNotification(
   if (cooldownMs > 0 && now - last < cooldownMs) return;
   lastNotificationAt.set(key, now);
 
-  // Focus detection: use session name to differentiate Pi windows in same directory
+  // Focus detection
   const suppressWhenFocused = settingBoolean("notification.suppressWhenFocused", DEFAULT_SUPPRESS_WHEN_FOCUSED, cwd);
   let sessionName: string | undefined;
   try { sessionName = ctx?.sessionManager?.getSessionName() ?? undefined; } catch {}
@@ -443,18 +251,21 @@ export function sendQolNotification(
     playQolNotificationSound(soundKind, cwd);
   }
 
-  // Skip the rest of notification delivery when Pi window is focused and suppressWhenFocused is on
+  // Skip notification delivery when Pi window is focused
   if (isFocused) return;
 
   const title = sanitizeNotificationPart(settingString("notification.title", DEFAULT_NOTIFICATION_TITLE, cwd), 80) || DEFAULT_NOTIFICATION_TITLE;
   const text = sanitizeNotificationPart(body, Math.max(40, Math.floor(settingNumber("notification.bodyMaxChars", DEFAULT_NOTIFICATION_BODY_MAX_CHARS, cwd))));
-  const tmuxWindowActive = sourceTmuxWindowActive();
-  if (settingBoolean("notification.bell", true, cwd) && (!tmuxWindowActive || settingBoolean("notification.bellWhenActive", false, cwd))) writeTerminalBell();
-  if (settingBoolean("notification.native", true, cwd)) notifyNativeTerminal(title, text, cwd);
-  const desktopEnabled = options?.desktop !== false && settingBoolean("notification.desktop", DEFAULT_DESKTOP_NOTIFICATIONS_ENABLED, cwd);
-  if (desktopEnabled) notifyDesktop(title, text, cwd);
-  if (!tmuxWindowActive) markTmuxWindow(cwd);
-  if (settingBoolean("notification.tmux", false, cwd)) notifyTmux(title, text, cwd);
+
+  // Bell — in tmux the bell marks the window automatically
+  if (settingBoolean("notification.bell", true, cwd)) writeTerminalBell();
+
+  // Desktop notification
+  if (options?.desktop !== false && settingBoolean("notification.desktop", DEFAULT_DESKTOP_NOTIFICATIONS_ENABLED, cwd)) {
+    notifyDesktop(title, text, cwd);
+  }
+
+  // Pi UI notification
   if (ctx?.hasUI && settingBoolean("notification.piUi", false, cwd)) ctx.ui.notify(text, level);
 }
 

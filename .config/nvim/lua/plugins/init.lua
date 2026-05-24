@@ -1,5 +1,18 @@
 return {
   {
+    dir = "/home/sahaj/projects/marknote.nvim",
+    name = "marknote.nvim",
+    cmd = {
+      "MarknoteAnnotate",
+      "MarknoteEdit",
+      "MarknoteDelete",
+      "MarknoteClear",
+      "MarknoteView",
+      "MarknoteSubmitFeedback",
+      "MarknoteSubmitApprove"
+    },
+  },
+  {
     "3rd/diagram.nvim",
     dependencies = { "3rd/image.nvim" },
     ft = { "markdown" },

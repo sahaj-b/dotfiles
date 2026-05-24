@@ -52,6 +52,7 @@ dotfiles=(
   "$HOME/.config/mods/"
   "$HOME/.config/mcphub/"
   "$HOME/.config/solaar/"
+  "$HOME/.config/swayimg/"
 
   "$HOME/.config/mpv/"
   "$HOME/.config/yazi/"

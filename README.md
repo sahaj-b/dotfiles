@@ -30,7 +30,7 @@
 ### Development
 - [Neovim](.config/nvim/) - Editor. Fully customized beast
 - [Tmux](.config/tmux/tmux.conf) - Terminal multiplexer  
-- [OpenCode](.config/opencode/) - AI assistant in terminal
+- [Pi](.pi/agent/) - AI assistant in terminal
 - [MCPHub](.config/mcphub/servers.json) - MCP servers config for mcphub.nvim
 - [VSCode](.config/Code/User/) - I tried to replicate my nvim workflow
 - [Cursor](.config/Cursor/User) - I tried to replicate my nvim workflow
@@ -54,5 +54,6 @@
 - [Alacritty](.config/alacritty/alacritty.toml) - Terminal emulator
 - [Ghostty](.config/ghostty/config) - Terminal emulator
 - [Foot](.config/foot/foot.ini) - Terminal   emulator
+- [OpenCode](.config/opencode/) - AI assistant in terminal
 
 *Feel free to steal whatever you want from this setup 🏴‍☠️*

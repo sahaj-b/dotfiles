@@ -526,3 +526,12 @@ end
 map("n", "<leader>do", function()
   require("diagram-tools").open_big()
 end, { desc = "Open diagram with system viewer" })
+
+-- marknote.nvim
+map("v", "<leader>ma", ":MarknoteAnnotate<CR>", { desc = "Annotate selection", silent = true })
+map("n", "<leader>me", ":MarknoteEdit<CR>", { desc = "Edit annotation", silent = true })
+map("n", "<leader>md", ":MarknoteDelete<CR>", { desc = "Delete annotation", silent = true })
+map("n", "<leader>mc", ":MarknoteClear<CR>", { desc = "Clear all annotations", silent = true })
+map("n", "<leader>mo", ":MarknoteView<CR>", { desc = "View copy-ready annotations", silent = true })
+map("n", "<leader>ms", ":MarknoteSubmitApprove<CR>", { desc = "Submit/Approve document", silent = true })
+map("n", "<leader>mr", ":MarknoteSubmitFeedback<CR>", { desc = "Reject and submit feedback", silent = true })

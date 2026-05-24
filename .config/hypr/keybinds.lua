@@ -75,9 +75,15 @@ hl.bind(mod2 .. " + SHIFT + E", hl.dsp.submap("(S)hutdown (R)eboot (L)ogout Sus(
 hl.define_submap("(S)hutdown (R)eboot (L)ogout Sus(p)end (H)ibernate ", "reset", function()
   hl.bind(mod2 .. " + S", hl.dsp.exec_cmd("shutdown now"))
   hl.bind(mod2 .. " + R", hl.dsp.exec_cmd("systemctl reboot"))
-  hl.bind(mod2 .. " + L", hl.dsp.exec_cmd("hyprctl dispatch exit"))
-  hl.bind(mod2 .. " + P", hl.dsp.exec_cmd("systemctl suspend && hyprctl dispatch submap reset"))
-  hl.bind(mod2 .. " + H", hl.dsp.exec_cmd("systemctl hibernate && hyprctl dispatch submap reset"))
+  hl.bind(mod2 .. " + L", hl.dsp.exit())
+  hl.bind(mod2 .. " + P", function()
+    hl.dispatch(hl.dsp.exec_cmd("systemctl suspend"))
+    hl.dispatch(hl.dsp.submap("reset"))
+  end)
+  hl.bind(mod2 .. " + H", function()
+    hl.dispatch(hl.dsp.exec_cmd("systemctl hibernate"))
+    hl.dispatch(hl.dsp.submap("reset"))
+  end)
   hl.bind(" + escape", hl.dsp.submap("reset"))
 end)
 
@@ -213,9 +219,14 @@ hl.bind(mod2 .. " + U", hl.dsp.exec_cmd('echo "click left" | dotoolc'))
 hl.bind(mod2 .. " + I", hl.dsp.exec_cmd('echo "click right" | dotoolc'))
 
 -- Display toggle
-hl.bind(mod2 .. " + SHIFT + D",
-  hl.dsp.exec_cmd("hyprctl dispatch dpms off && sleep 1 && hyprctl dispatch dpms on && pkill mako && mako"))
+hl.bind(mod2 .. " + SHIFT + D", function()
+  hl.dispatch(hl.dsp.dpms({ action = "disable" }))
 
+  hl.timer(function()
+    hl.dispatch(hl.dsp.dpms({ action = "enable" }))
+    hl.dispatch(hl.dsp.exec_cmd("pkill mako && mako"))
+  end, { timeout = 1000, type = "oneshot" })
+end)
 -- Pickers
 hl.bind(mod2 .. " + SHIFT + period", hl.dsp.exec_cmd("~/scripts/picker --float"))
 
