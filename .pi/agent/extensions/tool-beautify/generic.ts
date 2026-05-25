@@ -1,11 +1,11 @@
 import { mcpOutputMode, settingBoolean, settingNumber } from "./settings.js";
 import {
-	clearBlink,
+	clearSpinner,
 	clipLine,
 	makeEmpty,
 	makeTruncatedLines,
-	pendingStatusPrefix,
 	renderPendingDetail,
+	spinnerPrefix,
 	type TruncatedLines,
 	textContent,
 } from "./text.js";
@@ -135,8 +135,8 @@ function stringArrayArg(args: any, ...keys: string[]): string[] {
 
 export function genericStatusPrefix(context: any, theme: any): string {
 	if (!context?.executionStarted || context?.isPartial)
-		return pendingStatusPrefix(theme, context);
-	clearBlink(context);
+		return spinnerPrefix(theme, context);
+	clearSpinner(context);
 	return theme.fg(context?.isError ? "error" : "success", "● ");
 }
 
@@ -305,7 +305,7 @@ export function renderUnknownToolResult(
 	context: any,
 ): TruncatedLines | ReturnType<typeof makeEmpty> {
 	if (isPartial) return makeEmpty();
-	clearBlink(context);
+	clearSpinner(context);
 	const raw = textContent(result).trim();
 	const args = context?.args ?? {};
 	const status = unknownToolStatus(name, raw, Boolean(context?.isError), theme);
@@ -337,7 +337,7 @@ export function renderGenericToolResult(
 ): TruncatedLines | ReturnType<typeof makeEmpty> {
 	if (isPartial)
 		return renderPendingDetail(`${humanizeToolName(name)}…`, theme);
-	clearBlink(context);
+	clearSpinner(context);
 	const raw = textContent(result).trim();
 	const lines = raw ? raw.split(/\r?\n/) : [];
 	const mode = isMcpToolName(name) ? mcpOutputMode(context?.cwd) : "preview";
@@ -425,7 +425,7 @@ export function renderApplyPatchResult(
 	context: any,
 ): TruncatedLines | ReturnType<typeof makeEmpty> {
 	if (isPartial) return makeEmpty();
-	clearBlink(context);
+	clearSpinner(context);
 	const call = `${theme.fg("text", theme.bold("  "))}${theme.fg("muted", "patch")}`;
 	if (context?.isError) {
 		const first = textContent(result).split(/\r?\n/)[0] || "apply_patch failed";

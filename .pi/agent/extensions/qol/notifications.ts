@@ -1,5 +1,5 @@
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir, platform } from "node:os";
@@ -14,7 +14,6 @@ import {
   DEFAULT_SOUND_ENABLED,
   DEFAULT_SUPPRESS_WHEN_FOCUSED,
   DEFAULT_TERM_INITIAL_TITLE,
-  QUESTION_NOTIFY_DEDUP_MS,
 } from "./constants";
 import { settingBoolean, settingNumber, settingString, settingStringAllowEmpty } from "./_config";
 
@@ -199,7 +198,6 @@ export function notifyDesktop(title: string, body: string, cwd?: string): void {
 }
 
 const lastNotificationAt = new Map<string, number>();
-const lastQuestionNotificationAt = new Map<string, number>();
 
 export function sanitizeNotificationPart(input: string, maxChars = DEFAULT_NOTIFICATION_BODY_MAX_CHARS): string {
   const cleaned = input
@@ -269,14 +267,4 @@ export function sendQolNotification(
   if (ctx?.hasUI && settingBoolean("notification.piUi", false, cwd)) ctx.ui.notify(text, level);
 }
 
-export function notifyQuestionOpened(ctx: ExtensionContext | undefined, title: string): void {
-  const key = `question:${title}`;
-  const now = Date.now();
-  const last = lastQuestionNotificationAt.get(key) ?? 0;
-  if (now - last < QUESTION_NOTIFY_DEDUP_MS) return;
-  lastQuestionNotificationAt.set(key, now);
-  for (const [storedKey, timestamp] of lastQuestionNotificationAt) {
-    if (now - timestamp > 60_000) lastQuestionNotificationAt.delete(storedKey);
-  }
-  sendQolNotification(ctx, "question", `Input required: ${title}`, "warning", key);
-}
+

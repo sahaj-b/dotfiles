@@ -1,7 +1,5 @@
 import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 
-export const ANSI_GREEN = "\x1b[32m";
-export const ANSI_RED = "\x1b[31m";
 export const ANSI_FG_RESET = "\x1b[39m";
 export const ANSI_BG_RESET = "\x1b[49m";
 

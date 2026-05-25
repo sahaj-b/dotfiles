@@ -3,7 +3,7 @@ import { wrapTextWithAnsi } from "@earendil-works/pi-tui";
 
 import { stableRenderWidth, stripAnsi } from "./ansi.js";
 import { settingNumber } from "./settings.js";
-import { toolLabel, treeConnector } from "./theme.js";
+import { treeConnector } from "./theme.js";
 
 export class TruncatedLines {
 	private cachedLines?: string[];
@@ -45,17 +45,6 @@ export function makeEmpty() {
 	};
 }
 
-export function componentHasVisibleLines(component: unknown): boolean {
-	try {
-		const render = (component as any)?.render;
-		return (
-			typeof render === "function" && render.call(component, 120).length > 0
-		);
-	} catch {
-		return false;
-	}
-}
-
 export function lineCount(text: string): number {
 	if (!text) return 0;
 	return text.split(/\r?\n/).length;
@@ -87,12 +76,6 @@ export function preview(
 	const selected =
 		direction === "head" ? lines.slice(0, count) : lines.slice(-count);
 	return selected.map((line) => clipLine(line, cwd)).join("\n");
-}
-
-export function commandExit(text: string): number | null {
-	const match =
-		text.match(/exit code:\s*(\d+)/i) ?? text.match(/exit\s+(\d+)/i);
-	return match ? Number.parseInt(match[1]!, 10) : null;
 }
 
 export function truncatedMarker(text: string): boolean {
@@ -136,35 +119,6 @@ export function readResultSummary(result: any, args: any, theme: any): string {
 	return summary;
 }
 
-interface BlinkEntry {
-	invalidate: () => void;
-}
-
-const blinkEntries = new Map<unknown, BlinkEntry>();
-let blinkTimer: ReturnType<typeof setInterval> | undefined;
-
-function blinkKey(context: any): unknown {
-	return context?.toolCallId ?? context?.id ?? context;
-}
-
-function startBlinkTimer(): void {
-	if (blinkTimer) return;
-	blinkTimer = setInterval(() => {
-		for (const entry of blinkEntries.values()) {
-			try {
-				entry.invalidate();
-			} catch {
-				// best-effort
-			}
-		}
-		if (blinkEntries.size === 0 && blinkTimer) {
-			clearInterval(blinkTimer);
-			blinkTimer = undefined;
-		}
-	}, 450);
-	blinkTimer.unref?.();
-}
-
 const SPINNER_FRAMES = ["◐", "◓", "◑", "◒"];
 const SPINNER_INTERVAL = 60;
 
@@ -189,14 +143,9 @@ export function cleanupSpinner(context: any): void {
 	state._fi = 0;
 }
 
-export function clearBlink(context: any): void {
+/** Clear pending spinner/animation state for a context */
+export function clearSpinner(context: any): void {
 	cleanupSpinner(context);
-	const key = blinkKey(context);
-	if (key) blinkEntries.delete(key);
-	if (blinkEntries.size === 0 && blinkTimer) {
-		clearInterval(blinkTimer);
-		blinkTimer = undefined;
-	}
 }
 
 export function spinnerPrefix(theme: any, context: any): string {
@@ -210,24 +159,13 @@ export function spinnerPrefix(theme: any, context: any): string {
 	return theme.fg("warning", `${frame} `);
 }
 
-export function pendingStatusPrefix(
-	theme: any,
-	context: any,
-	cwd?: string,
-): string {
-	return spinnerPrefix(theme, context);
-}
-
 export function renderPendingCall(
 	call: string,
 	theme: any,
 	context: any,
-	cwd?: string,
 ): TruncatedLines | ReturnType<typeof makeEmpty> {
 	if (!context?.executionStarted || !context?.isPartial) return makeEmpty();
-	return makeTruncatedLines(
-		`${pendingStatusPrefix(theme, context, cwd)}${call}`,
-	);
+	return makeTruncatedLines(`${spinnerPrefix(theme, context)}${call}`);
 }
 
 export function renderPendingDetail(text: string, theme: any): TruncatedLines {
@@ -423,16 +361,4 @@ export function readOnlyCallText(
 	return `${theme.fg("text", theme.bold(icon))}${theme.fg("accent", clipLine(String(query), cwd))}`;
 }
 
-export function plural(
-	count: number,
-	singular: string,
-	pluralText = `${singular}s`,
-): string {
-	return `${count} ${count === 1 ? singular : pluralText}`;
-}
 
-export function joinPhrases(parts: string[]): string {
-	if (parts.length <= 1) return parts[0] ?? "";
-	if (parts.length === 2) return `${parts[0]} and ${parts[1]}`;
-	return `${parts.slice(0, -1).join(", ")}, and ${parts[parts.length - 1]}`;
-}

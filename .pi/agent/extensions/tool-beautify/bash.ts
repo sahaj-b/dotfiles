@@ -4,13 +4,13 @@ import { bashLiveOutputDelayMs, bashLiveTailLines, bashCompletedTailLines, bashO
 import { stackPrefix, treeConnector } from "./theme.js";
 import {
 	bashCallText,
-	clearBlink,
+	clearSpinner,
 	lineCount,
 	makeEmpty,
 	makeTruncatedLines,
-	pendingStatusPrefix,
 	preview,
 	resultTruncated,
+	spinnerPrefix,
 	textContent,
 } from "./text.js";
 import { contextCwd, getBuiltInTool } from "./read.js";
@@ -106,7 +106,7 @@ export function registerBash(pi: ExtensionAPI, agent: any, cwd: string): void {
 			const call = context?.expanded
 				? bashFullCallText(args ?? {}, theme, effectiveCwd)
 				: bashCallText(args ?? {}, theme, effectiveCwd);
-			const prefix = pendingStatusPrefix(theme, context, effectiveCwd);
+			const prefix = spinnerPrefix(theme, context);
 			const partialOutput = context.state?._tbBashPartialOutput as string | undefined;
 			const trimmedOutput = partialOutput?.trim();
 
@@ -146,7 +146,7 @@ export function registerBash(pi: ExtensionAPI, agent: any, cwd: string): void {
 			}
 
 			/* command finished */
-			clearBlink(context);
+			clearSpinner(context);
 			clearBashLiveTailTimer(bashLiveTailState(context));
 			delete context.state._tbBashPartialOutput;
 

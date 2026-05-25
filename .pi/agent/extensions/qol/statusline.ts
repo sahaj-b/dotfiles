@@ -7,12 +7,13 @@ import type {
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { settingBoolean, settingNumber } from "./_config";
 
-const SPINNER_INTERVAL = 15;
+// Bounce completes in ~1s (matching original 15ms×35f×2). Single duration source — no redundant vars.
+const SPINNER_INTERVAL = 80;
+const SPINNER_FRAMES_PER_BOUNCE = 7; // 80ms × 7 × 2 ≈ 1,120ms full cycle
 const LOADING_WAVE_FROM = "#333333";
 const LOADING_WAVE_TO = "#c69bf7";
 const LOADING_WAVE_RATIO = 0.35;
 const LOADING_BAR_STATIC = "#835eaf";
-const LOADING_BOUNCE_FRAMES = 35;
 
 function hexGradient(from: string, to: string, steps: number): string[] {
 	const parse = (h: string) => [
@@ -39,41 +40,66 @@ function truecolorFg(hex: string, text: string): string {
 	return `\x1b[38;2;${r};${g};${b}m${text}`;
 }
 
-// const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-// const SPINNER_FRAMES = [
-// 	" 🦍⚽       🦍 ",
-// 	"🦍  ⚽      🦍 ",
-// 	"🦍   ⚽     🦍 ",
-// 	"🦍    ⚽    🦍 ",
-// 	"🦍     ⚽   🦍 ",
-// 	"🦍      ⚽  🦍 ",
-// 	"🦍       ⚽🦍  ",
-// 	"🦍      ⚽  🦍 ",
-// 	"🦍     ⚽   🦍 ",
-// 	"🦍    ⚽    🦍 ",
-// 	"🦍   ⚽     🦍 ",
-// 	"🦍  ⚽      🦍 ",
-// ];
+function _warmGradient(gapWidth: number): string[] {
+	if (gapWidth === _prevGapWidth) return _cachedGradient;
+	_prevGapWidth = gapWidth;
+	const steps = Math.max(2, Math.round(gapWidth * LOADING_WAVE_RATIO));
+	_cachedGradient = hexGradient(LOADING_WAVE_FROM, LOADING_WAVE_TO, steps);
+	_cachedStaticBar = truecolorFg(LOADING_BAR_STATIC, "─".repeat(gapWidth));
+	return _cachedGradient;
+}
+
+function _renderBar(gapWidth: number): string {
+	if (!spinnerActive) {
+		_warmGradient(gapWidth);
+		return _cachedStaticBar;
+	}
+
+	const wave = _warmGradient(gapWidth);
+	const halfLen = wave.length >> 1;
+	const totalFrames = SPINNER_FRAMES_PER_BOUNCE * 2;
+	const t = (spinnerFrame % totalFrames) / SPINNER_FRAMES_PER_BOUNCE;
+	const phase = t <= 1 ? t : 2 - t;
+	// smoothstep
+	const eased = phase * phase * (3 - 2 * phase);
+	const pos = eased * (gapWidth - 1);
+
+	const chars = new Array<string>(gapWidth);
+	for (let i = 0; i < gapWidth; i++) {
+		const idx = Math.max(0, halfLen - Math.round(Math.abs(i - pos)));
+		chars[i] = truecolorFg(wave[Math.min(idx, wave.length - 1)], "─");
+	}
+	return chars.join("");
+}
 
 let spinnerActive = false;
 let spinnerFrame = 0;
 let spinnerTimer: ReturnType<typeof setInterval> | undefined;
+let _prevGapWidth = 0;
+let _cachedGradient: string[] = [];
+let _cachedStaticBar = "";
 
-let planPhase: "idle" | "planning" | "executing" = "idle";
-let planProgress = { completed: 0, total: 0 };
-let currentMode: { label: string; color: string } = { label: "", color: "muted" };
+// let planPhase: "idle" | "planning" | "executing" = "idle";
+// let planProgress = { completed: 0, total: 0 };
+let currentMode: { label: string; color: string } = {
+	label: "",
+	color: "muted",
+};
 
-export function registerPlanProgressListener(pi: ExtensionAPI): void {
-	pi.events.on("plannotator:progress", (data: any) => {
-		if (data?.phase) {
-			planPhase = data.phase;
-		}
-		if (typeof data?.completed === "number" && typeof data?.total === "number") {
-			planPhase = "executing";
-			planProgress = { completed: data.completed, total: data.total };
-		}
-	});
-}
+// export function registerPlanProgressListener(pi: ExtensionAPI): void {
+// 	pi.events.on("plannotator:progress", (data: any) => {
+// 		if (data?.phase) {
+// 			planPhase = data.phase;
+// 		}
+// 		if (
+// 			typeof data?.completed === "number" &&
+// 			typeof data?.total === "number"
+// 		) {
+// 			planPhase = "executing";
+// 			planProgress = { completed: data.completed, total: data.total };
+// 		}
+// 	});
+// }
 
 export function registerModeListener(pi: ExtensionAPI): void {
 	pi.events.on("mode:changed", (data: any) => {
@@ -230,28 +256,27 @@ export function renderStatusLine(
 	pi: ExtensionAPI,
 	theme: Pick<Theme, "fg">,
 ): string {
-	const { percent, used } = statuslineContextInfo(ctx);
-	// const spinner = spinnerActive ? (SPINNER_FRAMES[spinnerFrame] ?? "") : "";
+	const { percent, used, window: contextWindow } = statuslineContextInfo(ctx);
 	const gitChunk = `${gitBadge(git, settingBoolean("showDirtyMarker", true, ctx.cwd))}`;
 	const modelChunk = formatModelName(ctx);
 	const statusSeparator = " ∙ ";
 	const thinkingLevel = normalizeThinkingLevel(pi.getThinkingLevel());
 	const thinkingChunk = thinkingLevel;
-	const planLabel = planPhase === "planning"
-		? "Plan"
-		: planPhase === "executing" && planProgress.total > 0
-			? `󰱑 ${planProgress.completed}/${planProgress.total}`
-			: "";
-	const planChunk = planLabel
-		? theme.fg(planPhase === "planning" ? "warning" : "success", planLabel)
-		: "";
+	// const planLabel =
+	// 	planPhase === "planning"
+	// 		? "Plan"
+	// 		: planPhase === "executing" && planProgress.total > 0
+	// 			? `󰱑 ${planProgress.completed}/${planProgress.total}`
+	// 			: "";
+	// const planChunk = planLabel
+	// 	? theme.fg(planPhase === "planning" ? "warning" : "success", planLabel)
+	// 	: "";
 	const modeChunk = currentMode.label
 		? theme.fg(currentMode.color as any, currentMode.label)
 		: "";
-	const leftPlain = `${modelChunk}${statusSeparator}${thinkingChunk}${modeChunk ? statusSeparator + currentMode.label : ""}${planLabel ? statusSeparator + planLabel : ""}${gitChunk ? statusSeparator : ""}${gitChunk}`;
+	const leftPlain = `${modelChunk}${statusSeparator}${thinkingChunk}${modeChunk ? statusSeparator + currentMode.label : ""}${gitChunk ? statusSeparator : ""}${gitChunk}`;
 
 	const percentPlain = percent === null ? "…" : `${percent}`;
-	const contextWindow = statuslineContextInfo(ctx).window;
 	const rightPlainFull = `${used}/${contextWindow} ${percentPlain}`;
 
 	const percentColor =
@@ -263,7 +288,7 @@ export function renderStatusLine(
 					? "warning"
 					: "success";
 	const separatorColored = theme.fg("muted", statusSeparator);
-	const leftColored = `${theme.fg("accent", modelChunk)}${separatorColored}${theme.fg(THINKING_TOKEN[thinkingLevel], thinkingChunk)}${modeChunk ? separatorColored + modeChunk : ""}${planChunk ? separatorColored : ""}${planChunk}${gitChunk ? separatorColored : ""}${theme.fg("mdCode", gitChunk)}`;
+	const leftColored = `${theme.fg("accent", modelChunk)}${separatorColored}${theme.fg(THINKING_TOKEN[thinkingLevel], thinkingChunk)}${modeChunk ? separatorColored + modeChunk : ""}${gitChunk ? separatorColored : ""}${theme.fg("mdCode", gitChunk)}`;
 	const right = `${theme.fg("muted", `${used}/${contextWindow}`)} ${theme.fg(percentColor, percentPlain)}`;
 
 	const minimumGap = 1;
@@ -271,21 +296,7 @@ export function renderStatusLine(
 		minimumGap,
 		width - visibleWidth(leftPlain) - visibleWidth(rightPlainFull) - 2,
 	);
-	const waveSteps = Math.max(2, Math.round(gapWidth * LOADING_WAVE_RATIO));
-	const wave = hexGradient(LOADING_WAVE_FROM, LOADING_WAVE_TO, waveSteps);
-	const halfWave = wave.length >> 1;
-	const bounceFull = LOADING_BOUNCE_FRAMES * 2;
-	const t = (spinnerFrame % bounceFull) / LOADING_BOUNCE_FRAMES;
-	const phase = t <= 1 ? t : 2 - t;
-	const eased = (1 - Math.cos(phase * Math.PI)) / 2;
-	const pos = eased * (gapWidth - 1);
-	const bar = spinnerActive
-		? Array.from({ length: gapWidth }, (_, i) => {
-				const dist = Math.abs(i - pos);
-				const idx = Math.max(0, halfWave - Math.round(dist));
-				return truecolorFg(wave[Math.min(idx, wave.length - 1)], "─");
-			}).join("")
-		: truecolorFg(LOADING_BAR_STATIC, "─".repeat(gapWidth));
+	const bar = _renderBar(gapWidth);
 
 	return truncateToWidth(`${leftColored} ${bar} ${right}`, width, "");
 }

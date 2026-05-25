@@ -55,11 +55,6 @@ export function settingStringAllowEmpty(key: string, fallback: string, cwd?: str
   return typeof value === "string" ? value.trim() : fallback;
 }
 
-export function newlineFallbackKey(cwd?: string): "ctrl+j" | "none" {
-  const configured = settingString("newlineFallbackKey", "ctrl+j", cwd).toLowerCase();
-  return configured === "none" ? "none" : "ctrl+j";
-}
-
 export function settingNumber(key: string, fallback: number, cwd?: string): number {
   const value = readQolConfig(cwd)[key];
   const parsed = typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;

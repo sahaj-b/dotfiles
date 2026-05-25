@@ -523,15 +523,23 @@ if vim.g.vscode then
 end
 
 -- diagram.nvim
-map("n", "<leader>do", function()
-  require("diagram-tools").open_big()
-end, { desc = "Open diagram with system viewer" })
+map("n", "<leader>mmo", ":MermaidOpen<CR>", { desc = "Open diagram SVG" })
+map("n", "<leader>mmt", ":MermaidToggle<CR>", { desc = "Toggle images/code" })
+map("n", "<leader>mmr", ":MermaidRender<CR>", { desc = "Re-render diagrams" })
+map("n", "<leader>mmc", ":MermaidClear<CR>", { desc = "Clear diagrams" })
 
 -- marknote.nvim
-map("v", "<leader>ma", ":MarknoteAnnotate<CR>", { desc = "Annotate selection", silent = true })
-map("n", "<leader>me", ":MarknoteEdit<CR>", { desc = "Edit annotation", silent = true })
-map("n", "<leader>md", ":MarknoteDelete<CR>", { desc = "Delete annotation", silent = true })
-map("n", "<leader>mc", ":MarknoteClear<CR>", { desc = "Clear all annotations", silent = true })
-map("n", "<leader>mo", ":MarknoteView<CR>", { desc = "View copy-ready annotations", silent = true })
-map("n", "<leader>ms", ":MarknoteSubmitApprove<CR>", { desc = "Submit/Approve document", silent = true })
-map("n", "<leader>mr", ":MarknoteSubmitFeedback<CR>", { desc = "Reject and submit feedback", silent = true })
+map("v", "<leader>ma", function() require("marknote").annotate() end, { desc = "Annotate selection" })
+map("n", "<leader>ma", function() require("marknote").annotate_global() end,
+  { desc = "Annotate selection" })
+map("n", "<leader>me", function() require("marknote").edit() end, { desc = "Edit annotation" })
+map("n", "<leader>md", function() require("marknote").delete() end, { desc = "Delete annotation" })
+map("n", "<leader>mc", function() require("marknote").clear() end, { desc = "Clear all annotations" })
+map("n", "<leader>mo", function() require("marknote").view_annotations() end,
+  { desc = "View copy-ready annotations" })
+map("n", "<leader>ms", function() require("marknote").submit_approve() end,
+  { desc = "Submit/Approve document" })
+map("n", "<leader>mA", function() require("marknote").submit_feedback() end,
+  { desc = "Approve with no feedback" })
+map("n", "]a", function() require("marknote").jump_next() end, { desc = "Next annotation" })
+map("n", "[a", function() require("marknote").jump_prev() end, { desc = "Previous annotation" })

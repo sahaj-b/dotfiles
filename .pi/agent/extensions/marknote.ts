@@ -233,6 +233,25 @@ export default function plannotator(pi: ExtensionAPI): void {
 			try {
 				const result = await startMarknoteSession(ctx, absolutePath);
 				if (result.exit) {
+					// If nvim closed without marknote action, check if file has content.
+					// If it does, treat it as follow-up feedback.
+					const raw = readFileSync(absolutePath, "utf-8");
+					if (raw.trim().length > 0) {
+						ctx.ui.notify(
+							"Annotation session closed with content.",
+							"info",
+						);
+						pi.sendUserMessage(
+							resolveTemplate(DEFAULT_ANNOTATE_FILE_FEEDBACK, {
+								fileHeader: "File",
+								filePath: absolutePath,
+								feedback: raw,
+							}),
+							{ deliverAs: "followUp" },
+						);
+						return;
+					}
+
 					ctx.ui.notify(
 						"Annotation session closed without submitting.",
 						"info",
@@ -371,6 +390,23 @@ export default function plannotator(pi: ExtensionAPI): void {
 			}
 
 			if (result.exit) {
+				// If nvim closed without marknote action, check if the file has content.
+				// If it does, treat it as approved (user read/reviewed and walked away).
+				const raw = readFileSync(fullPath, "utf-8");
+				if (raw.trim().length > 0) {
+					return {
+						content: [
+							{
+								type: "text",
+								text: resolveTemplate(DEFAULT_REVIEW_APPROVED, {
+									filePath: inputPath,
+								}),
+							},
+						],
+						details: { approved: true },
+					};
+				}
+
 				return {
 					content: [
 						{

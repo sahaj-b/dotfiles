@@ -229,7 +229,11 @@ function maybeBg(
 const bgPartsCache = new WeakMap<object, Map<string, AnsiParts>>();
 
 function bgParts(theme: any, token: string): AnsiParts {
-	if (!theme || (typeof theme !== "object" && typeof theme !== "function") || !theme.bg)
+	if (
+		!theme ||
+		(typeof theme !== "object" && typeof theme !== "function") ||
+		!theme.bg
+	)
 		return { open: "", close: "" };
 
 	let cache = bgPartsCache.get(theme);
@@ -252,12 +256,18 @@ function bgParts(theme: any, token: string): AnsiParts {
 	}
 
 	if (token === DIFF_ADD_BG_TOKEN) {
-		const fallback: AnsiParts = { open: DIFF_ADD_BG_FALLBACK, close: ANSI_BG_RESET };
+		const fallback: AnsiParts = {
+			open: DIFF_ADD_BG_FALLBACK,
+			close: ANSI_BG_RESET,
+		};
 		cache.set(token, fallback);
 		return fallback;
 	}
 	if (token === DIFF_DEL_BG_TOKEN) {
-		const fallback: AnsiParts = { open: DIFF_DEL_BG_FALLBACK, close: ANSI_BG_RESET };
+		const fallback: AnsiParts = {
+			open: DIFF_DEL_BG_FALLBACK,
+			close: ANSI_BG_RESET,
+		};
 		cache.set(token, fallback);
 		return fallback;
 	}
@@ -961,9 +971,9 @@ function collapsedDiffHint(
 ): string {
 	const candidates = expanded
 		? [
-				`… ${remainingLines} more diff lines${hiddenHunks > 0 ? ` · ${hiddenHunks} more hunks` : ""} · UI cap ${shown}/${total}`,
-				`… ${remainingLines} more lines${hiddenHunks > 0 ? ` · ${hiddenHunks} hunks` : ""}`,
-				`… +${remainingLines}${hiddenHunks > 0 ? ` · +${hiddenHunks}h` : ""}`,
+				`${remainingLines} more diff lines${hiddenHunks > 0 ? ` · ${hiddenHunks} more hunks` : ""} · UI cap ${shown}/${total}`,
+				`${remainingLines} more lines${hiddenHunks > 0 ? ` · ${hiddenHunks} hunks` : ""}`,
+				`+${remainingLines}${hiddenHunks > 0 ? ` · +${hiddenHunks}h` : ""}`,
 				"…",
 			]
 		: [
@@ -1438,12 +1448,6 @@ export function attachDiffDetails(
 	return result;
 }
 
-
-
-
-
-
-
 /**
  * A reactive component that re-renders the structured diff table whenever
  * the available width changes. Unlike TruncatedLines (which word-wraps
@@ -1501,4 +1505,3 @@ export class DiffResult {
 		return this.cachedLines;
 	}
 }
-

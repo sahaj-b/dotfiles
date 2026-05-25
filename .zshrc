@@ -120,7 +120,7 @@ alias ts="~/scripts/tmux-sessionizer"
 alias dblur="hyprctl keyword decoration:blur:enabled false, decoration:shadow:enabled false"
 # alias h="harsh"
 alias tp="trash-put"
-alias rm="echo hell naww bru"
+# alias rm="echo hell naww bru"
 alias dunstHist="dunstctl history | jq '.data[0][] | .summary.data + \": \" + .body.data' -r"
 alias refl="sudo reflector -c India --save /etc/pacman.d/mirrorlist"
 alias scratch='$TERM_CMD --class=scratch -e tmux new-session -A -s scratch'

@@ -1,27 +1,37 @@
 return {
   {
     dir = "/home/sahaj/projects/marknote.nvim",
-    name = "marknote.nvim",
-    cmd = {
-      "MarknoteAnnotate",
-      "MarknoteEdit",
-      "MarknoteDelete",
-      "MarknoteClear",
-      "MarknoteView",
-      "MarknoteSubmitFeedback",
-      "MarknoteSubmitApprove"
-    },
+    opts = {
+      show_snippet = false
+    }
   },
+  -- {
+  --   "3rd/diagram.nvim",
+  --   dependencies = { "3rd/image.nvim" },
+  --   ft = { "markdown" },
+  --   opts = {}
+  -- },
   {
-    "3rd/diagram.nvim",
+    dir = "/home/sahaj/projects/mdiagram.nvim",
     dependencies = { "3rd/image.nvim" },
     ft = { "markdown" },
-    opts = {}
+    opts = {
+      mermaid = {
+        cli_args = { "-t", "dark", "-b", "#1e1e2f" },
+        config = {
+          flowchart = { htmlLabels = false },
+          htmlLabels = false,
+        },
+        background = "#1e1e2f",
+      }
+    }
   },
   {
     "3rd/image.nvim",
     ft = { "markdown" },
-    opts = {}
+    opts = {
+      tmux_show_only_in_active_window = true
+    }
   },
   {
     dir = "/home/sahaj/gomodifytags.nvim",
@@ -125,21 +135,22 @@ return {
       require("rest-nvim-extract")
     end
   },
-  {
-    'crispgm/nvim-tabline',
-    dependencies = { 'nvim-mini/mini.icons' },
-    lazy = true,
-    opts = {
-      show_icon = true,         -- show file extension icon
-      modify_indicator = '[+]', -- modify indicator
-      no_name = 'No name',      -- no name buffer name
-      brackets = { '', '' },    -- file name brackets surrounding
-
-    },
-  },
+  -- {
+  --   'crispgm/nvim-tabline',
+  --   dependencies = { 'nvim-mini/mini.icons' },
+  --   lazy = true,
+  --   opts = {
+  --     show_icon = true,         -- show file extension icon
+  --     modify_indicator = '[+]', -- modify indicator
+  --     no_name = 'No name',      -- no name buffer name
+  --     brackets = { '', '' },    -- file name brackets surrounding
+  --
+  --   },
+  -- },
   {
     'sindrets/diffview.nvim',
     -- { "jmbuhr/otter.nvim",      ft = "markdown" },
+    dependencies = { "nvim-tree/nvim-web-devicons" },
     opts = {
       win_config = {
         position = "bottom",

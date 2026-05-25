@@ -41,7 +41,8 @@ const AGENTS: Record<string, AgentEntry> = {
 		name: "scout",
 		model: "oc/deepseek-v4-flash-free",
 		commands: ["/mode ro"],
-		systemPrompt: "",
+		systemPrompt:
+			"You are a codebase explorer. Explore the codebase extensively and deeply to find the relevant information needed, using tools provided",
 		thinking: "medium",
 	},
 	researcher: {
@@ -655,7 +656,10 @@ export default function (pi: ExtensionAPI) {
 			"Subagents have NO context from the current conversation — include ALL necessary context in the task description",
 		],
 		parameters: Type.Object({
-			agent: Type.String({ description: "Name of the agent to invoke" }),
+			agent: Type.String({
+				description:
+					"Name of the agent to invoke(scout, researcher, or worker)",
+			}),
 			task: Type.String({ description: "Task description" }),
 			cwd: Type.Optional(
 				Type.String({ description: "Working directory for the agent process" }),

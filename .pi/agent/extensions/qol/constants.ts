@@ -31,22 +31,11 @@ export const DEFAULT_PERMISSION_GATE_PREVIEW_LINES = 12;
 export const DEFAULT_PERMISSION_GATE_PREVIEW_CHARS = 1200;
 export const DEFAULT_PERMISSION_GATE_PREVIEW_LINE_WIDTH = 120;
 
-export const DEFAULT_AUTO_RENAME_MODEL = "openai-codex/gpt-5.4-mini";
-export const DEFAULT_AUTO_RENAME_FALLBACK_MODEL = "current";
-export const DEFAULT_AUTO_RENAME_INPUT_CHARS = 2000;
 export const DEFAULT_AUTO_RENAME_NAME_CHARS = 80;
-export const DEFAULT_AUTO_RENAME_MAX_TOKENS = 96;
-export const DEFAULT_AUTO_RENAME_TIMEOUT_MS = 12_000;
 
 export const THINKING_LABEL_DEFAULT = "\ue28c ";
 
-export const QUESTION_NOTIFY_DEDUP_MS = 2000;
-
 export const DEFAULT_SOUND_ENABLED = true;
-export const DEFAULT_SOUND_COMPLETE = "";
-export const DEFAULT_SOUND_ERROR = "";
-export const DEFAULT_SOUND_PERMISSION = "";
-export const DEFAULT_SOUND_QUESTION = "";
 export const DEFAULT_SUPPRESS_WHEN_FOCUSED = true;
 export const DEFAULT_FOCUS_DETECTION_SCRIPT =
 	"/home/sahaj/scripts/detect-pi-hyprland";

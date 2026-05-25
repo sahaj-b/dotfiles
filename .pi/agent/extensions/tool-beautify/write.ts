@@ -9,7 +9,7 @@ import { Type } from "typebox";
 import { getBuiltInTool } from "./read.js";
 import { writeCompletedLines, writeLiveLines } from "./settings.js";
 import {
-	clearBlink,
+	clearSpinner,
 	displayPath,
 	lineCount,
 	makeEmpty,
@@ -287,7 +287,7 @@ export function registerWrite(pi: ExtensionAPI, agent: any, cwd: string): void {
 		renderCall(args: any, theme: any, context: any) {
 			const isSame = (context.lastComponent as any)?._wrc === true;
 			// Clean up stale spinner interval if class identity broke (hot-reload)
-			if (!isSame && context.lastComponent) clearBlink(context);
+			if (!isSame && context.lastComponent) clearSpinner(context);
 			const component = isSame
 				? context.lastComponent
 				: new WriteRenderComponent();
@@ -320,7 +320,7 @@ export function registerWrite(pi: ExtensionAPI, agent: any, cwd: string): void {
 			const args = context?.args ?? {};
 			const rawPath = argString(args.path ?? args.file_path);
 			const pathText = renderPath(theme, rawPath, context?.cwd);
-			clearBlink(context);
+			clearSpinner(context);
 
 			if (context?.isError || result?.isError) {
 				const errorText =

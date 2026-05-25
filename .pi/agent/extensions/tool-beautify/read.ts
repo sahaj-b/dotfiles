@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { readOutputMode, settingNumber } from "./settings.js";
 import { stackPrefix, toolLabel, treeConnector } from "./theme.js";
 import {
-	clearBlink,
+	clearSpinner,
 	lineCount,
 	makeEmpty,
 	makeTruncatedLines,
@@ -64,12 +64,12 @@ export function registerRead(pi: ExtensionAPI, agent: any, cwd: string): void {
 			return getBuiltInTool(agent, contextCwd(context, cwd), "read").execute(id, params, signal, onUpdate);
 		},
 		renderCall(args: any, theme: any, context: any) {
-			return renderPendingCall(readCallText(args ?? {}, theme, contextCwd(context, cwd)), theme, context, cwd);
+			return renderPendingCall(readCallText(args ?? {}, theme, contextCwd(context, cwd)), theme, context);
 		},
 		renderResult(result: any, { expanded, isPartial }: any, theme: any, context: any) {
 			const call = readCallText(context?.args ?? {}, theme, contextCwd(context, cwd));
 			if (isPartial) return renderPendingDetail("reading…", theme);
-			clearBlink(context);
+			clearSpinner(context);
 			const mode = readOutputMode(context?.cwd ?? cwd);
 			if (mode === "hidden") return makeEmpty();
 			if (context?.isError || result?.isError) {

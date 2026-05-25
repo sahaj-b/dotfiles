@@ -1,30 +1,11 @@
 const ANSI_PATTERN = /\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1B\\))/g;
 
-export const ANSI_ESCAPE_RE = /\x1b\[[0-?]*[ -/]*[@-~]/g;
-export const ANSI_GREEN_FG = "\x1b[32m";
-export const ANSI_RED_FG = "\x1b[31m";
-export const ANSI_YELLOW_FG = "\x1b[33m";
-export const ANSI_FG_RESET = "\x1b[39m";
-
 export function stripAnsi(text: string): string {
   return text.replace(ANSI_PATTERN, "");
 }
 
-export function ansiGreen(text: string): string {
-  return `${ANSI_GREEN_FG}${text}${ANSI_FG_RESET}`;
-}
-
-export function ansiRed(text: string): string {
-  return `${ANSI_RED_FG}${text}${ANSI_FG_RESET}`;
-}
-
-export function ansiYellow(text: string): string {
-  return `${ANSI_YELLOW_FG}${text}${ANSI_FG_RESET}`;
-}
-
 export function oneLine(text: string): string {
-  return text
-    .replace(ANSI_ESCAPE_RE, "")
+  return stripAnsi(text)
     .replace(/[\r\n\t]+/g, " ")
     .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, " ")
     .replace(/\s+/g, " ")

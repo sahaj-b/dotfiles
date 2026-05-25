@@ -2,7 +2,7 @@ import type {
 	ExtensionAPI,
 	ExtensionCommandContext,
 } from "@earendil-works/pi-coding-agent";
-import { settingBoolean, settingNumber, settingString } from "./_config";
+import { settingBoolean, settingNumber } from "./_config";
 import {
 	CONTEXT_USAGE_MESSAGE_TYPE,
 	INSTALL_SYMBOL,
@@ -25,7 +25,6 @@ import {
 } from "./images";
 import {
 	notifyDesktop,
-	notifyQuestionOpened,
 	playQolNotificationSound,
 	sendQolNotification,
 } from "./notifications";
@@ -47,7 +46,7 @@ import {
 	refreshGitState,
 	renderStatusLine,
 	setSpinnerActive,
-	registerPlanProgressListener,
+	// registerPlanProgressListener,
 	registerModeListener,
 } from "./statusline";
 import {
@@ -61,13 +60,11 @@ export default function (pi: ExtensionAPI) {
 	if ((globalThis as any)[INSTALL_SYMBOL]) return;
 	(globalThis as any)[INSTALL_SYMBOL] = true;
 
-	registerPlanProgressListener(pi);
+	// registerPlanProgressListener(pi);
 	registerModeListener(pi);
 
 	let currentTui: any;
-	let currentCtx: any;
 	let currentGitState = makeFallbackGitState(process.cwd());
-	let statuslineText = "";
 	let thinkingTicker: ReturnType<typeof setInterval> | undefined;
 
 	function refreshUI() {
@@ -75,7 +72,7 @@ export default function (pi: ExtensionAPI) {
 	}
 
 	function updateStatusline(ctx: any, width?: number) {
-		statuslineText = renderStatusLine(
+		renderStatusLine(
 			width ?? currentTui?.width ?? 80,
 			ctx,
 			currentGitState,
@@ -98,7 +95,7 @@ export default function (pi: ExtensionAPI) {
 					`Statusline: replaces footer · prompt: ${settingBoolean("compactPrompt", true, cwd) ? "π compact" : "default chrome"}`,
 					`Image chips: ${settingBoolean("showImageChips", true, cwd) ? "on" : "off"}`,
 					`Image placeholders/paths in draft: ${labels.length ? labels.join(", ") : "none"}`,
-					`Auto session rename: ${autoRenameEnabled(cwd) ? "enabled" : "disabled"},`
+					`Auto session rename: ${autoRenameEnabled(cwd) ? "enabled" : "disabled"}`,
 					`Notifications: ${settingBoolean("notification.enabled", true, cwd) ? "enabled" : "disabled"}`,
 					`Permission gate: ${settingBoolean("permissionGate.enabled", false, cwd) ? `enabled (${permissionGateCommands(cwd).join(", ") || "none configured"})` : "disabled"}`,
 					`Thinking timer: ${settingBoolean("thinkingTimer.enabled", true, cwd) ? "enabled" : "disabled"}`,
@@ -290,8 +287,6 @@ export default function (pi: ExtensionAPI) {
 
 	pi.on("session_start", async (event: any, ctx: any) => {
 		if (!ctx.hasUI) return;
-		currentCtx = ctx;
-
 		ctx.ui.setWorkingVisible(false);
 		ctx.ui.setHiddenThinkingLabel(hiddenThinkingLabel(ctx.ui.theme, ctx.cwd));
 
@@ -371,7 +366,6 @@ export default function (pi: ExtensionAPI) {
 
 	// Session shutdown: clean up state so nothing leaks across sessions
 	pi.on("session_shutdown", async (_event: any, ctx: any) => {
-		currentCtx = undefined;
 		ctx.ui.setWidget("qol-statusline", undefined);
 		ctx.ui.setFooter(undefined);
 		ctx.ui.setEditorComponent(undefined);
@@ -390,44 +384,42 @@ export default function (pi: ExtensionAPI) {
 		}
 	});
 
-	// Permission gate
+	// Tool call interception: permission gate + ask_question notifications
 	pi.on("tool_call", async (event: any, ctx: any) => {
-		if (event.toolName !== "bash") return;
-		if (!settingBoolean("permissionGate.enabled", false, ctx.cwd)) return;
-		const command = event.input?.command ?? "";
-		const matched = permissionGateMatch(command, ctx.cwd);
-		if (!matched) return;
-		// Notify + sound before blocking dialog (always fire regardless of focus — user needs to respond)
-		const cwd = ctx.cwd;
-		playQolNotificationSound("permission", cwd);
-		notifyDesktop("Pi — Permission Required", `Blocked: ${matched}`, cwd);
-		sendQolNotification(
-			ctx,
-			"critical",
-			`Permission needed: ${matched}`,
-			"warning",
-			`permission:${matched}`,
-			{ sound: false, desktop: false },
-		);
-		const choice = await ctx.ui.select(
-			permissionGatePrompt(matched, command, ctx.cwd),
-			["Allow once", "Block"],
-		);
-		if (choice !== "Allow once")
-			return {
-				block: true,
-				reason: `Blocked by QOL permission gate (${matched})`,
-			};
-	});
-
-	// Question notification via tool_call interception
-	pi.on("tool_call", async (event: any, ctx: any) => {
-		if (event.toolName !== "ask_question") return;
-		if (!settingBoolean("notification.enabled", true, ctx.cwd)) return;
-		
-		const question = typeof event.input?.question === "string" ? event.input.question : "Input required";
-		const header = question.length > 80 ? question.slice(0, 77) + "..." : question;
-		notifyQuestionOpened(ctx, header);
+		if (event.toolName === "bash") {
+			if (!settingBoolean("permissionGate.enabled", false, ctx.cwd)) return;
+			const command = event.input?.command ?? "";
+			const matched = permissionGateMatch(command, ctx.cwd);
+			if (!matched) return;
+			// Notify + sound before blocking dialog (always fire regardless of focus — user needs to respond)
+			const cwd = ctx.cwd;
+			playQolNotificationSound("permission", cwd);
+			notifyDesktop("Pi — Permission Required", `Blocked: ${matched}`, cwd);
+			sendQolNotification(
+				ctx,
+				"critical",
+				`Permission needed: ${matched}`,
+				"warning",
+				`permission:${matched}`,
+				{ sound: false, desktop: false },
+			);
+			const choice = await ctx.ui.select(
+				permissionGatePrompt(matched, command, ctx.cwd),
+				["Allow once", "Block"],
+			);
+			if (choice !== "Allow once")
+				return {
+					block: true,
+					reason: `Blocked by QOL permission gate (${matched})`,
+				};
+			return;
+		}
+		if (event.toolName === "ask_question") {
+			if (!settingBoolean("notification.enabled", true, ctx.cwd)) return;
+			const question = typeof event.input?.question === "string" ? event.input.question : "Input required";
+			const header = question.length > 80 ? question.slice(0, 77) + "..." : question;
+			sendQolNotification(ctx, "question", `Input required: ${header}`, "warning", `question:${question.slice(0, 40)}`);
+		}
 	});
 
 	// Deterministic session name from first prompt (for new sessions where auto-rename can't run yet)

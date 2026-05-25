@@ -10,7 +10,7 @@ import {
 import { contextCwd, getBuiltInTool } from "./read.js";
 import { stackPrefix, toolLabel } from "./theme.js";
 import {
-	clearBlink,
+	clearSpinner,
 	displayPath,
 	makeTruncatedLines,
 	renderPendingCall,
@@ -38,7 +38,7 @@ export function registerEdit(pi: ExtensionAPI, agent: any, cwd: string): void {
 		renderCall(args: any, theme: any, context: any) {
 			const targetPath = args?.path ?? args?.file_path ?? "";
 			const displayTarget = displayPath(targetPath, context?.cwd ?? cwd);
-			return renderPendingCall(`${toolLabel(theme, "Edit ")}${theme.fg("accent", displayTarget)}`, theme, context, cwd);
+			return renderPendingCall(`${toolLabel(theme, "Edit ")}${theme.fg("accent", displayTarget)}`, theme, context);
 		},
 		renderResult(result: any, { expanded, isPartial }: any, theme: any, context: any) {
 			const args = context?.args ?? {};
@@ -46,7 +46,7 @@ export function registerEdit(pi: ExtensionAPI, agent: any, cwd: string): void {
 			const displayTarget = displayPath(targetPath, context?.cwd ?? cwd);
 			const call = `${toolLabel(theme, "Edit ")}${theme.fg("accent", displayTarget)}`;
 			if (isPartial) return renderPendingDetail("editing…", theme);
-			clearBlink(context);
+			clearSpinner(context);
 			const structured = result?.details?.toolDiff as StructuredDiff | undefined;
 			if (context?.isError || result?.isError) {
 				const errorText = textContent(result).split(/\r?\n/)[0] || "edit failed";

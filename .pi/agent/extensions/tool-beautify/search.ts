@@ -3,7 +3,7 @@ import { type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { searchOutputMode, settingNumber } from "./settings.js";
 import { stackPrefix, toolLabel, treeConnector } from "./theme.js";
 import {
-	clearBlink,
+	clearSpinner,
 	lineCount,
 	makeEmpty,
 	makeTruncatedLines,
@@ -33,12 +33,12 @@ export function registerReadOnly(pi: ExtensionAPI, agent: any, cwd: string, tool
 			return getBuiltInTool(agent, contextCwd(context, cwd), toolName).execute(id, params, signal, onUpdate);
 		},
 		renderCall(args: any, theme: any, context: any) {
-			return renderPendingCall(readOnlyCallText(toolName, args ?? {}, theme, context?.cwd ?? cwd), theme, context, cwd);
+			return renderPendingCall(readOnlyCallText(toolName, args ?? {}, theme, context?.cwd ?? cwd), theme, context);
 		},
 		renderResult(result: any, { expanded, isPartial }: any, theme: any, context: any) {
 			const call = readOnlyCallText(toolName, context?.args ?? {}, theme, context?.cwd ?? cwd);
 			if (isPartial) return renderPendingDetail(`${toolName}…`, theme);
-			clearBlink(context);
+			clearSpinner(context);
 			const output = textContent(result);
 			const firstLine = output.split(/\r?\n/)[0] || "";
 			if (context?.isError || result?.isError) {

@@ -71,10 +71,6 @@ function readConfig(cwd?: string): Record<string, unknown> {
 	return merged;
 }
 
-export function invalidateConfigCache(): void {
-	cache = null;
-}
-
 export function settingNumber(key: string, fallback: number, cwd?: string): number {
 	const value = readConfig(cwd)[key];
 	const parsed = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
@@ -84,11 +80,6 @@ export function settingNumber(key: string, fallback: number, cwd?: string): numb
 export function settingBoolean(key: string, fallback: boolean, cwd?: string): boolean {
 	const value = readConfig(cwd)[key];
 	return typeof value === "boolean" ? value : fallback;
-}
-
-export function settingString(key: string, fallback: string, cwd?: string): string {
-	const value = readConfig(cwd)[key];
-	return typeof value === "string" ? value : fallback;
 }
 
 export function settingEnum<T extends string>(key: string, allowed: readonly T[], fallback: T, cwd?: string): T {
