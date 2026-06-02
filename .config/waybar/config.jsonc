@@ -26,8 +26,8 @@
     "battery",
     "custom/notif",
     "custom/easyeffects",
-    "tray",
-    "custom/vuln"
+    "tray"
+    // "custom/vuln"
   ],
   "hyprland/workspaces": {
     "on-scroll-up": "hyprctl dispatch 'hl.dsp.focus({ workspace = \"e+1\" })'",
@@ -147,7 +147,7 @@
   "memory": {
     "interval": 5,
     "format": "  {}%",
-    "on-click": "foot -e btop",
+    "on-click": "$TERMINAL -e btop",
     "states": {
       "cool": 50,
       "warning": 70,

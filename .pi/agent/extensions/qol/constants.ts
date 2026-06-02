@@ -22,7 +22,6 @@ export const THINKING_TIMER_STORE_SYMBOL = Symbol(
 );
 export const THINKING_TIMER_PATCH_KEY = "__pi-qol-timer-patched__";
 
-export const DEFAULT_NOTIFICATION_TITLE = "Pi";
 export const DEFAULT_NOTIFICATION_COOLDOWN_SECONDS = 8;
 export const DEFAULT_NOTIFICATION_BODY_MAX_CHARS = 240;
 
@@ -41,4 +40,4 @@ export const DEFAULT_FOCUS_DETECTION_SCRIPT =
 	"/home/sahaj/scripts/detect-pi-hyprland";
 export const DEFAULT_TERM_INITIAL_TITLE = "";
 export const DEFAULT_NOTIFICATION_TIMEOUT_SECONDS = 5;
-export const DEFAULT_DESKTOP_NOTIFICATIONS_ENABLED = false;
+export const DEFAULT_DESKTOP_NOTIFICATIONS_ENABLED = true;

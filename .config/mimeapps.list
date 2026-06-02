@@ -1,14 +1,14 @@
 [Default Applications]
-x-scheme-handler/http=zen.desktop
-x-scheme-handler/https=zen.desktop
-x-scheme-handler/chrome=userapp-Zen-AN1SB3.desktop
-text/html=zen.desktop
-application/x-extension-htm=userapp-Zen-AN1SB3.desktop
-application/x-extension-html=userapp-Zen-AN1SB3.desktop
-application/x-extension-shtml=userapp-Zen-AN1SB3.desktop
-application/xhtml+xml=zen.desktop
-application/x-extension-xhtml=userapp-Zen-AN1SB3.desktop
-application/x-extension-xht=userapp-Zen-AN1SB3.desktop
+x-scheme-handler/http=userapp-Zen-MKM2P3.desktop
+x-scheme-handler/https=userapp-Zen-MKM2P3.desktop
+x-scheme-handler/chrome=userapp-Zen-MKM2P3.desktop
+text/html=userapp-Zen-MKM2P3.desktop
+application/x-extension-htm=userapp-Zen-MKM2P3.desktop
+application/x-extension-html=userapp-Zen-MKM2P3.desktop
+application/x-extension-shtml=userapp-Zen-MKM2P3.desktop
+application/xhtml+xml=userapp-Zen-MKM2P3.desktop
+application/x-extension-xhtml=userapp-Zen-MKM2P3.desktop
+application/x-extension-xht=userapp-Zen-MKM2P3.desktop
 x-scheme-handler/about=zen.desktop
 x-scheme-handler/unknown=zen.desktop
 x-scheme-handler/fdm=freedownloadmanager_fdm_up.desktop
@@ -256,21 +256,17 @@ text/x-tex=nvim.desktop
 text/x-c=nvim.desktop
 text/x-c++=nvim.desktop
 x-scheme-handler/antigravity=antigravity.desktop
-
-[Added Associations]
-x-scheme-handler/http=userapp-Zen-AN1SB3.desktop;zen.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-9O1UA3.desktop;brave-browser.desktop;
-x-scheme-handler/https=userapp-Zen-AN1SB3.desktop;zen.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-9O1UA3.desktop;brave-browser.desktop;
-x-scheme-handler/chrome=userapp-Zen-AN1SB3.desktop;zen.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-9O1UA3.desktop;brave-browser.desktop;
-text/html=brave-browser.desktop;zen.desktop;userapp-Zen-9O1UA3.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-AN1SB3.desktop;
-application/x-extension-htm=brave-browser.desktop;zen.desktop;userapp-Zen-9O1UA3.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-AN1SB3.desktop;
-application/x-extension-html=brave-browser.desktop;zen.desktop;userapp-Zen-9O1UA3.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-AN1SB3.desktop;
-application/x-extension-shtml=brave-browser.desktop;zen.desktop;userapp-Zen-9O1UA3.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-AN1SB3.desktop;
-application/xhtml+xml=brave-browser.desktop;zen.desktop;userapp-Zen-9O1UA3.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-AN1SB3.desktop;
-application/x-extension-xhtml=brave-browser.desktop;zen.desktop;userapp-Zen-9O1UA3.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-AN1SB3.desktop;
-application/x-extension-xht=brave-browser.desktop;zen.desktop;userapp-Zen-9O1UA3.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-AN1SB3.desktop;
-
-[Added Associations]
 inode/directory=yazi.desktop
 
-[Default Applications]
+[Added Associations]
+x-scheme-handler/http=userapp-Zen-MKM2P3.desktop;userapp-Zen-AN1SB3.desktop;zen.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-9O1UA3.desktop;brave-browser.desktop;
+x-scheme-handler/https=userapp-Zen-MKM2P3.desktop;userapp-Zen-AN1SB3.desktop;zen.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-9O1UA3.desktop;brave-browser.desktop;
+x-scheme-handler/chrome=userapp-Zen-MKM2P3.desktop;userapp-Zen-AN1SB3.desktop;zen.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-9O1UA3.desktop;brave-browser.desktop;
+text/html=brave-browser.desktop;zen.desktop;userapp-Zen-9O1UA3.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-AN1SB3.desktop;userapp-Zen-MKM2P3.desktop;
+application/x-extension-htm=brave-browser.desktop;zen.desktop;userapp-Zen-9O1UA3.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-AN1SB3.desktop;userapp-Zen-MKM2P3.desktop;
+application/x-extension-html=brave-browser.desktop;zen.desktop;userapp-Zen-9O1UA3.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-AN1SB3.desktop;userapp-Zen-MKM2P3.desktop;
+application/x-extension-shtml=brave-browser.desktop;zen.desktop;userapp-Zen-9O1UA3.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-AN1SB3.desktop;userapp-Zen-MKM2P3.desktop;
+application/xhtml+xml=brave-browser.desktop;zen.desktop;userapp-Zen-9O1UA3.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-AN1SB3.desktop;userapp-Zen-MKM2P3.desktop;
+application/x-extension-xhtml=brave-browser.desktop;zen.desktop;userapp-Zen-9O1UA3.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-AN1SB3.desktop;userapp-Zen-MKM2P3.desktop;
+application/x-extension-xht=brave-browser.desktop;zen.desktop;userapp-Zen-9O1UA3.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-AN1SB3.desktop;userapp-Zen-MKM2P3.desktop;
 inode/directory=yazi.desktop

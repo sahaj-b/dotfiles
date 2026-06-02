@@ -11,21 +11,21 @@ return {
   --   ft = { "markdown" },
   --   opts = {}
   -- },
-  {
-    dir = "/home/sahaj/projects/mdiagram.nvim",
-    dependencies = { "3rd/image.nvim" },
-    ft = { "markdown" },
-    opts = {
-      mermaid = {
-        cli_args = { "-t", "dark", "-b", "#1e1e2f" },
-        config = {
-          flowchart = { htmlLabels = false },
-          htmlLabels = false,
-        },
-        background = "#1e1e2f",
-      }
-    }
-  },
+  -- {
+  --   dir = "/home/sahaj/projects/mdiagram.nvim",
+  --   dependencies = { "3rd/image.nvim" },
+  --   ft = { "markdown" },
+  --   opts = {
+  --     mermaid = {
+  --       cli_args = { "-t", "dark", "-b", "#1e1e2f" },
+  --       config = {
+  --         flowchart = { htmlLabels = false },
+  --         htmlLabels = false,
+  --       },
+  --       background = "#1e1e2f",
+  --     }
+  --   }
+  -- },
   {
     "3rd/image.nvim",
     ft = { "markdown" },

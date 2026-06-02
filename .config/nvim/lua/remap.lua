@@ -523,10 +523,10 @@ if vim.g.vscode then
 end
 
 -- diagram.nvim
-map("n", "<leader>mmo", ":MermaidOpen<CR>", { desc = "Open diagram SVG" })
-map("n", "<leader>mmt", ":MermaidToggle<CR>", { desc = "Toggle images/code" })
-map("n", "<leader>mmr", ":MermaidRender<CR>", { desc = "Re-render diagrams" })
-map("n", "<leader>mmc", ":MermaidClear<CR>", { desc = "Clear diagrams" })
+-- map("n", "<leader>mmo", ":MermaidOpen<CR>", { desc = "Open diagram SVG" })
+-- map("n", "<leader>mmt", ":MermaidToggle<CR>", { desc = "Toggle images/code" })
+-- map("n", "<leader>mmr", ":MermaidRender<CR>", { desc = "Re-render diagrams" })
+-- map("n", "<leader>mmc", ":MermaidClear<CR>", { desc = "Clear diagrams" })
 
 -- marknote.nvim
 map("v", "<leader>ma", function() require("marknote").annotate() end, { desc = "Annotate selection" })

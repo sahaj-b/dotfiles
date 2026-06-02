@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.75.5",
+  "lastChangelogVersion": "0.78.0",
   "packages": [],
   "defaultProvider": "oc",
   "defaultModel": "deepseek-v4-flash-free",

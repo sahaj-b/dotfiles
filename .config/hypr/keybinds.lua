@@ -71,8 +71,8 @@ hl.define_submap("Resize", function()
 end)
 
 -- Power submap
-hl.bind(mod2 .. " + SHIFT + E", hl.dsp.submap("(S)hutdown (R)eboot (L)ogout Sus(p)end (H)ibernate "))
-hl.define_submap("(S)hutdown (R)eboot (L)ogout Sus(p)end (H)ibernate ", "reset", function()
+hl.bind(mod2 .. " + SHIFT + E", hl.dsp.submap("POWER: SRLPH"))
+hl.define_submap("POWER: SRLPH", "reset", function()
   hl.bind(mod2 .. " + S", hl.dsp.exec_cmd("shutdown now"))
   hl.bind(mod2 .. " + R", hl.dsp.exec_cmd("systemctl reboot"))
   hl.bind(mod2 .. " + L", hl.dsp.exit())
@@ -91,7 +91,7 @@ end)
 for i = 1, 10 do
   local key = (i == 10) and "0" or tostring(i)
   hl.bind(mod .. " + " .. key, hl.dsp.focus({ workspace = i }))
-  hl.bind(mod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i }))
+  hl.bind(mod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i, follow = false }))
 end
 
 hl.bind(mod .. " + TAB", hl.dsp.focus({ workspace = "previous" }))
@@ -117,19 +117,22 @@ local brightnessNotif =
 
 hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl -c 'backlight' s +1% && " .. brightnessNotif))
 hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -c 'backlight' s 1%- && " .. brightnessNotif))
-hl.bind(mod2 .. " + XF86AudioRaiseVolume", hl.dsp.exec_cmd("brightnessctl -c 'backlight' s 1%+ && " .. brightnessNotif))
-hl.bind(mod2 .. " + XF86AudioLowerVolume", hl.dsp.exec_cmd("brightnessctl -c 'backlight' s 1%- && " .. brightnessNotif))
-hl.bind(mod2 .. " + XF86AudioMute", hl.dsp.exec_cmd("brightnessctl -c 'backlight' s 10% && " .. brightnessNotif))
+hl.bind(mod2 .. " + XF86AudioRaiseVolume", hl.dsp.exec_cmd("brightnessctl -c 'backlight' s 1%+ && " .. brightnessNotif),
+  { locked = true })
+hl.bind(mod2 .. " + XF86AudioLowerVolume",
+  hl.dsp.exec_cmd("brightnessctl -c 'backlight' s 1%- && " .. brightnessNotif), { locked = true })
+hl.bind(mod2 .. " + XF86AudioMute",
+  hl.dsp.exec_cmd("brightnessctl -c 'backlight' s 10% && " .. brightnessNotif), { locked = true })
 
 -- Volume
 local volumeNotif =
 'volume=$(pamixer --get-volume) && isMuted=$(pamixer --get-mute) && notify-send -h string:x-dunst-stack-tag:vol -t 700 $([[ "$isMuted" == "false" ]] && echo "-h int:value:$volume" || echo "-h int:value:0") "$([[ "$isMuted" == "true" ]] && echo \'               󰖁\' || echo \'               󰕾\')  ${volume}%"'
 
 hl.bind("XF86AudioRaiseVolume",
-  hl.dsp.exec_cmd("pamixer -i 2 --allow-boost && pkill -RTMIN+10 waybar && " .. volumeNotif))
+  hl.dsp.exec_cmd("pamixer -i 2 --allow-boost && pkill -RTMIN+10 waybar && " .. volumeNotif), { locked = true })
 hl.bind("XF86AudioLowerVolume",
-  hl.dsp.exec_cmd("pamixer -d 2 --allow-boost && pkill -RTMIN+10 waybar && " .. volumeNotif))
-hl.bind("XF86AudioMute", hl.dsp.exec_cmd("pamixer -t && pkill -RTMIN+10 waybar && " .. volumeNotif))
+  hl.dsp.exec_cmd("pamixer -d 2 --allow-boost && pkill -RTMIN+10 waybar && " .. volumeNotif), { locked = true })
+hl.bind("XF86AudioMute", hl.dsp.exec_cmd("pamixer -t && pkill -RTMIN+10 waybar && " .. volumeNotif), { locked = true })
 
 local micNotif =
 'notify-send -h string:x-dunst-stack-tag:mute -t 1000 "$([[ "$(pamixer --default-source --get-mute)" == "true" ]] && echo \'               󰍭  Muted\' || echo \'             󰍬  Unmuted\'"'

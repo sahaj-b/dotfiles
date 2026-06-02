@@ -3,7 +3,7 @@
     "nvidia": {
       "baseUrl": "https://integrate.api.nvidia.com/v1",
       "api": "openai-completions",
-      "apiKey": "NVIDIA_API_KEY",
+      "apiKey": "$NVIDIA_API_KEY",
       "models": [
         {
           "id": "minimaxai/minimax-m2.7",

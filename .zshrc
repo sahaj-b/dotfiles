@@ -61,6 +61,10 @@ if [[ -f ~/yeah.sh ]]; then
   source ~/yeah.sh
 fi
 
+alias card0='lspci -nn -s "$(basename $(readlink -f /sys/class/drm/card0/device))"'
+alias card1='lspci -nn -s "$(basename $(readlink -f /sys/class/drm/card1/device))"'
+alias mvr='rsync -a --remove-source-files --info=progress2'
+alias cpr='rsync -a --info=progress2'
 alias ll='latexmk -lualatex'
 alias drpaste="wl-paste > .tempimg.png && dragon-drop .tempimg.png"
 alias mdata="sudo mount -t ntfs3 /dev/nvme0n1p6 /media/data"
