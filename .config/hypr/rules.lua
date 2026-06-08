@@ -32,8 +32,20 @@ hl.window_rule({ match = { class = "^scratch$" }, workspace = "special:term" })
 -- Music workspace
 hl.window_rule({ match = { class = "^com.github.th_ch.youtube_music$" }, workspace = "special:music" })
 
--- No focus for fl64.exe
-hl.window_rule({ match = { class = "^fl64.exe$", title = "^()$" }, no_focus = true })
+-- fl64.exe
+-- hl.window_rule({ match = { class = "^fl64.exe$", title = "^()$" }, no_focus = true })
+-- hl.window_rule({
+--   name = "ghost_fl64",
+--   match = { class = "^fl64.exe$", title = "^()$" },
+--   float = true,
+--   no_initial_focus = true,
+--   no_focus = true,
+--   suppress_event = "activate activatefocus",
+--   no_anim = true,
+--   no_blur = true,
+--   no_shadow = true,
+--   opacity = "0 override 0 override 0 override",
+-- })
 
 -- REAPER About window
 hl.window_rule({

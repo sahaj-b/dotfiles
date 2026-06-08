@@ -61,15 +61,17 @@ if [[ -f ~/yeah.sh ]]; then
   source ~/yeah.sh
 fi
 
+alias wrp='sudo systemctl start warp-svc.service && sleep 1 && systemctl --user start warp-taskbar; warp-cli connect'
+alias wrpd='warp-cli disconnect && sudo systemctl stop warp-svc.service && systemctl --user stop warp-taskbar'
 alias card0='lspci -nn -s "$(basename $(readlink -f /sys/class/drm/card0/device))"'
 alias card1='lspci -nn -s "$(basename $(readlink -f /sys/class/drm/card1/device))"'
 alias mvr='rsync -a --remove-source-files --info=progress2'
 alias cpr='rsync -a --info=progress2'
 alias ll='latexmk -lualatex'
 alias drpaste="wl-paste > .tempimg.png && dragon-drop .tempimg.png"
-alias mdata="sudo mount -t ntfs3 /dev/nvme0n1p6 /media/data"
+alias mdata="sudo mount -t ntfs3 -o rw,uid=1000,gid=1000 /dev/nvme0n1p6 /media/data"
 alias mwindows="sudo mount -t ntfs3 /dev/nvme0n1p3 /media/windows"
-alias mexternal="sudo mount -t ntfs3 /dev/sda1 /media/external"
+alias mexternal="sudo mount -t ntfs3 -o rw,uid=1000,gid=1000 /dev/sda1 /media/external"
 alias rmpv="mpv --no-video --no-terminal --no-config --script=/usr/lib/mpv-mpris/mpris.so"
 alias res="opencode --agent research --model opencode/minimax-m2.5-free"
 alias lesgo="sudo systemctl start tailscaled && sudo tailscale up && sudo systemctl start sshd"

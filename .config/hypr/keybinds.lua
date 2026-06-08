@@ -200,7 +200,7 @@ local ppauseSmart =
 
 hl.bind(mod2 .. " + left", hl.dsp.exec_cmd(pprev))
 hl.bind(mod2 .. " + right", hl.dsp.exec_cmd(pnext))
-hl.bind(mod2 .. " + down", hl.dsp.exec_cmd(ppause))
+hl.bind(mod2 .. " + down", hl.dsp.exec_cmd(ppauseSmart))
 hl.bind(mod2 .. " + up", hl.dsp.exec_cmd(ppauseMedia))
 hl.bind(mod .. " + down", hl.dsp.exec_cmd("playerctl pause -a"))
 

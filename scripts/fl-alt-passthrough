@@ -1,55 +1,164 @@
 #!/usr/bin/env bash
-# Alt key passthrough for FL Studio
-# unbinds Alt binds that conflict with FL Studio shortcuts
+# Alt key passthrough for FL Studio.
+# While FL Studio (fl64.exe) is focused, the user's Alt-prefixed binds are
+# unbound so the keys reach FL Studio unmodified. When focus leaves FL
+# Studio, the binds are restored.
+#
+# Hyprland 0.55+ uses Lua config; bind/unbind must go through `hyprctl eval`,
+# since `hyprctl keyword unbind / bind` are gone with the legacy parser.
+# See: https://wiki.hypr.land/Configuring/Advanced-and-Cool/Using-hyprctl/#eval
 
 TARGET_CLASS="fl64.exe"
 SOCKET="$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
 
-ALT_BINDS=(
-  "bind|Ctrl ALT, R, exec, obs-cmd recording toggle; sleep 0.8; obs-cmd recording status-active || notify-send \"Recording Stopped\""
-  "bind|ALT, A, exec, rfkill unblock bluetooth && bluetoothctl power on && busctl call org.bluez /org/bluez/hci0/dev_B0_A3_F2_6A_E3_DB org.bluez.Device1 Disconnect; busctl call org.bluez /org/bluez/hci0/dev_B0_A3_F2_6A_E3_DB org.bluez.Device1 Connect"
-  "bindl|ALT, Z, exec, ~/scripts/blu toggle"
-  "bind|ALT, S, exec, ~/scripts/saveSS"
-  "bind|ALT, R, exec, ~/scripts/changeWall rand"
-  "bindl|ALT, left, exec, playerctl previous -p 'YoutubeMusic, spotify, chromium, %any'"
-  "bindl|ALT, right, exec, playerctl next -p 'YoutubeMusic, spotify, chromium, %any'"
-  "bindl|ALT, down, exec, playerctl play-pause -p 'YoutubeMusic, spotify, chromium, %any'"
-  "bindl|ALT, up, exec, playerctl play-pause -p 'firefox, brave, chromium, mpv'"
-  "bind|ALT SHIFT, SPACE, togglespecialworkspace, music"
-  "bind|ALT CTRL, SPACE, resizeactive, exact 80% 80%"
-  "bind|ALT CTRL, SPACE, centerwindow"
-  "binde|ALT, O, exec, echo \"wheel -5\" | dotoolc"
-  "binde|ALT, P, exec, echo \"wheel 5\" | dotoolc"
-  "binde|ALT, U, exec, echo \"click left\" | dotoolc"
-  "bind|ALT, slash, exec, hexecute"
-  "bind|ALT SHIFT, M, movetoworkspace, special:music"
+# Hyprland modmask bits (see src/defines.hpp in Hyprland)
+M_SHIFT=1
+M_CAPS=2
+M_CTRL=4
+M_ALT=8
+M_SUPER=64
+
+# Modifiers paired 1:1 with the key/dispatcher/flags below.
+# Mirrors the modifier+key combos that `~/.config/hypr/keybinds.lua` binds
+# (which the script needs to take over when FL Studio is focused).
+ALT_MODS=(
+  "CTRL ALT"   # R    - recording toggle
+  "SUPER"      # A    - bluetooth reconnect (matches keybinds.lua; original script had a typo)
+  "ALT"        # Z    - blu toggle
+  "ALT"        # S    - saveSS
+  "ALT"        # R    - changeWall rand
+  "ALT"        # left  - media prev
+  "ALT"        # right - media next
+  "ALT"        # down  - media play-pause (music)
+  "ALT"        # up    - media play-pause (media)
+  "ALT SHIFT"  # SPACE - toggle special "music"
+  "ALT CTRL"   # SPACE - resize to 80% (run #1 of 2)
+  "ALT CTRL"   # SPACE - center window  (run #2 of 2)
+  "ALT"        # O    - dotool wheel -5
+  "ALT"        # P    - dotool wheel +5
+  "ALT"        # U    - dotool click left
+  "ALT"        # slash - hexecute
+  "ALT SHIFT"  # M    - move to special:music
 )
 
+ALT_KEYS=(
+  "R"
+  "A"
+  "Z"
+  "S"
+  "R"
+  "left"
+  "right"
+  "down"
+  "up"
+  "SPACE"
+  "SPACE"
+  "SPACE"
+  "O"
+  "P"
+  "U"
+  "slash"
+  "M"
+)
+
+# Lua dispatcher expressions. Using [[...]] long strings to avoid quote
+# conflicts; these are passed verbatim to `hyprctl eval`.
+ALT_DISPATCHERS=(
+  'hl.dsp.exec_cmd([[obs-cmd recording toggle; sleep 0.8; obs-cmd recording status-active || notify-send "Recording Stopped"]])'
+  'hl.dsp.exec_cmd([[rfkill unblock bluetooth && bluetoothctl power on && busctl call org.bluez /org/bluez/hci0/dev_B0_A3_F2_6A_E3_DB org.bluez.Device1 Disconnect; busctl call org.bluez /org/bluez/hci0/dev_B0_A3_F2_6A_E3_DB org.bluez.Device1 Connect]])'
+  'hl.dsp.exec_cmd([[~/scripts/blu toggle]])'
+  'hl.dsp.exec_cmd([[~/scripts/saveSS]])'
+  'hl.dsp.exec_cmd([[~/scripts/changeWall rand]])'
+  'hl.dsp.exec_cmd([[playerctl previous -p "YoutubeMusic, spotify, chromium, %any"]])'
+  'hl.dsp.exec_cmd([[playerctl next -p "YoutubeMusic, spotify, chromium, %any"]])'
+  'hl.dsp.exec_cmd([[playerctl play-pause -p "YoutubeMusic, spotify, chromium, %any"]])'
+  'hl.dsp.exec_cmd([[playerctl play-pause -p "firefox, brave, chromium, mpv"]])'
+  'hl.dsp.workspace.toggle_special([[music]])'
+  'hl.dsp.window.resize({x = 80, y = 80, relative = false})'
+  'hl.dsp.window.center()'
+  'hl.dsp.exec_cmd([[echo "wheel -5" | dotoolc]])'
+  'hl.dsp.exec_cmd([[echo "wheel 5" | dotoolc]])'
+  'hl.dsp.exec_cmd([[echo "click left" | dotoolc]])'
+  'hl.dsp.exec_cmd([[hexecute]])'
+  'hl.dsp.window.move({workspace = [[special:music]]})'
+)
+
+# Bind flags as defined in keybinds.lua. Empty string means no flag table
+# (equivalent to `{}`). keybinds.lua is the source of truth here; the
+# original script's `bindl`/`binde` prefixes were drift, not intent.
+ALT_FLAGS=(
+  ""          # R     recording
+  "locked"    # A     bluetooth (keybinds.lua:158 has { locked = true })
+  "locked"    # Z     blu
+  ""          # S     saveSS
+  ""          # R     changeWall
+  ""          # left  media prev
+  ""          # right media next
+  ""          # down  media play-pause
+  ""          # up    media play-pause
+  ""          # SPACE toggle special
+  ""          # SPACE resize
+  ""          # SPACE center
+  ""          # O     dotool wheel -5
+  ""          # P     dotool wheel +5
+  ""          # U     dotool click left
+  ""          # slash hexecute
+  ""          # M     move to special:music
+)
+
+modmask_for() {
+  local mask=0 m
+  for m in $1; do
+    case "$m" in
+      SHIFT) mask=$((mask | M_SHIFT)) ;;
+      CAPS)  mask=$((mask | M_CAPS)) ;;
+      CTRL)  mask=$((mask | M_CTRL)) ;;
+      ALT)   mask=$((mask | M_ALT)) ;;
+      SUPER) mask=$((mask | M_SUPER)) ;;
+    esac
+  done
+  echo "$mask"
+}
+
+flags_table() {
+  local flags="$1" t="" f
+  [[ -z "$flags" ]] && { echo "{}"; return; }
+  for f in $flags; do
+    t+="$f = true, "
+  done
+  echo "{${t%, }}"
+}
+
+# Check whether any bind matches this modmask+key in hyprctl binds JSON.
+# The Lua-config stores every bind as dispatcher "__lua" with the modmask
+# bitmask and the bare key name (no modifier string), so we have to compare
+# on modmask + key rather than the human-readable "ALT + R" form.
 already_bound() {
-  local keypart="$1"
-  hyprctl binds -j | jq -e ".[] | select(.key == \"$keypart\")" >/dev/null 2>&1
+  local modmask="$1" key="$2"
+  hyprctl binds -j 2>/dev/null | jq -e --argjson mm "$modmask" --arg k "$key" \
+    '[.[] | select(.key == $k and .modmask == $mm)] | length > 0' >/dev/null 2>&1
 }
 
 unbind_all_alt() {
-  for entry in "${ALT_BINDS[@]}"; do
-    value="${entry#*|}"
-    keypart=$(echo "$value" | cut -d',' -f1,2 | xargs)
-    hyprctl keyword unbind "$keypart" >/dev/null 2>&1 || true
+  local i modlist key
+  for i in "${!ALT_KEYS[@]}"; do
+    modlist="${ALT_MODS[$i]}"
+    key="${ALT_KEYS[$i]}"
+    hyprctl eval "hl.unbind('${modlist} + ${key}')" >/dev/null 2>&1 || true
   done
-}
-already_bound() {
-  local keypart="$1"
-  hyprctl binds -j | jq -e ".[] | select(.key == \"$keypart\")" >/dev/null 2>&1
 }
 
 rebind_all_alt() {
-  for entry in "${ALT_BINDS[@]}"; do
-    type="${entry%%|*}"
-    value="${entry#*|}"
-    keypart=$(echo "$value" | cut -d',' -f1,2 | xargs)
-
-    if ! already_bound "$keypart"; then
-      hyprctl keyword "$type" "$value" >/dev/null 2>&1 || true
+  local i modlist key dispatcher flags mm ft
+  for i in "${!ALT_KEYS[@]}"; do
+    modlist="${ALT_MODS[$i]}"
+    key="${ALT_KEYS[$i]}"
+    dispatcher="${ALT_DISPATCHERS[$i]}"
+    flags="${ALT_FLAGS[$i]}"
+    mm=$(modmask_for "$modlist")
+    ft=$(flags_table "$flags")
+    if ! already_bound "$mm" "$key"; then
+      hyprctl eval "hl.bind('${modlist} + ${key}', ${dispatcher}, ${ft})" >/dev/null 2>&1 || true
     fi
   done
 }
@@ -63,12 +172,10 @@ while read -r line; do
     if [[ "$new_class" == "$TARGET_CLASS" && "$current_class" != "$TARGET_CLASS" ]]; then
       unbind_all_alt
       current_class="$TARGET_CLASS"
-      # echo "Alt Passthrough"
       # ffplay -autoexit -nodisp -v quiet -volume 30 /usr/share/sounds/freedesktop/stereo/device-added.oga
     elif [[ "$new_class" != "$TARGET_CLASS" && "$current_class" == "$TARGET_CLASS" ]]; then
       rebind_all_alt
       current_class="$new_class"
-      # echo "Passthrough Restored"
       # ffplay -autoexit -nodisp -v quiet -volume 30 /usr/share/sounds/freedesktop/stereo/device-removed.oga
     fi
   fi

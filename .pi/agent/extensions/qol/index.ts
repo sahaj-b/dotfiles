@@ -420,6 +420,11 @@ export default function (pi: ExtensionAPI) {
 			const header = question.length > 80 ? question.slice(0, 77) + "..." : question;
 			sendQolNotification(ctx, "question", `Input required: ${header}`, "warning", `question:${question.slice(0, 40)}`);
 		}
+		if (event.toolName === "submit_for_review") {
+			if (!settingBoolean("notification.enabled", true, ctx.cwd)) return;
+			const filePath = typeof event.input?.filePath === "string" ? event.input.filePath : "plan";
+			sendQolNotification(ctx, "question", `Review requested: ${filePath}`, "info", `submit_for_review:${filePath}`);
+		}
 	});
 
 	// Deterministic session name from first prompt (for new sessions where auto-rename can't run yet)
