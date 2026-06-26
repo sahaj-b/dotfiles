@@ -32,6 +32,10 @@ hl.window_rule({ match = { class = "^scratch$" }, workspace = "special:term" })
 -- Music workspace
 hl.window_rule({ match = { class = "^com.github.th_ch.youtube_music$" }, workspace = "special:music" })
 
+-- FL Studio window rules (toggled by startFL-wayland)
+--hl.window_rule({ match = { class = "^fl64.exe$", title = "^()$" }, move = { "cursor_x", "cursor_y" } }) -- fl-toggle
+--hl.window_rule({ match = { class = "^fl64.exe$" }, float = true }) -- fl-toggle
+
 -- fl64.exe
 -- hl.window_rule({ match = { class = "^fl64.exe$", title = "^()$" }, no_focus = true })
 -- hl.window_rule({

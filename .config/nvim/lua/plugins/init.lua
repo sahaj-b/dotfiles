@@ -280,24 +280,24 @@ return {
       end
     }
   },
-  {
-    "m4xshen/hardtime.nvim",
-    -- dependencies = { "MunifTanjim/nui.nvim" },
-    opts = {
-      disable_mouse = false,
-      disabled_keys = {
-        ["<Up>"] = {},
-        ["<Down>"] = {},
-        ["<Left>"] = {},
-        ["<Right>"] = {},
-
-      },
-      -- hint = false,
-      max_time = 150,
-      max_count = 8,
-
-    }
-  },
+  -- {
+  --   "m4xshen/hardtime.nvim",
+  --   -- dependencies = { "MunifTanjim/nui.nvim" },
+  --   opts = {
+  --     disable_mouse = false,
+  --     disabled_keys = {
+  --       ["<Up>"] = {},
+  --       ["<Down>"] = {},
+  --       ["<Left>"] = {},
+  --       ["<Right>"] = {},
+  --
+  --     },
+  --     -- hint = false,
+  --     max_time = 150,
+  --     max_count = 8,
+  --
+  --   }
+  -- },
 
   -- Cosmetics plugins ooh yeah
   {

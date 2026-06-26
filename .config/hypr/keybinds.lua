@@ -118,21 +118,24 @@ local brightnessNotif =
 hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl -c 'backlight' s +1% && " .. brightnessNotif))
 hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -c 'backlight' s 1%- && " .. brightnessNotif))
 hl.bind(mod2 .. " + XF86AudioRaiseVolume", hl.dsp.exec_cmd("brightnessctl -c 'backlight' s 1%+ && " .. brightnessNotif),
-  { locked = true })
+  { locked = true, repeating = true })
 hl.bind(mod2 .. " + XF86AudioLowerVolume",
-  hl.dsp.exec_cmd("brightnessctl -c 'backlight' s 1%- && " .. brightnessNotif), { locked = true })
+  hl.dsp.exec_cmd("brightnessctl -c 'backlight' s 1%- && " .. brightnessNotif), { locked = true, repeating = true })
 hl.bind(mod2 .. " + XF86AudioMute",
-  hl.dsp.exec_cmd("brightnessctl -c 'backlight' s 10% && " .. brightnessNotif), { locked = true })
+  hl.dsp.exec_cmd("brightnessctl -c 'backlight' s 10% && " .. brightnessNotif), { locked = true, repeating = true })
 
 -- Volume
 local volumeNotif =
 'volume=$(pamixer --get-volume) && isMuted=$(pamixer --get-mute) && notify-send -h string:x-dunst-stack-tag:vol -t 700 $([[ "$isMuted" == "false" ]] && echo "-h int:value:$volume" || echo "-h int:value:0") "$([[ "$isMuted" == "true" ]] && echo \'               󰖁\' || echo \'               󰕾\')  ${volume}%"'
 
 hl.bind("XF86AudioRaiseVolume",
-  hl.dsp.exec_cmd("pamixer -i 2 --allow-boost && pkill -RTMIN+10 waybar && " .. volumeNotif), { locked = true })
+  hl.dsp.exec_cmd("pamixer -i 2 --allow-boost && pkill -RTMIN+10 waybar && " .. volumeNotif),
+  { locked = true, repeating = true })
 hl.bind("XF86AudioLowerVolume",
-  hl.dsp.exec_cmd("pamixer -d 2 --allow-boost && pkill -RTMIN+10 waybar && " .. volumeNotif), { locked = true })
-hl.bind("XF86AudioMute", hl.dsp.exec_cmd("pamixer -t && pkill -RTMIN+10 waybar && " .. volumeNotif), { locked = true })
+  hl.dsp.exec_cmd("pamixer -d 2 --allow-boost && pkill -RTMIN+10 waybar && " .. volumeNotif),
+  { locked = true, repeating = true })
+hl.bind("XF86AudioMute", hl.dsp.exec_cmd("pamixer -t && pkill -RTMIN+10 waybar && " .. volumeNotif),
+  { locked = true, repeating = true })
 
 local micNotif =
 'notify-send -h string:x-dunst-stack-tag:mute -t 1000 "$([[ "$(pamixer --default-source --get-mute)" == "true" ]] && echo \'               󰍭  Muted\' || echo \'             󰍬  Unmuted\'"'
@@ -180,10 +183,10 @@ hl.bind(mod2 .. " + SHIFT + left", hl.dsp.exec_cmd("~/scripts/changeWall prev"))
 -- Touchpad toggle
 hl.bind(mod .. " + T",
   hl.dsp.exec_cmd(
-    'hyprctl keyword "device[asue1213:00-04f3:3294-touchpad]:enabled" 0; notify-send -t 1000 "󰤳 Disabled"; pkill dotool; dotoold'))
+    'hyprctl keyword "device[asue1213:00-04f3:3294-touchpad]:enabled" 0; notify-send -t 1000 "󰤳  Disabled"; pkill dotool; dotoold'))
 hl.bind(mod .. " + SHIFT + T",
   hl.dsp.exec_cmd(
-    'hyprctl keyword "device[asue1213:00-04f3:3294-touchpad]:enabled" 1; notify-send -t 1000 "󰟸 Enabled"; pkill dotool; dotoold'))
+    'hyprctl keyword "device[asue1213:00-04f3:3294-touchpad]:enabled" 1; notify-send -t 1000 "󰟸  Enabled"; pkill dotool; dotoold'))
 hl.bind(" + XF86TouchpadToggle",
   hl.dsp.exec_cmd('hyprctl keyword "device[asue1213:00-04f3:3294-touchpad]:enabled" 0; pkill dotool; dotoold'))
 

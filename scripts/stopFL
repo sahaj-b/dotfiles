@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Kill the native X11 FL Studio session and switch back to Hyprland
+
+TTY=2
+AUTHFILE="/tmp/.X${TTY}-auth-$(id -u)"
+
+# Kill X session first — this kills everything running on it
+# (FL Studio, openbox, picom, all die together)
+sudo pkill -f "Xorg vt${TTY}" 2>/dev/null
+sleep 0.5
+
+# Clean up any stragglers
+pkill -f 'FL64.exe' 2>/dev/null
+pkill -f 'lutris:rungameid' 2>/dev/null
+
+# Clean up lock files and auth
+sudo rm -f /tmp/.X${TTY}-lock /tmp/.X11-unix/X${TTY} 2>/dev/null
+rm -f "$AUTHFILE" 2>/dev/null
+xauth remove :${TTY} 2>/dev/null
+
+# Switch back to Hyprland
+sudo chvt 1
+
+echo "Killed FL Studio session, switched back to Hyprland"

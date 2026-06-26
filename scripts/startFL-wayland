@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PREFIX="$HOME/wine-flstudio"
+YAML="$HOME/.local/share/lutris/games/fl-studio-1775727473.yml"
+RULES="$HOME/.config/hypr/rules.lua"
+USER_REG="$PREFIX/user.reg"
+PASSTHROUGH_PID=""
+DPI_WAS=""
+
+setup() {
+  # Kill any stale wineserver from previous runs
+  wineserver -k 2>/dev/null || true
+  sleep 0.5
+
+  # Enable Wayland via Lutris's native Graphics option
+  sed -i 's/  version: system/  Graphics: wayland\n  version: system/' "$YAML"
+
+  # DPI: edit user.reg directly (no wineserver needed)
+  # Save original value so we can restore it in cleanup
+  # DPI_WAS=$(grep -oP '"LogPixels"=dword:\K[0-9a-fA-F]+' "$USER_REG" | head -1)
+  # # 0x78 = 120 DPI (125% scaling)
+  # sed -i 's/"LogPixels"=dword:[0-9a-fA-F]*/"LogPixels"=dword:00000078/' "$USER_REG"
+
+  sed -i '/fl-toggle/{s/^-- *//}' "$RULES"
+
+  /home/sahaj/scripts/fl-alt-passthrough &
+  PASSTHROUGH_PID=$!
+
+  # Enable DXVK/VKD3D for Wayland (off for Xephyr mode)
+  sed -i 's/  dxvk: false/  dxvk: true/' "$YAML"
+  sed -i 's/  dxvk_nvapi: false/  dxvk_nvapi: true/' "$YAML"
+  sed -i 's/  vkd3d: false/  vkd3d: true/' "$YAML"
+}
+
+cleanup() {
+  [[ -n "$PASSTHROUGH_PID" ]] && kill "$PASSTHROUGH_PID" 2>/dev/null && wait "$PASSTHROUGH_PID" 2>/dev/null || true
+
+  # Revert Wayland setting
+  sed -i '/^  Graphics: wayland$/d' "$YAML" 2>/dev/null || true
+
+  # Revert DPI
+  # if [[ -n "$DPI_WAS" ]]; then
+  #   sed -i "s/\"LogPixels\"=dword:[0-9a-fA-F]*/\"LogPixels\"=dword:${DPI_WAS}/" "$USER_REG" 2>/dev/null || true
+  # fi
+
+  sed -i '/fl-toggle/{/^--/!s/^/--/}' "$RULES" 2>/dev/null || true
+  sed -i 's/  dxvk: true/  dxvk: false/' "$YAML" 2>/dev/null || true
+  sed -i 's/  dxvk_nvapi: true/  dxvk_nvapi: false/' "$YAML" 2>/dev/null || true
+  sed -i 's/  vkd3d: true/  vkd3d: false/' "$YAML" 2>/dev/null || true
+}
+
+trap cleanup EXIT
+trap 'exit 130' INT TERM
+
+setup
+DISPLAY='' LUTRIS_SKIP_INIT=1 lutris lutris:rungameid/13 &
+until pidwait -f 'FL64.exe' 2>/dev/null; do sleep 0.1; done

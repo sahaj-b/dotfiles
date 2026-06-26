@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+XEPHYR_PID=""
+PASSTHROUGH_PID=""
+
+cleanup() {
+  [[ -n "$PASSTHROUGH_PID" ]] && kill "$PASSTHROUGH_PID" 2>/dev/null
+  [[ -n "$XEPHYR_PID" ]] && {
+    pkill -P "$XEPHYR_PID" 2>/dev/null # kill evilwm + lutris children first
+    kill "$XEPHYR_PID" 2>/dev/null     # then kill Xephyr itself
+  }
+}
+
+start() {
+  Xephyr :1 -screen 1920x1080 &
+  XEPHYR_PID=$!
+  sleep 0.5
+  DISPLAY=:1 evilwm -fn fixed -snap 10 &
+  /home/sahaj/scripts/fl-alt-passthrough &
+  PASSTHROUGH_PID=$!
+  sleep 0.5
+}
+
+run() {
+  DISPLAY=:1 LUTRIS_SKIP_INIT=1 lutris lutris:rungameid/13 &
+  until pidwait -f 'FL64.exe' 2>/dev/null; do sleep 0.1; done
+}
+
+trap cleanup EXIT
+trap 'exit 130' INT TERM
+
+start
+run

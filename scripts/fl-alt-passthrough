@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Alt key passthrough for FL Studio.
-# While FL Studio (fl64.exe) is focused, the user's Alt-prefixed binds are
+# While FL Studio (fl64.exe/Xephyr) is focused, the user's Alt-prefixed binds are
 # unbound so the keys reach FL Studio unmodified. When focus leaves FL
 # Studio, the binds are restored.
 #
@@ -8,7 +8,8 @@
 # since `hyprctl keyword unbind / bind` are gone with the legacy parser.
 # See: https://wiki.hypr.land/Configuring/Advanced-and-Cool/Using-hyprctl/#eval
 
-TARGET_CLASS="fl64.exe"
+# TARGET_CLASS="fl64.exe"
+TARGET_CLASS="Xephyr"
 SOCKET="$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
 
 # Hyprland modmask bits (see src/defines.hpp in Hyprland)
@@ -22,23 +23,23 @@ M_SUPER=64
 # Mirrors the modifier+key combos that `~/.config/hypr/keybinds.lua` binds
 # (which the script needs to take over when FL Studio is focused).
 ALT_MODS=(
-  "CTRL ALT"   # R    - recording toggle
-  "SUPER"      # A    - bluetooth reconnect (matches keybinds.lua; original script had a typo)
-  "ALT"        # Z    - blu toggle
-  "ALT"        # S    - saveSS
-  "ALT"        # R    - changeWall rand
-  "ALT"        # left  - media prev
-  "ALT"        # right - media next
-  "ALT"        # down  - media play-pause (music)
-  "ALT"        # up    - media play-pause (media)
-  "ALT SHIFT"  # SPACE - toggle special "music"
-  "ALT CTRL"   # SPACE - resize to 80% (run #1 of 2)
-  "ALT CTRL"   # SPACE - center window  (run #2 of 2)
-  "ALT"        # O    - dotool wheel -5
-  "ALT"        # P    - dotool wheel +5
-  "ALT"        # U    - dotool click left
-  "ALT"        # slash - hexecute
-  "ALT SHIFT"  # M    - move to special:music
+  "CTRL ALT"  # R    - recording toggle
+  "SUPER"     # A    - bluetooth reconnect (matches keybinds.lua; original script had a typo)
+  "ALT"       # Z    - blu toggle
+  "ALT"       # S    - saveSS
+  "ALT"       # R    - changeWall rand
+  "ALT"       # left  - media prev
+  "ALT"       # right - media next
+  "ALT"       # down  - media play-pause (music)
+  "ALT"       # up    - media play-pause (media)
+  "ALT SHIFT" # SPACE - toggle special "music"
+  "ALT CTRL"  # SPACE - resize to 80% (run #1 of 2)
+  "ALT CTRL"  # SPACE - center window  (run #2 of 2)
+  "ALT"       # O    - dotool wheel -5
+  "ALT"       # P    - dotool wheel +5
+  "ALT"       # U    - dotool click left
+  "ALT"       # slash - hexecute
+  "ALT SHIFT" # M    - move to special:music
 )
 
 ALT_KEYS=(
@@ -87,34 +88,34 @@ ALT_DISPATCHERS=(
 # (equivalent to `{}`). keybinds.lua is the source of truth here; the
 # original script's `bindl`/`binde` prefixes were drift, not intent.
 ALT_FLAGS=(
-  ""          # R     recording
-  "locked"    # A     bluetooth (keybinds.lua:158 has { locked = true })
-  "locked"    # Z     blu
-  ""          # S     saveSS
-  ""          # R     changeWall
-  ""          # left  media prev
-  ""          # right media next
-  ""          # down  media play-pause
-  ""          # up    media play-pause
-  ""          # SPACE toggle special
-  ""          # SPACE resize
-  ""          # SPACE center
-  ""          # O     dotool wheel -5
-  ""          # P     dotool wheel +5
-  ""          # U     dotool click left
-  ""          # slash hexecute
-  ""          # M     move to special:music
+  ""       # R     recording
+  "locked" # A     bluetooth (keybinds.lua:158 has { locked = true })
+  "locked" # Z     blu
+  ""       # S     saveSS
+  ""       # R     changeWall
+  ""       # left  media prev
+  ""       # right media next
+  ""       # down  media play-pause
+  ""       # up    media play-pause
+  ""       # SPACE toggle special
+  ""       # SPACE resize
+  ""       # SPACE center
+  ""       # O     dotool wheel -5
+  ""       # P     dotool wheel +5
+  ""       # U     dotool click left
+  ""       # slash hexecute
+  ""       # M     move to special:music
 )
 
 modmask_for() {
   local mask=0 m
   for m in $1; do
     case "$m" in
-      SHIFT) mask=$((mask | M_SHIFT)) ;;
-      CAPS)  mask=$((mask | M_CAPS)) ;;
-      CTRL)  mask=$((mask | M_CTRL)) ;;
-      ALT)   mask=$((mask | M_ALT)) ;;
-      SUPER) mask=$((mask | M_SUPER)) ;;
+    SHIFT) mask=$((mask | M_SHIFT)) ;;
+    CAPS) mask=$((mask | M_CAPS)) ;;
+    CTRL) mask=$((mask | M_CTRL)) ;;
+    ALT) mask=$((mask | M_ALT)) ;;
+    SUPER) mask=$((mask | M_SUPER)) ;;
     esac
   done
   echo "$mask"
@@ -122,7 +123,10 @@ modmask_for() {
 
 flags_table() {
   local flags="$1" t="" f
-  [[ -z "$flags" ]] && { echo "{}"; return; }
+  [[ -z "$flags" ]] && {
+    echo "{}"
+    return
+  }
   for f in $flags; do
     t+="$f = true, "
   done

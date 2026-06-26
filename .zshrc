@@ -13,6 +13,7 @@ export TERM='xterm-256color'
 export EDITOR='nvim'
 export VISUAL='nvim'
 export GOBIN=~/.local/bin/
+export GOTOOLCHAIN=local
 export ANDROID_HOME=/opt/android-sdk
 
 export OPENCODE_ENABLE_EXA=true
@@ -61,6 +62,8 @@ if [[ -f ~/yeah.sh ]]; then
   source ~/yeah.sh
 fi
 
+alias ptojpg="wl-paste | magick png:- -quality 80 jpeg:- | wl-copy"
+alias pbeep="~/projects/pbeep/pbeep -port CASIO -vol 0.4 -off ~/media/oreo1.wav -on ~/media/oreo2.wav"
 alias wrp='sudo systemctl start warp-svc.service && sleep 1 && systemctl --user start warp-taskbar; warp-cli connect'
 alias wrpd='warp-cli disconnect && sudo systemctl stop warp-svc.service && systemctl --user stop warp-taskbar'
 alias card0='lspci -nn -s "$(basename $(readlink -f /sys/class/drm/card0/device))"'
@@ -108,12 +111,7 @@ alias nvsu='sudoedit'
 alias cpcmd='fc -nl -1 | wl-copy'
 alias todo="glow ~/notes/todo.md"
 alias f="nvim ~/notes/todo.md"
-alias ocm="cd ~/bluetooth; openssl enc -d -aes-256-cbc -in cache.bin -out cache && opencode --agent raw; openssl enc -e -aes-256-cbc -in cache -out cache.bin && rm cache"
-
-# Usage: ocm
-# You will be prompted for the password when encrypting and decrypting.
-# Example usage:
-#   ocm <<< \"yourpassword\"
+alias pim="cd ~/bluetooth; openssl enc -d -aes-256-cbc -in cache.bin -out cache && pi --system-prompt ~/notes/prompts/genN.md; openssl enc -e -aes-256-cbc -in cache -out cache.bin && rm cache"
 alias pc="sudo pacman -Syu"
 alias pcn="sudo pacman -Syu --noconfirm --needed"
 alias nvl='nvim ~/Leetcode/leet.cpp +"lua vim.diagnostic.enable(false)" +"Copilot disable" +":,%d _" +"norm i#include <bits/stdc++.h>" +"norm ousing namespace std;" +"norm o"'

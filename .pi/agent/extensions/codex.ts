@@ -10,7 +10,7 @@ import { spawn, execSync } from "child_process";
 
 const CODEX_AUTH_PATH = join(homedir(), ".codex", "auth.json");
 const CODEX_MODELS_CACHE = join(homedir(), ".codex", "models_cache.json");
-const CODEX_VERSION = "0.130.0";
+const CODEX_VERSION = "0.138.0";
 const CODEX_API_BASE = "https://chatgpt.com/backend-api";
 const CODEX_RESPONSES_URL = `${CODEX_API_BASE}/codex/responses`;
 const REG_KEY = Symbol("pi-codex:registered");
@@ -110,81 +110,115 @@ function discoverModels(): ProviderModelConfig[] {
 }
 
 // ============================================================================
-// Rate Limit Parsing (from response headers)
+// Rate Limit Parsing (from /backend-api/wham/usage)
 // ============================================================================
 
-interface RateLimitInfo {
-  planType: string;
-  activeLimit: string;
-  limitName: string;
-  primaryUsedPercent: number;
-  primaryWindowMinutes: number;
-  primaryResetAt: number | null;
-  primaryResetAfterSeconds: number | null;
-  primaryOverSecondaryPercent: number;
-  secondaryUsedPercent: number;
-  hasCredits: boolean;
-  creditsUnlimited: boolean;
-  creditsBalance: string;
+interface UsageWindow {
+  used_percent: number;
+  reset_at?: number;
+  limit_window_seconds?: number;
 }
 
-function parseRateLimitHeaders(headers: Record<string, string>): RateLimitInfo {
-  const get = (name: string) => headers[name.toLowerCase()] ?? "";
-  return {
-    planType: get("x-codex-plan-type"),
-    activeLimit: get("x-codex-active-limit"),
-    limitName: get("x-codex-limit-name") || get("x-codex-codex-limit-name"),
-    primaryUsedPercent: parseFloat(get("x-codex-primary-used-percent")) || 0,
-    primaryWindowMinutes: parseInt(get("x-codex-primary-window-minutes")) || 0,
-    primaryResetAt: parseInt(get("x-codex-primary-reset-at")) || null,
-    primaryResetAfterSeconds: parseInt(get("x-codex-primary-reset-after-seconds")) || null,
-    primaryOverSecondaryPercent: parseFloat(get("x-codex-primary-over-secondary-limit-percent")) || 0,
-    secondaryUsedPercent: parseFloat(get("x-codex-secondary-used-percent")) || 0,
-    hasCredits: get("x-codex-credits-has-credits") === "True",
-    creditsUnlimited: get("x-codex-credits-unlimited") === "True",
-    creditsBalance: get("x-codex-credits-balance"),
+interface UsageCredits {
+  has_credits: boolean;
+  unlimited: boolean;
+  balance?: number;
+}
+
+interface UsageResetCredits {
+  available_count?: number;
+}
+
+interface CodexUsageResponse {
+  plan_type?: string;
+  rate_limit?: {
+    primary_window?: UsageWindow;
+    secondary_window?: UsageWindow;
   };
+  additional_rate_limits?: Record<string, { primary_window?: UsageWindow; secondary_window?: UsageWindow }>;
+  credits?: UsageCredits;
+  rate_limit_reset_credits?: UsageResetCredits;
+  code_review_rate_limit?: { primary_window?: UsageWindow };
 }
 
-function formatRateLimitInfo(info: RateLimitInfo): string {
+function formatUsageInfo(data: CodexUsageResponse): string {
   const lines: string[] = [];
-  const pct = info.primaryUsedPercent;
-  const barLen = 20;
-  const filled = Math.round((pct / 100) * barLen);
-  const bar = "\u2588".repeat(filled) + "\u2591".repeat(Math.max(0, barLen - filled));
 
-  lines.push(`\x1b[1mPlan:\x1b[0m ${info.planType} (${info.activeLimit})`);
-  if (info.limitName) lines.push(`\x1b[1mLimit:\x1b[0m ${info.limitName}`);
-  lines.push(`\x1b[1mPrimary:\x1b[0m ${bar} \x1b[33m${pct.toFixed(1)}%\x1b[0m used`);
-
-  if (info.primaryResetAfterSeconds) {
-    let remaining = info.primaryResetAfterSeconds;
-    const days = Math.floor(remaining / 86400);
-    remaining %= 86400;
-    const hours = Math.floor(remaining / 3600);
-    remaining %= 3600;
-    const mins = Math.floor(remaining / 60);
-    const parts: string[] = [];
-    if (days > 0) parts.push(`${days}d`);
-    if (hours > 0) parts.push(`${hours}h`);
-    if (mins > 0 || parts.length === 0) parts.push(`${mins}m`);
-    lines.push(`  Resets in ${parts.join(" ")}`);
+  if (data.plan_type) {
+    lines.push(`\x1b[1mPlan:\x1b[0m ${data.plan_type}`);
   }
 
-  if (info.primaryOverSecondaryPercent > 0) {
-    lines.push(`  \x1b[33mOverflow:\x1b[0m ${info.primaryOverSecondaryPercent.toFixed(1)}% into secondary`);
+  const primary = data.rate_limit?.primary_window;
+  const secondary = data.rate_limit?.secondary_window;
+
+  if (primary) {
+    const pct = primary.used_percent;
+    const barLen = 20;
+    const filled = Math.round((pct / 100) * barLen);
+    const bar = "\u2588".repeat(filled) + "\u2591".repeat(Math.max(0, barLen - filled));
+    lines.push(`\x1b[1mPrimary:\x1b[0m ${bar} \x1b[33m${pct}%\x1b[0m used`);
+
+    if (primary.reset_at) {
+      const now = Math.floor(Date.now() / 1000);
+      const remaining = Math.max(0, primary.reset_at - now);
+      const hours = Math.floor(remaining / 3600);
+      const mins = Math.floor((remaining % 3600) / 60);
+      const secs = remaining % 60;
+      const parts: string[] = [];
+      if (hours > 0) parts.push(`${hours}h`);
+      if (mins > 0 || parts.length === 0) parts.push(`${mins}m`);
+      if (parts.length <= 1) parts.push(`${secs}s`);
+      lines.push(`  Resets in ${parts.join(" ")}`);
+    }
   }
 
-  if (info.secondaryUsedPercent > 0) {
-    lines.push(`\x1b[1mSecondary:\x1b[0m ${info.secondaryUsedPercent.toFixed(1)}% used`);
-  } else if (info.primaryOverSecondaryPercent > 0) {
-    // Show secondary even at 0% if there's overflow
+  if (secondary) {
+    const pct = secondary.used_percent;
+    const barLen = 20;
+    const filled = Math.round((pct / 100) * barLen);
+    const bar = "\u2588".repeat(filled) + "\u2591".repeat(Math.max(0, barLen - filled));
+    lines.push(`\x1b[1mSecondary:\x1b[0m ${bar} \x1b[33m${pct}%\x1b[0m used`);
+
+    if (secondary.reset_at) {
+      const now = Math.floor(Date.now() / 1000);
+      const remaining = Math.max(0, secondary.reset_at - now);
+      const days = Math.floor(remaining / 86400);
+      const hours = Math.floor((remaining % 86400) / 3600);
+      const mins = Math.floor((remaining % 3600) / 60);
+      const parts: string[] = [];
+      if (days > 0) parts.push(`${days}d`);
+      if (hours > 0) parts.push(`${hours}h`);
+      if (mins > 0 || parts.length === 0) parts.push(`${mins}m`);
+      lines.push(`  Resets in ${parts.join(" ")}`);
+    }
   }
 
-  if (info.hasCredits) {
-    lines.push(`\x1b[1mCredits:\x1b[0m ${info.creditsUnlimited ? "\x1b[32mUnlimited\x1b[0m" : info.creditsBalance || "Available"}`);
-  } else if (info.activeLimit === "premium" || info.activeLimit === "plus") {
-    lines.push(`\x1b[1mCredits:\x1b[0m \x1b[32mIncluded with plan\x1b[0m`);
+  if (data.credits) {
+    if (data.credits.unlimited) {
+      lines.push(`\x1b[1mCredits:\x1b[0m \x1b[32mUnlimited\x1b[0m`);
+    } else if (data.credits.has_credits) {
+      const bal = data.credits.balance != null ? Math.floor(data.credits.balance) : "?";
+      const usd = data.credits.balance != null ? (data.credits.balance * 0.04).toFixed(2) : "?";
+      lines.push(`\x1b[1mCredits:\x1b[0m ${bal} ($${usd})`);
+    }
+  }
+
+  if (data.rate_limit_reset_credits?.available_count) {
+    lines.push(`\x1b[1mResets:\x1b[0m ${data.rate_limit_reset_credits.available_count} available`);
+  }
+
+  // Show any additional rate limit buckets (e.g. code_review, bengalfox, etc.)
+  if (data.additional_rate_limits) {
+    for (const [name, limit] of Object.entries(data.additional_rate_limits)) {
+      if (limit.primary_window && limit.primary_window.used_percent > 0) {
+        lines.push(`\x1b[1m${name}:\x1b[0m ${limit.primary_window.used_percent}% used`);
+      }
+    }
+  }
+
+  if (data.code_review_rate_limit?.primary_window) {
+    const pct = data.code_review_rate_limit.primary_window.used_percent;
+    lines.push(`\x1b[1mCode Review:\x1b[0m ${pct}% used`);
   }
 
   return lines.join("\n");
@@ -298,56 +332,27 @@ export default function (pi: ExtensionAPI) {
       }
 
       try {
-        // Make a lightweight probe request to get rate limit headers
         const token = auth.tokens.access_token;
         const accountId = auth.tokens.account_id;
 
-        const body = JSON.stringify({
-          model: "gpt-5.3-codex",
-          instructions: "",
-          input: [{ role: "user", content: [{ type: "input_text", text: "ping" }] }],
-          tools: [],
-          tool_choice: "auto",
-          parallel_tool_calls: true,
-          store: false,
-          stream: true,
-        });
-
-        const resp = await fetch(CODEX_RESPONSES_URL, {
-          method: "POST",
+        const resp = await fetch(`${CODEX_API_BASE}/wham/usage`, {
+          method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,
             "ChatGPT-Account-ID": accountId,
-            "Content-Type": "application/json",
-            "Accept": "text/event-stream",
-            "OpenAI-Beta": "responses=experimental",
+            "Accept": "application/json",
             "User-Agent": `codex-cli/${CODEX_VERSION}`,
-            "Originator": "codex_cli_rs",
-            "Version": CODEX_VERSION,
           },
-          body,
         });
 
-        // Collect headers
-        const headerMap: Record<string, string> = {};
-        resp.headers.forEach((value, key) => { headerMap[key.toLowerCase()] = value; });
-
-        // Abort the response body (we only need headers)
-        const reader = resp.body?.getReader();
-        if (reader) {
-          // Cancel immediately — we only care about the headers
-          reader.cancel().catch(() => {});
+        if (!resp.ok) {
+          ctx.ui.notify(`Usage endpoint returned ${resp.status}`, "error");
+          return;
         }
 
-        const info = parseRateLimitHeaders(headerMap);
-        let output = formatRateLimitInfo(info);
-
-        const promo = headerMap["x-codex-promo-message"];
-        if (promo) {
-          output += `\n\n\x1b[36m${promo}\x1b[0m`;
-        }
-
-        ctx.ui.notify(output, "info");
+        const data: CodexUsageResponse = await resp.json();
+        const output = formatUsageInfo(data);
+        ctx.ui.notify(output || "No rate limit data available", "info");
       } catch (err: any) {
         ctx.ui.notify(`Failed to get rate limits: ${err.message || err}`, "error");
       }

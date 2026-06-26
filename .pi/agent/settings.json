@@ -1,8 +1,8 @@
 {
-  "lastChangelogVersion": "0.78.1",
+  "lastChangelogVersion": "0.80.2",
   "packages": [],
   "defaultProvider": "oc",
-  "defaultModel": "deepseek-v4-flash-free",
+  "defaultModel": "mimo-v2.5-free",
   "defaultThinkingLevel": "high",
   "theme": "catppuccin-mocha",
   "hideThinkingBlock": true,
