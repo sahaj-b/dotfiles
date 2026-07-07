@@ -22,7 +22,7 @@ wait_for_internet() {
 
 wait_for_internet
 
-youtube-music --enable-features=UseOzonePlatform --ozone-platform=wayland &
+pear-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland &
 
 for _ in {1..30}; do
   if playerctl status -p YoutubeMusic 2>/dev/null | grep -q "Playing"; then

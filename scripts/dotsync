@@ -83,6 +83,8 @@ dotfiles=(
 
   "$HOME/.local/share/applications/foot-open.desktop"
 
+  "$HOME/.config/openbox/"
+
   # "/etc/udev/rules.d/90-power.rules"
 )
 

@@ -25,7 +25,7 @@
 | `changeWall <rand/prev/next>`             | Changes wallpaper using `awww`                                                                   |
 | `curlToHttp`                              | Converts curl command to HTTP request using `curlconverter`                                      |
 | `automate <db/copy/paste/run..>`          | keyboard/mouse automation stuff code from neovim to Leetcode,youtube,dbdiagrams,etc              |
-| `jour <d/w/m/y> <offset>`                 | Quick journal with templates support                                                             |
+| `jrn <d/w/m/y> <offset>`                  | Quick journal with templates and encryption                                                      |
 | `nscratch <number/output>`                | Scratchpad terminal for i3 with dynamic output support                                           |
 | `bmon`                                    | Battery monitor with pango markup output and notifications                                       |
 | `ffgif`                                   | Ffmpeg wrapper to create gifs from videos                                                        |

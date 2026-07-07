@@ -2,45 +2,53 @@
 # Launch FL Studio on TTY2 (native X11 session with compositor)
 # Ctrl+Alt+F1 → Hyprland
 # Ctrl+Alt+F2 → FL Studio
+#
+# Usage:
+#   startFL                              - Launch FL Studio normally (via Lutris)
+#   startFL keeb.flp                     - Opens Projects/keeb.flp
+#   startFL Backup/old_project.flp       - Opens Projects/Backup/old_project.flp
+#   startFL "C:\Users\steamuser\..."   - Full Wine path (used as-is)
+#   startFL /home/sahaj/random.flp       - Full Linux path (auto-converts to Z:)
 
 TTY=2
 AUTHFILE="/tmp/.X${TTY}-auth-$(id -u)"
 
-cleanup() {
-    pkill -f 'FL64.exe' 2>/dev/null
-    pkill -f 'lutris:rungameid' 2>/dev/null
-    sudo chvt 1
-    sudo pkill -f "Xorg vt${TTY}" 2>/dev/null
-    sudo rm -f /tmp/.X${TTY}-lock /tmp/.X11-unix/X${TTY} 2>/dev/null
-    rm -f "$AUTHFILE" 2>/dev/null
-    xauth remove :${TTY} 2>/dev/null
-}
-
-trap cleanup EXIT
+# Ignore SIGHUP so background processes survive when the script's terminal closes
+trap '' HUP
 
 # If session already running, just switch to it
 if pgrep -f "Xorg vt${TTY}" >/dev/null 2>&1; then
-    echo "Session already running on TTY${TTY}, switching..."
-    sudo chvt ${TTY}
-    exit 0
+  echo "Session already running on TTY${TTY}, switching..."
+  sudo chvt ${TTY}
+  exit 0
 fi
 
 # Check deps
 for cmd in Xorg picom openbox xdpyinfo; do
-    if ! command -v $cmd &>/dev/null; then
-        echo "ERROR: $cmd not found. Install it:"
-        case $cmd in
-            Xorg)    echo "  sudo pacman -S xorg-server" ;;
-            picom)   echo "  sudo pacman -S picom" ;;
-            openbox) echo "  sudo pacman -S openbox" ;;
-        esac
-        exit 1
-    fi
+  if ! command -v $cmd &>/dev/null; then
+    echo "ERROR: $cmd not found. Install it:"
+    case $cmd in
+    Xorg) echo "  sudo pacman -S xorg-server" ;;
+    picom) echo "  sudo pacman -S picom" ;;
+    openbox) echo "  sudo pacman -S openbox" ;;
+    esac
+    exit 1
+  fi
 done
+
+# Kill stale wineserver from a different wine build (causes version mismatch crash)
+if pgrep -x wineserver >/dev/null 2>&1; then
+  echo "Killing stale wineserver..."
+  wineserver -k 2>/dev/null
+  sleep 1
+fi
 
 # Clean up stale locks and auth
 sudo rm -f /tmp/.X${TTY}-lock /tmp/.X11-unix/X${TTY} 2>/dev/null
 rm -f "$AUTHFILE" 2>/dev/null
+
+# Set XAUTHORITY before running xauth so the cookie is written to the correct file
+export XAUTHORITY="$AUTHFILE"
 
 # Create X auth cookie
 COOKIE=$(mcookie)
@@ -60,20 +68,20 @@ XORG_PID=$!
 # Wait for X socket
 echo -n "Waiting for X socket... "
 for i in $(seq 1 30); do
-    [ -S "/tmp/.X11-unix/X${TTY}" ] && echo "found" && break
-    sleep 0.25
+  [ -S "/tmp/.X11-unix/X${TTY}" ] && echo "found" && break
+  sleep 0.25
 done
 
 # Wait for X to accept connections
 echo -n "Waiting for X... "
 for i in $(seq 1 30); do
-    DISPLAY=:${TTY} XAUTHORITY="$AUTHFILE" xdpyinfo &>/dev/null && echo "ready" && break
-    sleep 0.25
+  DISPLAY=:${TTY} XAUTHORITY="$AUTHFILE" xdpyinfo &>/dev/null && echo "ready" && break
+  sleep 0.25
 done
 
 if ! DISPLAY=:${TTY} XAUTHORITY="$AUTHFILE" xdpyinfo &>/dev/null; then
-    echo "ERROR: X failed. Check /var/log/Xorg.${TTY}.log"
-    exit 1
+  echo "ERROR: X failed. Check /var/log/Xorg.${TTY}.log"
+  exit 1
 fi
 
 # Export display vars
@@ -94,10 +102,60 @@ sleep 0.5
 
 # Window manager
 openbox &
+OPENBOX_PID=$!
+
+# Path to LD_PRELOAD libraries that prevent XInput crashes on TTY switch
+SCRIPT_DIR="$(dirname "$(realpath "$0")")"
+XINPUT_PATCH="${SCRIPT_DIR}/xinput_patch64.so:${SCRIPT_DIR}/xinput_patch32.so"
 
 # FL Studio
-LUTRIS_SKIP_INIT=1 lutris lutris:rungameid/13 &
+FL_EXE="/home/sahaj/wine-flstudio/drive_c/FL Studio 2025/FL64.exe"
+WINE_PREFIX="/home/sahaj/wine-flstudio"
 
-# Wait for FL64.exe to appear, then wait for it to exit
-until pidwait -f 'FL64.exe' 2>/dev/null; do sleep 0.2; done
-pidwait -f 'FL64.exe' 2>/dev/null
+FL_PROJECTS="$WINE_PREFIX/drive_c/users/steamuser/Documents/Image-Line/FL Studio/Projects"
+
+if [ -n "$1" ]; then
+  # Already a Wine path (C:\... or Z:\...)
+  if [[ "$1" =~ ^[A-Za-z]:\\ ]]; then
+    WIN_PATH="$1"
+  # Already a full Linux path to a file
+  elif [ -f "$1" ]; then
+    WIN_PATH="Z:$(realpath "$1")"
+  # Relative path → assume it's under FL's Projects dir
+  else
+    WIN_PATH="C:\\Users\\steamuser\\Documents\\Image-Line\\FL Studio\\Projects\\$1"
+    # Auto-append .flp if no extension
+    [[ "$WIN_PATH" != *.flp ]] && WIN_PATH="${WIN_PATH}.flp"
+    # Check the file actually exists
+    LINUX_CHECK="$FL_PROJECTS/$1"
+    [[ "$LINUX_CHECK" != *.flp ]] && LINUX_CHECK="${LINUX_CHECK}.flp"
+    if [ ! -f "$LINUX_CHECK" ]; then
+      echo "ERROR: $LINUX_CHECK not found"
+      exit 1
+    fi
+  fi
+  echo "Opening: $WIN_PATH"
+  # Clean up old log
+  rm -f /tmp/flstudio.log
+  # setsid detaches from shell's process group → survives script exit / SIGHUP
+  setsid env DISPLAY="$DISPLAY" XAUTHORITY="$XAUTHORITY" \
+    LD_PRELOAD="$XINPUT_PATCH" \
+    WINEPREFIX="$WINE_PREFIX" WINEESYNC=1 WINEFSYNC=1 \
+    WINEDLLOVERRIDES="d3d10core,d3d11,d3d9,dxgi=n" \
+    wine "$FL_EXE" "$WIN_PATH" > /tmp/flstudio.log 2>&1 &
+else
+  # Direct launch without project - also detached with setsid
+  echo "Opening FL Studio..."
+  # Clean up old log
+  rm -f /tmp/flstudio.log
+  setsid env DISPLAY="$DISPLAY" XAUTHORITY="$XAUTHORITY" \
+    LD_PRELOAD="$XINPUT_PATCH" \
+    WINEPREFIX="$WINE_PREFIX" WINEESYNC=1 WINEFSYNC=1 \
+    WINEDLLOVERRIDES="d3d10core,d3d11,d3d9,dxgi=n" \
+    wine "$FL_EXE" > /tmp/flstudio.log 2>&1 &
+fi
+
+echo "FL Studio started on TTY${TTY}!"
+echo "  Ctrl+Alt+F${TTY} → FL Studio"
+echo "  Ctrl+Alt+F1 → Hyprland"
+echo "To close the session, run stopFL."

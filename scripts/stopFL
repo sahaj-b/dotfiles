@@ -12,8 +12,10 @@ sleep 0.5
 # Clean up any stragglers
 pkill -f 'FL64.exe' 2>/dev/null
 pkill -f 'lutris:rungameid' 2>/dev/null
+wineserver -k 2>/dev/null
 
 # Clean up lock files and auth
+export XAUTHORITY="$AUTHFILE"
 sudo rm -f /tmp/.X${TTY}-lock /tmp/.X11-unix/X${TTY} 2>/dev/null
 rm -f "$AUTHFILE" 2>/dev/null
 xauth remove :${TTY} 2>/dev/null

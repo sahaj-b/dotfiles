@@ -1,0 +1,122 @@
+#!/bin/env bash
+#
+# jrn - encrypted journal
+#
+# usage:
+#   jrn              open today's journal
+#   jrn -1            open yesterday's journal
+#   jrn w 2           open journal for 2 weeks from now
+#   jrn m 1           open journal for next month
+#   jrn 07-07-26      open journal for specific date
+#
+# first run sets the password, no setup command needed.
+#
+set -euo pipefail
+
+JOURNAL_DIR="$HOME/notes/logs"
+MAX_ATTEMPTS=3
+
+for cmd in openssl nvim; do
+  if ! command -v "$cmd" &>/dev/null; then
+    echo "error: '$cmd' not found" >&2
+    [[ "$cmd" == "openssl" ]] && echo "install it: sudo apt install openssl" >&2
+    [[ "$cmd" == "nvim" ]] && echo "install it: sudo apt install neovim" >&2
+    exit 1
+  fi
+done
+
+encrypt() {
+  echo "$PASS" | openssl enc -aes-256-cbc -pass stdin -pbkdf2 -in "$1" -out "$2"
+}
+
+decrypt() {
+  echo "$PASS" | openssl enc -aes-256-cbc -d -pass stdin -pbkdf2 -in "$1" -out "$2"
+}
+
+if [[ "${1:-}" =~ ^[0-9]{2}-[0-9]{2}-[0-9]{2}$ ]]; then
+  # direct date: jrn 07-07-26
+  file_path="$JOURNAL_DIR/$1.md.enc"
+  journal_date="$1"
+  template_name="daily"
+else
+  type="d"
+  offset=0
+
+  [[ "${1:-}" =~ ^[dwmy]$ ]] && { type="$1"; shift; }
+  [[ "${1:-}" =~ ^[+-]?[0-9]+$ ]] && offset="$1"
+
+  case "$type" in
+    d) file_path="$JOURNAL_DIR/$(date -d "$offset days" +"%d-%m-%y").md.enc"; template_name="daily" ;;
+    w) file_path="$JOURNAL_DIR/weekly/$(date -d "$offset weeks" +"%V-%y").md.enc"; template_name="weekly" ;;
+    m) file_path="$JOURNAL_DIR/monthly/$(date -d "$offset months" +"%m-%y").md.enc"; template_name="monthly" ;;
+    y) file_path="$JOURNAL_DIR/yearly/$(date -d "$offset years" +"%y").md.enc"; template_name="yearly" ;;
+  esac
+fi
+
+# find latest enc journal for password validation
+latest=$(find "$JOURNAL_DIR" -name '*.enc' -printf '%T@ %p\n' 2>/dev/null |
+  sort -n | tail -1 | cut -d' ' -f2)
+
+if [[ -n "$latest" ]]; then
+  attempts=0
+  while true; do
+    read -r -s -p "Journal password: " PASS
+    echo
+
+    if decrypt "$latest" /dev/null 2>/dev/null; then
+      break
+    fi
+
+    attempts=$((attempts + 1))
+    if [[ $attempts -ge $MAX_ATTEMPTS ]]; then
+      echo "wrong password after $MAX_ATTEMPTS attempts" >&2
+      exit 1
+    fi
+    echo "wrong password ($((MAX_ATTEMPTS - attempts)) attempts left)" >&2
+  done
+else
+  # first run, set password
+  read -r -s -p "Set journal password: " PASS
+  echo
+  read -r -s -p "Confirm password: " PASS2
+  echo
+
+  if [[ "$PASS" != "$PASS2" ]]; then
+    echo "passwords don't match" >&2
+    exit 1
+  fi
+  if [[ -z "$PASS" ]]; then
+    echo "password cannot be empty" >&2
+    exit 1
+  fi
+fi
+
+template_path="$JOURNAL_DIR/template/${template_name}.md"
+
+if [[ -z "${journal_date:-}" ]]; then
+  case "$type" in
+    d) journal_date=$(date -d "$offset days" +"%d-%m-%y") ;;
+    w) journal_date=$(date -d "$offset weeks" +"%V-%y") ;;
+    m) journal_date=$(date -d "$offset months" +"%m-%y") ;;
+    y) journal_date=$(date -d "$offset years" +"%y") ;;
+  esac
+fi
+
+temp=$(mktemp "/tmp/jour_${template_name}_${journal_date}.XXXXXX.md")
+trap 'rm -f "$temp"' EXIT
+
+mkdir -p "$(dirname "$file_path")"
+
+if [[ -f "$file_path" ]]; then
+  decrypt "$file_path" "$temp"
+elif [[ -f "$template_path" ]]; then
+  cp "$template_path" "$temp"
+fi
+
+nvim +startinsert "$temp"
+
+if [[ -s "$temp" ]]; then
+  encrypt "$temp" "$file_path"
+else
+  echo "NO JOURNAL SAVED"
+fi

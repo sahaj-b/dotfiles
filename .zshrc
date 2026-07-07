@@ -409,3 +409,6 @@ export PATH="$HOME/.npm-global/bin:$PATH"
 
 # kilo
 export PATH=/home/sahaj/.kilo/bin:$PATH
+
+# node ipv6 disable
+export NODE_OPTIONS="--no-network-family-autoselection"

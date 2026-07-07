@@ -1,7 +1,7 @@
 #!/bin/env bash
 # firefox
 consoleOpen="key ctrl+shift+k"
-delay=2.5
+delay=1.5
 consoleClose="key f12"
 
 # chromium
@@ -34,6 +34,7 @@ elif [[ $1 = pdf ]]; then
   echo "key ctrl+v" | dotoolc
   sleep 0.2
   echo "key enter" | dotoolc
+  sleep 0.2
   echo "$consoleClose" | dotoolc
 
 elif [[ $1 = db ]]; then
