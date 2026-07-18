@@ -85,6 +85,8 @@ let currentMode: { label: string; color: string } = {
 	label: "",
 	color: "muted",
 };
+let promptModeLabel = "";
+let promptModeColor = "muted";
 
 // export function registerPlanProgressListener(pi: ExtensionAPI): void {
 // 	pi.events.on("plannotator:progress", (data: any) => {
@@ -105,6 +107,12 @@ export function registerModeListener(pi: ExtensionAPI): void {
 	pi.events.on("mode:changed", (data: any) => {
 		if (typeof data?.mode === "string") {
 			currentMode = { label: data.mode, color: data.color ?? "muted" };
+		}
+	});
+	pi.events.on("promptmode:changed", (data: any) => {
+		if (typeof data?.label === "string") {
+			promptModeLabel = data.label;
+			promptModeColor = data.color ?? "muted";
 		}
 	});
 }
@@ -274,7 +282,10 @@ export function renderStatusLine(
 	const modeChunk = currentMode.label
 		? theme.fg(currentMode.color as any, currentMode.label)
 		: "";
-	const leftPlain = `${modelChunk}${statusSeparator}${thinkingChunk}${modeChunk ? statusSeparator + currentMode.label : ""}${gitChunk ? statusSeparator : ""}${gitChunk}`;
+	const promptModeChunk = promptModeLabel
+		? theme.fg(promptModeColor as any, promptModeLabel)
+		: "";
+	const leftPlain = `${modelChunk}${statusSeparator}${thinkingChunk}${modeChunk ? statusSeparator + currentMode.label : ""}${promptModeChunk ? statusSeparator + promptModeLabel : ""}${gitChunk ? statusSeparator : ""}${gitChunk}`;
 
 	const percentPlain = percent === null ? "…" : `${percent}`;
 	const rightPlainFull = `${used}/${contextWindow} ${percentPlain}`;
@@ -288,7 +299,7 @@ export function renderStatusLine(
 					? "warning"
 					: "success";
 	const separatorColored = theme.fg("muted", statusSeparator);
-	const leftColored = `${theme.fg("accent", modelChunk)}${separatorColored}${theme.fg(THINKING_TOKEN[thinkingLevel], thinkingChunk)}${modeChunk ? separatorColored + modeChunk : ""}${gitChunk ? separatorColored : ""}${theme.fg("mdCode", gitChunk)}`;
+	const leftColored = `${theme.fg("accent", modelChunk)}${separatorColored}${theme.fg(THINKING_TOKEN[thinkingLevel], thinkingChunk)}${modeChunk ? separatorColored + modeChunk : ""}${promptModeChunk ? separatorColored + promptModeChunk : ""}${gitChunk ? separatorColored : ""}${theme.fg("mdCode", gitChunk)}`;
 	const right = `${theme.fg("muted", `${used}/${contextWindow}`)} ${theme.fg(percentColor, percentPlain)}`;
 
 	const minimumGap = 1;

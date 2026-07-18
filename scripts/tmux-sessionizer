@@ -1,20 +1,30 @@
 #!/usr/bin/env bash
 
+SUBDIRS=(frontend backend shared server client)
+
 get_session_name() {
   local dir="$1"
-  case "$dir" in
-  */frontend | */backend | */shared)
-    local parent_dir=$(basename "$(dirname "$dir")")
-    local child_dir=$(basename "$dir")
-    echo "${parent_dir}_${child_dir}" | tr . _
-    ;;
-  *)
-    basename "$dir" | tr . _
-    ;;
-  esac
+  local base=$(basename "$dir")
+  for sub in "${SUBDIRS[@]}"; do
+    if [[ "$base" == "$sub" ]]; then
+      local parent_dir=$(basename "$(dirname "$dir")")
+      echo "${parent_dir}_${base}" | tr . _
+      return
+    fi
+  done
+  basename "$dir" | tr . _
 }
 
 existing_sessions=$(tmux list-sessions -F "#{session_name}" 2>/dev/null)
+
+# Build find filter and awk regex from the single SUBDIRS array
+find_args=()
+for sub in "${SUBDIRS[@]}"; do
+  find_args+=(-name "$sub" -o)
+done
+unset 'find_args[${#find_args[@]}-1]'  # pop trailing -o
+
+awk_regex=$(IFS='|'; echo "${SUBDIRS[*]}")
 
 if [[ $# -eq 1 ]]; then
   selected=$1
@@ -22,29 +32,33 @@ else
   selected=$(
     (
       find ~/projects -mindepth 1 -maxdepth 1 -type d
-      find ~/projects -mindepth 2 -maxdepth 2 -type d \( -name frontend -o -name backend -o -name shared \)
-    ) | awk -v home="$HOME" -v sessions="$existing_sessions" '
+      find ~/projects -mindepth 2 -maxdepth 2 -type d \( "${find_args[@]}" \)
+    ) | awk -v home="$HOME" -v sessions="$existing_sessions" -v subs="$awk_regex" '
     BEGIN {
       n = split(sessions, arr, "\n")
       for (i = 1; i <= n; i++) {
         sess[arr[i]] = 1
       }
+      split(subs, subdirs, "|")
     }
     {
       dir = $0
       gsub(home, "~", dir)
-      
-      # Calculate session name
-      if (match($0, "/(frontend|backend|shared)$")) {
-        split($0, parts, "/")
-        n = length(parts)
-        session_name = parts[n-1] "_" parts[n]
+
+      split($0, parts, "/")
+      last = parts[length(parts)]
+      matched = 0
+      for (i in subdirs) {
+        if (last == subdirs[i]) { matched = 1; break }
+      }
+
+      if (matched) {
+        session_name = parts[length(parts)-1] "_" last
       } else {
-        split($0, parts, "/")
-        session_name = parts[length(parts)]
+        session_name = last
         gsub(/\./, "_", session_name)
       }
-      
+
       if (sess[session_name]) {
         print "1\t● " dir
       } else {

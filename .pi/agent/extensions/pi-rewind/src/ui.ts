@@ -4,7 +4,7 @@
  * Footer status and notifications.
  */
 
-import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { RewindState } from "./state.js";
 
 const STATUS_KEY = "rewind";

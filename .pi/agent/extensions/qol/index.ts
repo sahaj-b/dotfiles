@@ -366,6 +366,9 @@ export default function (pi: ExtensionAPI) {
 
 	// Session shutdown: clean up state so nothing leaks across sessions
 	pi.on("session_shutdown", async (_event: any, ctx: any) => {
+		// Clear install guard so the cached factory can re-register on /new and /resume.
+		// Without this, globalThis[INSTALL_SYMBOL] stays true and the factory bails out.
+		delete (globalThis as any)[INSTALL_SYMBOL];
 		ctx.ui.setWidget("qol-statusline", undefined);
 		ctx.ui.setFooter(undefined);
 		ctx.ui.setEditorComponent(undefined);

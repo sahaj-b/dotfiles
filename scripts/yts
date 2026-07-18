@@ -1,0 +1,440 @@
+#!/usr/bin/env bash
+# yt-dlp wrapper — YouTube search, metadata, subtitles, comments, thumbnails, screenshots
+
+set -euo pipefail
+
+UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+WATCH_URL="https://www.youtube.com/watch?v="
+MAX_SUBS_CHARS=600000
+SUBS_CACHE="/tmp/yts-subs"
+META_FIELDS='{id, title, channel, channel_id, channel_url, channel_follower_count, uploader, uploader_id, uploader_url, description, duration, duration_string, view_count, like_count, comment_count, upload_date, categories, tags, thumbnail, webpage_url, chapters, is_live, live_status}'
+FAST_PI="fast-pi"
+PROMPT_SUMMARIZE=$'You are analyzing a YouTube video transcript. Provide a detailed briefing.
+
+Output format:
+- Main topic (1 line)
+- Key points (3-5 bullet points with specific claims, data, or conclusions)
+- Depth level: EXPLAINER | TUTORIAL | RESEARCH | NEWS | OPINION | DISCUSSION
+- Key claims with timestamps if present in transcript
+- Who should watch this (target audience)
+- What is NOT covered (gaps the agent should know about)
+
+Rules:
+- Include specific numbers, names, dates if mentioned
+- Distinguish facts from opinions
+- If transcript is partial or low quality, say so explicitly
+- No preamble. Start with the topic line.'
+PROMPT_SEARCH_SUMMARIZE=$'You are producing a COMPACT search result summary for a YouTube video transcript. This goes in a list of search results — brevity is critical.
+
+Output format (follow EXACTLY, no extra text):
+Summary: 1-2 sentences capturing what this video covers and its main argument/finding.
+Key points:
+- point 1 (specific claim or data)
+- point 2
+- point 3
+Depth: EXPLAINER | TUTORIAL | RESEARCH | NEWS | OPINION | DISCUSSION
+Gaps: what is NOT covered (1 line, or "none")
+
+Rules:
+- Max 6 lines total
+- Include specific numbers/names if they exist in the transcript
+- Distinguish established fact from speculation
+- If transcript is too short or garbled, say "Transcript insufficient for reliable summary" and note what IS available
+- No preamble, no "This video..." — start with Summary:'
+PROMPT_COMMENTS_SUMMARIZE=$'You are analyzing YouTube comments for an AI research agent. The agent needs to understand community signal without reading every comment.
+
+Output format:
+Sentiment: POSITIVE | MIXED | NEGATIVE (one word)
+Top themes:
+- theme (N mentions) — brief explanation
+- theme (N mentions)
+- theme (N mentions)
+Notable comments:
+- [N likes] "quoted text" — author
+- [N likes] "quoted text" — author
+- [N likes] "quoted text" — author
+Criticism: main complaints or pushback (2-3 lines, or "none significant")
+Consensus: what most commenters agree on (1-2 lines)
+
+Rules:
+- Count theme mentions manually from the comments provided
+- Pick the 3 most frequent themes, not the most interesting
+- Notable comments should be the highest-liked ones that express distinct viewpoints
+- If comments are sparse (<10), say so
+- No preamble. Start with Sentiment:'
+
+declare -A SP_FILTERS=(
+  [hour]="EgQIARAB" [today]="EgQIAhAB" [week]="EgQIAxAB" [month]="EgQIA5AB" [year]="EgQIBBAB"
+  [video]="EgIQAQ==" [channel]="EgIQAg==" [playlist]="EgIQAw==" [movie]="EgIQBA==" [short]="EgQQARgB"
+  [short-vid]="CAASAhAB" [medium]="CAIQAQ==" [long]="CAoQAQ=="
+  [sort-date]="EgQIARAB" [sort-views]="CAISAhAB" [sort-rating]="CAIQAQ=="
+)
+
+usage() {
+  cat <<'EOF'
+USAGE:
+  yts search <count> <query> [filters]   Search YouTube, return "id | title"
+  yts search <count> <query> --summary   Search + summarize all results via fast-pi
+  yts info <count> <query> [filters]     Search and dump full metadata JSON per video
+  yts info-single <video_id>             Full metadata JSON for one video
+  yts subs <video_id> [lang]             Extract subtitles (default: en)
+  yts subs-raw <video_id> [lang]         Extract raw subtitles, no cleanup
+  yts subs-list <video_id>               List available subtitle tracks
+  yts summarize <video_id>               Summarize a single video via fast-pi
+  yts comments <video_id> [limit]        Extract comments as JSON (default: 50)
+  yts thumb <video_id> [dir]             Download thumbnail as JPG (default: cwd)
+  yts screenshot <video_id> <ts>         Extract frame at timestamp (requires ffmpeg)
+  yts filters                            List all available search filters
+
+FILTERS (for search/info):
+  Use --sp <filter> to apply server-side YouTube search filters.
+  Repeatable across categories, but YouTube only supports one upload-date filter.
+EOF
+  exit 1
+}
+
+need_args() {
+  local min=$1 usage_msg=$2
+  shift 2
+  if (( $# < min )); then
+    echo "Usage: yts ${usage_msg}" >&2
+    exit 1
+  fi
+}
+
+_parse_filters() {
+  SP_VALUE=""
+  WITH_SUMMARY=0
+  REMAINING_ARGS=()
+  local -a filters=()
+
+  while (( $# > 0 )); do
+    case "$1" in
+      --sp)
+        shift
+        if (( $# == 0 )); then
+          echo "ERROR: --sp requires a filter name" >&2
+          exit 1
+        fi
+        if [[ -z ${SP_FILTERS[$1]+_} ]]; then
+          echo "ERROR: Unknown filter '$1'. Run 'yts filters' to see available filters." >&2
+          exit 1
+        fi
+        filters+=("${SP_FILTERS[$1]}")
+        ;;
+      --summary|--with-summary) WITH_SUMMARY=1 ;;
+      *) REMAINING_ARGS+=("$1") ;;
+    esac
+    shift
+  done
+
+  if (( ${#filters[@]} > 0 )); then
+    SP_VALUE=$(python3 - "${filters[@]}" <<'PY'
+import base64, sys
+print(base64.b64encode(b''.join(base64.b64decode(arg) for arg in sys.argv[1:])).decode())
+PY
+)
+  fi
+}
+
+_build_search_url() {
+  python3 - "$1" "$2" <<'PY'
+import sys
+from urllib.parse import urlencode
+print(f"https://www.youtube.com/results?{urlencode({'search_query': sys.argv[1], 'sp': sys.argv[2]})}")
+PY
+}
+
+_search_source() {
+  local count=$1 query=$2
+  shift 2
+
+  if [[ -n $SP_VALUE ]]; then
+    yt-dlp --user-agent "$UA" "$(_build_search_url "$query" "$SP_VALUE")" --flat-playlist \
+      --playlist-items "1:${count}" "$@" --no-warnings --quiet
+  else
+    yt-dlp --user-agent "$UA" "ytsearch${count}:${query}" --flat-playlist \
+      "$@" --no-warnings --quiet
+  fi
+}
+
+_download_vtt() {
+  local video_id=$1 lang=$2 dest_dir=$3
+  yt-dlp --user-agent "$UA" --skip-download --write-subs --write-auto-subs \
+    --sub-format vtt --sub-langs "${lang}*" \
+    -o "${dest_dir}/%(id)s.%(ext)s" \
+    "${WATCH_URL}${video_id}" --no-warnings --quiet
+  find "$dest_dir" -name "${video_id}.*.vtt" -print -quit 2>/dev/null || true
+}
+
+_cleanup_vtt() {
+  awk '
+    /^WEBVTT|^Kind:|^Language:|^NOTE/ { next }
+    /^[[:space:]]*[0-9]+[[:space:]]*$/ { next }
+    /-->/ { next }
+    {
+      gsub(/<[^>]*>/, "")
+      if ($0 != "" && !seen[$0]++) print
+    }
+  ' "$1"
+}
+
+_with_subtitles() {
+  local video_id=$1 lang=$2 processor=$3 dir vtt_file status
+  dir=$(mktemp -d)
+
+  if ! vtt_file="$(_download_vtt "$video_id" "$lang" "$dir")"; then
+    rm -rf "$dir"
+    return 1
+  fi
+  if [[ -z $vtt_file ]]; then
+    rm -rf "$dir"
+    echo "ERROR: No subtitles found for lang '${lang}' in video ${video_id}" >&2
+    return 1
+  fi
+
+  "$processor" "$vtt_file"
+  status=$?
+  rm -rf "$dir"
+  return "$status"
+}
+
+search_videos() {
+  _parse_filters "$@"
+  set -- "${REMAINING_ARGS[@]}"
+  need_args 2 "search <count> <query>" "$@"
+
+  if (( WITH_SUMMARY )); then
+    _search_summarize "$1" "$2"
+    return
+  fi
+
+  _search_source "$1" "$2" --print '%(id)s | %(title)s | %(channel)s | %(view_count)s views | %(duration_string)s | %(description).200s'
+}
+
+info_videos() {
+  _parse_filters "$@"
+  set -- "${REMAINING_ARGS[@]}"
+  need_args 2 "info <count> <query>" "$@"
+  _search_source "$1" "$2" -j | jq -c "$META_FIELDS"
+}
+
+info_single() {
+  need_args 1 "info-single <video_id>" "$@"
+  yt-dlp --user-agent "$UA" "${WATCH_URL}${1}" -j --no-warnings --quiet | jq -c "$META_FIELDS"
+}
+
+extract_subs() {
+  need_args 1 "subs <video_id> [lang]" "$@"
+  _with_subtitles "$1" "${2:-en}" _cleanup_vtt
+}
+
+extract_subs_raw() {
+  need_args 1 "subs-raw <video_id> [lang]" "$@"
+  _with_subtitles "$1" "${2:-en}" cat
+}
+
+list_subs() {
+  need_args 1 "subs-list <video_id>" "$@"
+  yt-dlp --user-agent "$UA" --list-subs "${WATCH_URL}${1}" --no-warnings --quiet
+}
+
+extract_comments() {
+  need_args 1 "comments <video_id> [limit]" "$@"
+  yt-dlp --user-agent "$UA" --get-comments --no-download \
+    --print '%(comments)j' \
+    --extractor-args "youtube:comment_sort=top;max_comments=${2:-50},all,all,5" \
+    "${WATCH_URL}${1}" --no-warnings --quiet
+}
+
+download_thumb() {
+  need_args 1 "thumb <video_id> [dir]" "$@"
+  local video_id=$1 outdir=${2:-.} dir jpg_file
+  dir=$(mktemp -d)
+
+  if ! yt-dlp --user-agent "$UA" --skip-download --write-thumbnail --convert-thumbnails jpg \
+    -o "${dir}/%(id)s.%(ext)s" "${WATCH_URL}${video_id}" --no-warnings --quiet; then
+    rm -rf "$dir"
+    return 1
+  fi
+
+  jpg_file=$(find "$dir" -name '*.jpg' -print -quit 2>/dev/null || true)
+  if [[ -z $jpg_file ]]; then
+    rm -rf "$dir"
+    echo "ERROR: No thumbnail found for video ${video_id}" >&2
+    return 1
+  fi
+
+  cp "$jpg_file" "${outdir}/${video_id}.jpg"
+  rm -rf "$dir"
+  echo "${outdir}/${video_id}.jpg"
+}
+
+_timestamp_to_seconds() {
+  local timestamp=$1 IFS=: parts
+  read -r -a parts <<< "$timestamp"
+
+  case ${#parts[@]} in
+    1) printf '%d\n' "$((10#${parts[0]}))" ;;
+    2) printf '%d\n' "$((10#${parts[0]} * 60 + 10#${parts[1]}))" ;;
+    3) printf '%d\n' "$((10#${parts[0]} * 3600 + 10#${parts[1]} * 60 + 10#${parts[2]}))" ;;
+    *) return 1 ;;
+  esac
+}
+
+extract_screenshot() {
+  need_args 2 "screenshot <video_id> <timestamp>" "$@"
+  local video_id=$1 timestamp=$2 total_secs end_secs end_ts dir clip_file out
+
+  if ! command -v ffmpeg &>/dev/null; then
+    echo "ERROR: ffmpeg is required for screenshot extraction" >&2
+    return 1
+  fi
+  if [[ ! $timestamp =~ ^[0-9]+(:[0-9]+){0,2}$ ]] || ! total_secs=$(_timestamp_to_seconds "$timestamp"); then
+    echo "ERROR: Timestamp must be seconds, MM:SS, or HH:MM:SS" >&2
+    return 1
+  fi
+
+  end_secs=$((total_secs + 2))
+  printf -v end_ts '%02d:%02d:%02d' "$((end_secs / 3600))" "$(((end_secs % 3600) / 60))" "$((end_secs % 60))"
+  dir=$(mktemp -d)
+
+  if ! yt-dlp --user-agent "$UA" --download-sections "*${timestamp}-${end_ts}" \
+    --force-keyframes-at-cuts \
+    -f 'bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720]' \
+    -o "${dir}/clip.%(ext)s" "${WATCH_URL}${video_id}" --no-warnings --quiet; then
+    rm -rf "$dir"
+    return 1
+  fi
+
+  clip_file=$(find "$dir" -name 'clip.*' -type f -print -quit 2>/dev/null || true)
+  if [[ -z $clip_file ]]; then
+    rm -rf "$dir"
+    echo "ERROR: Failed to download clip for timestamp ${timestamp}" >&2
+    return 1
+  fi
+
+  out="${video_id}_${timestamp//:/-}.jpg"
+  if ! ffmpeg -y -i "$clip_file" -frames:v 1 -q:v 2 "$out" 2>/dev/null; then
+    rm -rf "$dir"
+    return 1
+  fi
+  rm -rf "$dir"
+  echo "$out"
+}
+
+_search_summarize() {
+  local count=$1 query=$2 dl_dir i=0
+  command -v "$FAST_PI" &>/dev/null || { echo "ERROR: $FAST_PI is required" >&2; return 1; }
+
+  dl_dir=$(mktemp -d)
+  mkdir -p "$SUBS_CACHE"
+
+  if ! _search_source "$count" "$query" -j > "${dl_dir}/meta.jsonl"; then
+    rm -rf "$dl_dir"
+    return 1
+  fi
+
+  while read -r line; do
+    local vid_id title
+    vid_id=$(jq -r '.id' <<< "$line")
+    title=$(jq -r '.title' <<< "$line")
+
+    (
+      local subs_text subs_file summary date_str meta
+      date_str=''
+
+      if meta=$(yt-dlp --user-agent "$UA" "${WATCH_URL}${vid_id}" -j --no-warnings --quiet 2>/dev/null); then
+        local ud
+        ud=$(jq -r '.upload_date // ""' <<< "$meta")
+        if [[ $ud =~ ^[0-9]{8}$ ]]; then
+          date_str="${ud:0:4}-${ud:4:2}-${ud:6:2}"
+        fi
+      fi
+
+      if ! subs_text=$(_with_subtitles "$vid_id" en _cleanup_vtt 2>/dev/null); then
+        printf '%s\n%s\n\n' "${vid_id} | ${title} | ${date_str}" '[no subtitles available]' > "${dl_dir}/result_${i}"
+        exit 0
+      fi
+
+      subs_file="${SUBS_CACHE}/${vid_id}.txt"
+      printf '%s\n' "$subs_text" > "$subs_file"
+      summary=$(head -c "$MAX_SUBS_CHARS" "$subs_file" | "$FAST_PI" -S "$PROMPT_SEARCH_SUMMARIZE" 2>/dev/null)
+      printf '%s\nSummary:\n%s\nFull subs: %s\n\n' \
+        "${vid_id} | ${title} | ${date_str}" "$summary" "$subs_file" > "${dl_dir}/result_${i}"
+    ) &
+    ((i += 1))
+  done < "${dl_dir}/meta.jsonl"
+
+  wait
+  local j
+  for ((j = 0; j < i; j++)); do
+    cat "${dl_dir}/result_${j}"
+  done
+  rm -rf "$dl_dir"
+}
+
+summarize_video() {
+  need_args 1 "summarize <video_id>" "$@"
+  command -v "$FAST_PI" &>/dev/null || { echo "ERROR: $FAST_PI is required" >&2; return 1; }
+
+  mkdir -p "$SUBS_CACHE"
+  local subs_text subs_file
+  if ! subs_text=$(_with_subtitles "$1" en _cleanup_vtt 2>/dev/null); then
+    echo "ERROR: No subtitles found for $1" >&2
+    return 1
+  fi
+
+  subs_file="${SUBS_CACHE}/${1}.txt"
+  printf '%s\n' "$subs_text" > "$subs_file"
+  head -c "$MAX_SUBS_CHARS" "$subs_file" | "$FAST_PI" -S "$PROMPT_SUMMARIZE" 2>/dev/null
+}
+
+list_filters() {
+  cat <<'EOF'
+Available search filters (use with --sp):
+
+Upload date:
+  hour      - Last hour
+  today     - Today
+  week      - This week
+  month     - This month
+  year      - This year
+
+Type:
+  video     - Videos only
+  channel   - Channels only
+  playlist  - Playlists only
+  movie     - Movies only
+  short     - Shorts only
+
+Duration:
+  short-vid - Short videos (<4m)
+  medium    - Medium videos (4-20m)
+  long      - Long videos (>20m)
+
+Sort:
+  sort-date   - Sort by upload date
+  sort-views  - Sort by view count
+  sort-rating - Sort by rating
+EOF
+}
+
+[[ $# -ge 1 ]] || usage
+cmd=$1
+shift
+
+case "$cmd" in
+  search) search_videos "$@" ;;
+  info) info_videos "$@" ;;
+  info-single) info_single "$@" ;;
+  subs) extract_subs "$@" ;;
+  subs-raw) extract_subs_raw "$@" ;;
+  subs-list) list_subs "$@" ;;
+  summarize) summarize_video "$@" ;;
+  comments) extract_comments "$@" ;;
+  thumb) download_thumb "$@" ;;
+  screenshot) extract_screenshot "$@" ;;
+  filters) list_filters ;;
+  *) echo "Unknown command: $cmd" >&2; usage ;;
+esac

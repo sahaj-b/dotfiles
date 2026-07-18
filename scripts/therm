@@ -1,0 +1,400 @@
+#!/usr/bin/env bash
+# therm: Thermal & power management for this lappy
+# Controls: CPU power limits, governor, EPP, GPU frequency
+
+set -euo pipefail
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
+BOLD='\033[1m'
+DIM='\033[2m'
+NC='\033[0m'
+
+# ──────────────────────────────────────────────────────────────
+# RAPL (Running Average Power Limit)
+# Hardware-level power capping built into Intel CPUs.
+# PL1: sustained power draw cap (long term). Lower = cooler but slower sustained perf.
+# PL2: burst power cap (short term, ~28-56s). Allows temporary boost above PL1.
+# Affects: CPU heat output directly. Main cause of thermal throttling.
+# ──────────────────────────────────────────────────────────────
+RAPL_PL1="/sys/class/powercap/intel-rapl:0/constraint_0_power_limit_uw"
+RAPL_PL2="/sys/class/powercap/intel-rapl:0/constraint_1_power_limit_uw"
+RAPL_PL1_MAX="/sys/class/powercap/intel-rapl:0/constraint_0_max_power_uw"
+RAPL_PL2_MAX="/sys/class/powercap/intel-rapl:0/constraint_1_max_power_uw"
+
+# ──────────────────────────────────────────────────────────────
+# CPU Scaling Governor (intel_pstate active mode)
+# Controls when/how CPU changes frequency. With intel_pstate active:
+#   performance: locks CPU at max frequency (2600 MHz). Hot, no scaling.
+#   powersave:   dynamic scaling based on CPU load (like schedutil/ondemand).
+#                 NOT actual powersave - it scales up when needed, drops when idle.
+# On intel_pstate, "powersave" is actually the middle ground governor.
+# Affects: CPU responsiveness, idle power, heat.
+# ──────────────────────────────────────────────────────────────
+CPU_GOV="/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor"
+CPU_GOV_AVAIL="/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors"
+
+# ──────────────────────────────────────────────────────────────
+# Energy Performance Preference (EPP)
+# intel_pstate-specific hint to the CPU's internal power controller.
+# Tells the hardware to bias toward performance or power saving.
+#   performance:           max freq always, ignores load
+#   balance_performance:   favors perf but allows some scaling
+#   default:               balanced
+#   balance_power:         favors power saving but allows boost
+#   power:                 max savings, drops freq aggressively
+# Affects: CPU frequency scaling aggressiveness. Only works with intel_pstate + HWP.
+# Does NOT affect GPU at all.
+# ──────────────────────────────────────────────────────────────
+CPU_EPP="/sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference"
+CPU_EPP_AVAIL="/sys/devices/system/cpu/cpu0/cpufreq/energy_performance_available_preferences"
+
+CPU_FREQ_CUR="/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq"
+CPU_FREQ_MIN="/sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq"
+CPU_FREQ_MAX="/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq"
+
+# ──────────────────────────────────────────────────────────────
+# Intel Arc GPU (xe driver)
+# gt_max_freq_mhz: caps the GPU's maximum clock speed.
+# GPU scales down automatically when idle, but won't exceed this limit.
+# Affects: GPU heat, GPU performance. Lower = cooler, less FPS in GPU-bound games.
+# ──────────────────────────────────────────────────────────────
+GPU_MAX_FREQ="/sys/bus/pci/devices/0000:03:00.0/drm/card0/gt_max_freq_mhz"
+GPU_CUR_FREQ="/sys/bus/pci/devices/0000:03:00.0/drm/card0/gt_cur_freq_mhz"
+GPU_MIN_FREQ="/sys/bus/pci/devices/0000:03:00.0/drm/card0/gt_min_freq_mhz"
+
+ok() { echo -e "  ${GREEN}✓${NC} $*"; }
+err() { echo -e "  ${RED}✗${NC} $*" >&2; }
+info() { echo -e "  ${CYAN}→${NC} $*"; }
+warn() { echo -e "  ${YELLOW}!${NC} $*"; }
+hr() { echo -e "${DIM}$(printf '%.0s─' {1..50})${NC}"; }
+
+check_root() {
+  [[ $EUID -eq 0 ]] || {
+    err "Run with sudo for this action"
+    exit 1
+  }
+}
+
+read_safe() { cat "$1" 2>/dev/null || echo "N/A"; }
+write_safe() { echo "$2" >"$1" 2>/dev/null; }
+
+to_watts() { echo $(($1 / 1000000)); }
+to_mhz() { echo $(($1 / 1000)); }
+
+cmd_status() {
+  echo -e "${BOLD}${MAGENTA}SYSTEM STATUS${NC}"
+
+  echo -e "${BOLD}${BLUE}  CPU Power Limits (RAPL)${NC}"
+  hr
+  local pl1=$(to_watts $(read_safe "$RAPL_PL1"))
+  local pl2=$(to_watts $(read_safe "$RAPL_PL2"))
+  local pl1_max=$(to_watts $(read_safe "$RAPL_PL1_MAX"))
+  local pl2_max=$(to_watts $(read_safe "$RAPL_PL2_MAX"))
+  printf "  PL1 (sustained):  ${YELLOW}%2dW${NC} / %dW max\n" "$pl1" "$pl1_max"
+  printf "  PL2 (burst):      ${YELLOW}%2dW${NC} / %dW max\n" "$pl2" "$pl2_max"
+  echo ""
+
+  echo -e "${BOLD}${BLUE}  CPU${NC}"
+  hr
+  local gov=$(read_safe "$CPU_GOV")
+  local epp=$(read_safe "$CPU_EPP")
+  local cur=$(to_mhz $(read_safe "$CPU_FREQ_CUR"))
+  local min=$(to_mhz $(read_safe "$CPU_FREQ_MIN"))
+  local max=$(to_mhz $(read_safe "$CPU_FREQ_MAX"))
+  printf "  Governor:         ${GREEN}%s${NC}\n" "$gov"
+  printf "  EPP:              ${GREEN}%s${NC}\n" "$epp"
+  printf "  Current:          ${CYAN}%d MHz${NC}\n" "$cur"
+  printf "  Min / Max:        %d MHz / %d MHz\n" "$min" "$max"
+  echo ""
+
+  echo -e "${BOLD}${BLUE}  Intel Arc GPU${NC}"
+  hr
+  if [[ -f "$GPU_CUR_FREQ" ]]; then
+    local gpu_cur=$(read_safe "$GPU_CUR_FREQ")
+    local gpu_max=$(read_safe "$GPU_MAX_FREQ")
+    local gpu_min=$(read_safe "$GPU_MIN_FREQ")
+    printf "  Current:          ${CYAN}%s MHz${NC}\n" "$gpu_cur"
+    printf "  Min / Max:        %s MHz / %s MHz\n" "$gpu_min" "$gpu_max"
+  else
+    echo -e "  ${DIM}GPU not found at expected path${NC}"
+  fi
+  echo ""
+
+  echo -e "${BOLD}${BLUE}  Temperatures${NC}"
+  hr
+  if command -v sensors &>/dev/null; then
+    sensors 2>/dev/null | grep -E "temp[0-9]+:" | while IFS= read -r line; do
+      local temp=$(echo "$line" | grep -oP '\+\K[0-9]+' | head -1)
+      local label=$(echo "$line" | sed 's/.*: *//' | cut -d':' -f1)
+      if [[ -n "$temp" ]]; then
+        if ((temp >= 85)); then
+          printf "  ${RED}%-20s %3d°C  HOT${NC}\n" "$label" "$temp"
+        elif ((temp >= 75)); then
+          printf "  ${YELLOW}%-20s %3d°C${NC}\n" "$label" "$temp"
+        else
+          printf "  ${GREEN}%-20s %3d°C${NC}\n" "$label" "$temp"
+        fi
+      fi
+    done
+  fi
+  echo ""
+}
+
+cmd_list() {
+  echo -e "\n${BOLD}${MAGENTA}Available Options${NC}\n"
+
+  echo -e "${BOLD}${BLUE}  CPU Governors (scaling policy)${NC}"
+  hr
+  local gov_current=$(read_safe "$CPU_GOV")
+  for g in $(cat "$CPU_GOV_AVAIL" 2>/dev/null); do
+    if [[ "$g" == "$gov_current" ]]; then
+      echo -e "  ${GREEN}● ${g}  (active)${NC}"
+    else
+      echo -e "  ${DIM}○ ${g}${NC}"
+    fi
+  done
+  echo ""
+
+  echo -e "${BOLD}${BLUE}  EPP (energy vs performance hint)${NC}"
+  hr
+  local epp_current=$(read_safe "$CPU_EPP")
+  for e in $(cat "$CPU_EPP_AVAIL" 2>/dev/null); do
+    if [[ "$e" == "$epp_current" ]]; then
+      echo -e "  ${GREEN}● ${e}  (active)${NC}"
+    else
+      echo -e "  ${DIM}○ ${e}${NC}"
+    fi
+  done
+  echo ""
+
+  echo -e "${BOLD}${BLUE}  GPU Max Frequency${NC}"
+  hr
+  if [[ -f "$GPU_MAX_FREQ" ]]; then
+    local gpu_max=$(read_safe "$GPU_MAX_FREQ")
+    local gpu_min=$(read_safe "$GPU_MIN_FREQ")
+    local gpu_cur=$(read_safe "$GPU_CUR_FREQ")
+    echo -e "  Min: ${gpu_min} MHz | Current: ${CYAN}${gpu_cur} MHz${NC} | Max: ${gpu_max} MHz"
+    echo -e "  ${DIM}therm gpu <freq_mhz>${NC}"
+  fi
+  echo ""
+
+  echo -e "${BOLD}${BLUE}  RAPL Power Limits (watts)${NC}"
+  hr
+  local pl1_max=$(to_watts $(read_safe "$RAPL_PL1_MAX"))
+  echo -e "  PL1 range: 1W - ${pl1_max}W"
+  echo -e "  PL2 range: 1W - unlimited"
+  echo ""
+}
+
+cmd_preset() {
+  local preset="${1:-}"
+  case "$preset" in
+  powersave | ps)
+    echo -e "\n  Applying ${GREEN}POWERSAVE${NC} preset...\n"
+    check_root
+    write_safe "$RAPL_PL1" "15000000"
+    write_safe "$RAPL_PL2" "25000000"
+    for gov in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+      write_safe "$gov" "powersave"
+    done
+    write_safe "$CPU_EPP" "power"
+    [[ -f "$GPU_MAX_FREQ" ]] && write_safe "$GPU_MAX_FREQ" "1500"
+    ok "PL1: 15W | PL2: 25W | Gov: powersave | EPP: power | GPU: 1500 MHz"
+    echo -e "  ${DIM}Light gaming, battery life, cool & quiet${NC}\n"
+    ;;
+
+  balanced | bal)
+    echo -e "\n  Applying ${YELLOW}BALANCED${NC} preset...\n"
+    check_root
+    write_safe "$RAPL_PL1" "25000000"
+    write_safe "$RAPL_PL2" "35000000"
+    for gov in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+      write_safe "$gov" "performance"
+    done
+    write_safe "$CPU_EPP" "balance_performance"
+    [[ -f "$GPU_MAX_FREQ" ]] && write_safe "$GPU_MAX_FREQ" "1800"
+    ok "PL1: 25W | PL2: 35W | Gov: performance | EPP: balance_performance | GPU: 1800 MHz"
+    echo -e "  ${DIM}Moderate gaming, good perf/thermal balance${NC}\n"
+    ;;
+
+  performance | perf)
+    echo -e "\n  Applying ${RED}PERFORMANCE${NC} preset...\n"
+    check_root
+    write_safe "$RAPL_PL1" "45000000"
+    write_safe "$RAPL_PL2" "65000000"
+    for gov in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+      write_safe "$gov" "performance"
+    done
+    write_safe "$CPU_EPP" "performance"
+    [[ -f "$GPU_MAX_FREQ" ]] && write_safe "$GPU_MAX_FREQ" "2200"
+    ok "PL1: 45W | PL2: 65W | Gov: performance | EPP: performance | GPU: 2200 MHz"
+    echo -e "  ${DIM}Short gaming sessions, max FPS, will get hot${NC}\n"
+    ;;
+
+  max | maxperf)
+    echo -e "\n  Applying ${RED}MAX PERFORMANCE${NC} preset...\n"
+    check_root
+    local pl1_max=$(read_safe "$RAPL_PL1_MAX")
+    write_safe "$RAPL_PL1" "$pl1_max"
+    write_safe "$RAPL_PL2" "$pl1_max"
+    for gov in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+      write_safe "$gov" "performance"
+    done
+    write_safe "$CPU_EPP" "performance"
+    [[ -f "$GPU_MAX_FREQ" ]] && write_safe "$GPU_MAX_FREQ" "2200"
+    ok "PL1: ${pl1_max}W | Gov: performance | EPP: performance | GPU: max"
+    warn "Your laptop WILL throttle. This defeats the purpose.\n"
+    ;;
+
+  *)
+    echo -e "\n  ${RED}Unknown preset: $preset${NC}\n"
+    echo "  powersave, ps     15W PL1, powersave gov, GPU 1500 MHz"
+    echo "  balanced, bal     25W PL1, balance_performance, GPU 1800 MHz"
+    echo "  performance, perf 45W PL1, performance gov, GPU 2200 MHz"
+    echo "  max               Unlimited (not recommended)"
+    echo ""
+    exit 1
+    ;;
+  esac
+}
+
+cmd_pl() {
+  local pl1="${1:-}"
+  local pl2="${2:-}"
+  check_root
+  if [[ -n "$pl1" ]]; then
+    write_safe "$RAPL_PL1" "$((pl1 * 1000000))"
+    ok "PL1 set to ${pl1}W"
+  fi
+  if [[ -n "$pl2" ]]; then
+    write_safe "$RAPL_PL2" "$((pl2 * 1000000))"
+    ok "PL2 set to ${pl2}W"
+  fi
+  if [[ -z "$pl1" && -z "$pl2" ]]; then
+    echo "  therm pl <pl1_watts> [pl2_watts]"
+    echo "  therm pl 25 35"
+  fi
+}
+
+cmd_gov() {
+  local gov="${1:-}"
+  if [[ -z "$gov" ]]; then
+    echo "  therm gov <governor_name>"
+    echo "  therm list"
+    return
+  fi
+  check_root
+  for g in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+    write_safe "$g" "$gov"
+  done
+  ok "Governor set to ${gov}"
+}
+
+cmd_epp() {
+  local epp="${1:-}"
+  if [[ -z "$epp" ]]; then
+    echo "  therm epp <preference>"
+    echo "  therm list"
+    return
+  fi
+  check_root
+  write_safe "$CPU_EPP" "$epp"
+  ok "EPP set to ${epp}"
+}
+
+cmd_gpu() {
+  local freq="${1:-}"
+  if [[ -z "$freq" ]]; then
+    echo "  therm gpu <freq_mhz>"
+    echo "  therm gpu 1500"
+    return
+  fi
+  if [[ ! -f "$GPU_MAX_FREQ" ]]; then
+    err "GPU not found at $GPU_MAX_FREQ"
+    return 1
+  fi
+  check_root
+  write_safe "$GPU_MAX_FREQ" "$freq"
+  ok "GPU max frequency set to ${freq} MHz"
+}
+
+cmd_read() {
+  echo -e "\n${BOLD}${MAGENTA}Raw Sensor Readings${NC}\n"
+
+  echo -e "${BOLD}${BLUE}  CPU${NC}"
+  echo "  Governor:       $(read_safe "$CPU_GOV")"
+  echo "  EPP:            $(read_safe "$CPU_EPP")"
+  echo "  Current freq:   $(to_mhz $(read_safe "$CPU_FREQ_CUR")) MHz"
+  echo "  Min freq:       $(to_mhz $(read_safe "$CPU_FREQ_MIN")) MHz"
+  echo "  Max freq:       $(to_mhz $(read_safe "$CPU_FREQ_MAX")) MHz"
+  echo ""
+
+  echo -e "${BOLD}${BLUE}  Power (RAPL)${NC}"
+  echo "  PL1:            $(to_watts $(read_safe "$RAPL_PL1"))W"
+  echo "  PL2:            $(to_watts $(read_safe "$RAPL_PL2"))W"
+  echo "  PL1 max:        $(to_watts $(read_safe "$RAPL_PL1_MAX"))W"
+  echo "  Energy:         $(($(read_safe "/sys/class/powercap/intel-rapl:0/energy_uj") / 1000000))J"
+  echo ""
+
+  echo -e "${BOLD}${BLUE}  GPU${NC}"
+  if [[ -f "$GPU_CUR_FREQ" ]]; then
+    echo "  Current freq:   $(read_safe "$GPU_CUR_FREQ") MHz"
+    echo "  Max freq:       $(read_safe "$GPU_MAX_FREQ") MHz"
+    echo "  Min freq:       $(read_safe "$GPU_MIN_FREQ") MHz"
+  else
+    echo "  ${DIM}Not found${NC}"
+  fi
+  echo ""
+}
+
+cmd_help() {
+  echo "THERM - Thermal & power management"
+  echo ""
+  echo "Usage: therm <command> [args]"
+  echo ""
+  echo "Commands:"
+  echo "  status, s         Show current system state"
+  echo "  list, ls          List available options"
+  echo "  read, r           Read raw sensor values"
+  echo ""
+  echo "  preset, p <name>  Apply a preset profile"
+  echo "    powersave, ps     15W PL1, powersave gov, GPU 1500 MHz"
+  echo "    balanced, bal     25W PL1, balance_performance, GPU 1800 MHz"
+  echo "    performance, perf 45W PL1, performance gov, GPU 2200 MHz"
+  echo "    max               Unlimited (not recommended)"
+  echo ""
+  echo "  pl <pl1> [pl2]    Set CPU power limits in watts"
+  echo "  gov <governor>    Set CPU scaling governor"
+  echo "  epp <preference>  Set energy performance preference"
+  echo "  gpu <freq_mhz>   Set GPU max frequency"
+  echo ""
+  echo "Examples:"
+  echo "  therm preset powersave"
+  echo "  therm pl 20 30"
+  echo "  therm gpu 1500"
+  echo "  therm epp balance_power"
+  echo "  therm status"
+  echo ""
+}
+
+case "${1:-help}" in
+status | s) cmd_status ;;
+list | ls) cmd_list ;;
+read | r) cmd_read ;;
+preset | p) cmd_preset "${2:-}" ;;
+pl) cmd_pl "${2:-}" "${3:-}" ;;
+gov | g) cmd_gov "${2:-}" ;;
+epp | e) cmd_epp "${2:-}" ;;
+gpu) cmd_gpu "${2:-}" ;;
+help | --help | -h) cmd_help ;;
+*)
+  err "Unknown command: $1"
+  echo "  therm help"
+  exit 1
+  ;;
+esac

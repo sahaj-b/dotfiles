@@ -1,4 +1,4 @@
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
 	chmodSync,
 	existsSync,
@@ -232,12 +232,7 @@ function buildPiModels(rawModels: RawModel[], provider: string): any[] {
 	});
 }
 
-const REG_KEY = Symbol("pi-oc-sdk:registered");
-
 export default function (pi: ExtensionAPI) {
-	const g = globalThis as Record<symbol, any>;
-	if (g[REG_KEY]) return;
-
 	const zen = discoverModels();
 	if (zen.length > 0) {
 		const apiKey = resolveApiKey("opencode");
@@ -249,8 +244,6 @@ export default function (pi: ExtensionAPI) {
 			models: buildPiModels(zen, OC_PROVIDER),
 		});
 	}
-
-	g[REG_KEY] = true;
 
 	pi.registerCommand("opencode-go-key", {
 		description: "Set your OpenCode Go API key directly (no CLI required)",

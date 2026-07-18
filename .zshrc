@@ -412,3 +412,9 @@ export PATH=/home/sahaj/.kilo/bin:$PATH
 
 # node ipv6 disable
 export NODE_OPTIONS="--no-network-family-autoselection"
+
+# dotnet
+export PATH="$PATH:/home/sahaj/.dotnet/tools"
+
+# Clean VTT subtitles to plain text
+vttclean() { sed '/WEBVTT\|^Kind:\|^Language:\|^[0-9]\|-->/d; s/<[^>]*>//g; /^$/d' "$1" | awk '!seen[$0]++'; }

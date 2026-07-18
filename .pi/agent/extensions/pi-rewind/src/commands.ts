@@ -5,7 +5,7 @@
  * browser and restore options.
  */
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { RewindState } from "./state.js";
 import type { CheckpointData } from "./core.js";
 import { restoreCheckpoint, createCheckpoint, diffCheckpoints, sanitizeForRef, git, type GitConfig } from "./core.js";
@@ -60,7 +60,7 @@ function getGitConfig(state: RewindState): GitConfig | undefined {
 
 async function runRewindFlow(
   state: RewindState,
-  ctx: import("@mariozechner/pi-coding-agent").ExtensionCommandContext,
+  ctx: import("@earendil-works/pi-coding-agent").ExtensionCommandContext,
 ): Promise<void> {
   if (!state.gitAvailable || !state.repoRoot || !state.sessionId) {
     ctx.ui.notify("Rewind not available (no git repo or session)", "warning");

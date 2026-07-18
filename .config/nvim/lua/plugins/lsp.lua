@@ -3,6 +3,7 @@ return {
     'neovim/nvim-lspconfig',
     config = function()
       local servers = {
+        ty = {},
         jsonls = {},
         mdx_analyzer = {},
         glslls = { -- GLSL-specific settings
@@ -24,7 +25,7 @@ return {
         ruff = {},
         bashls = {},
         shellcheck = {},
-        pyright = {},
+        -- pyright = {},
         ts_ls = {},
         tailwindcss = {
           filetypes = {
