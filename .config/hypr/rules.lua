@@ -26,6 +26,11 @@ hl.window_rule({ match = { title = "^qmlscene$" }, float = true })
 hl.window_rule({ match = { title = ".*Sign.*" }, float = true })
 hl.window_rule({ match = { class = "^yad$" }, float = true })
 
+-- Picker float rules (class + title based, works with kitty -1)
+hl.window_rule({ match = { class = "^picker$", title = "picker-wide$" }, float = true, center = true, size = { "(monitor_w*0.60)", "(monitor_h*0.70)" } })
+hl.window_rule({ match = { class = "^picker$", title = "picker-tall$" }, float = true, center = true, size = { "(monitor_w*0.40)", "(monitor_h*0.80)" } })
+hl.window_rule({ match = { class = "^picker$", title = "picker-small$" }, float = true, center = true, size = { "(monitor_w*0.30)", "(monitor_h*0.25)" } })
+
 -- Scratch workspace
 hl.window_rule({ match = { class = "^scratch$" }, workspace = "special:term" })
 
@@ -68,7 +73,7 @@ hl.window_rule({
 -- Termfilechooser
 hl.window_rule({ match = { title = "^termfilechooser$" }, float = true })
 hl.window_rule({ match = { title = "^termfilechooser$" }, center = true })
-hl.window_rule({ match = { title = "^termfilechooser$" }, size = "85% monitor_w 85% monitor_h" })
+hl.window_rule({ match = { title = "^termfilechooser$" }, size = { "(monitor_w*0.85)", "(monitor_h*0.85)" } })
 
 -- Layer rules
 hl.layer_rule({ match = { namespace = "vicinae" }, ignore_alpha = 0 })

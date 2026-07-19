@@ -40,9 +40,9 @@ check_file() {
 
 window_config() {
   case "$1" in
-  wide) echo "{ float = true, size = '60% 70%', center = true }" ;;
-  tall) echo "{ float = true, size = '40% 80%', center = true }" ;;
-  *) echo "{ float = true, size = '30% 25%', center = true }" ;;
+  wide) echo "wide" ;;
+  tall) echo "tall" ;;
+  *) echo "small" ;;
   esac
 }
 
@@ -78,15 +78,15 @@ fi
 # --- Picker for pickers ---
 if [[ -z "$PICKER_TYPE" ]]; then
   if [[ "$FLOAT_MODE" -eq 1 ]]; then
-    window_config=$(window_config "small")
     quoted_script_path=$(printf '%q' "$0")
     fzf_cmd_float="printf 'emoji\\nnerdfont\\nunicode\\nansi_styles\\nansi_controls\\nansi_keycodes\\npalette\\n' | \\
       fzf --layout=reverse --prompt='Select Picker: ' --bind='ctrl-c:abort' \\
           --bind='enter:execute($quoted_script_path {} \"$FLOAT_ARG\")+accept'"
-    hyprctl dispatch "hl.dsp.exec_cmd([[ $TERMINAL -e sh -c \"$fzf_cmd_float\" ]], $window_config)"
+    hyprctl dispatch "hl.dsp.exec_cmd([=[ exec kitty -1 --class picker --title picker-small -e sh -c \"$fzf_cmd_float\" ]=])"
 
   else
-    [[ -z "$selected_picker" ]] && exit 0
+    selected_picker=$(printf 'emoji\nnerdfont\nunicode\nansi_styles\nansi_controls\nansi_keycodes\npalette\n' |
+      fzf --layout=reverse --prompt='Select Picker: ' --bind='ctrl-c:abort') || exit 0
     exec "$0" "$selected_picker"
   fi
   exit 0
@@ -165,7 +165,7 @@ esac
 if [[ "$FLOAT_MODE" -eq 1 ]]; then
   # floating mode
 
-  window_config=$(window_config "$WINDOW_TYPE")
+  picker_size=$(window_config "$WINDOW_TYPE")
   inner_cmd=$(
     cat <<INNER_EOF
     export FZF_DEFAULT_OPTS="$FZF_OPTS_BASE $fzf_extra_opts" # cool env var trick to set fzf options
@@ -176,7 +176,7 @@ if [[ "$FLOAT_MODE" -eq 1 ]]; then
     fi
 INNER_EOF
   )
-  hyprctl dispatch "hl.dsp.exec_cmd([[ $TERMINAL -e sh -c $(printf '%q' "$inner_cmd") ]], $window_config)"
+  hyprctl dispatch "hl.dsp.exec_cmd([=[ exec kitty -1 --class picker --title picker-$picker_size -e sh -c $(printf '%q' "$inner_cmd") ]=])"
 
 else
   # normal mode
