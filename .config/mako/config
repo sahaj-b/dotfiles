@@ -5,6 +5,7 @@ margin=10
 height=200
 border-radius=8
 max-icon-size=52
+max-history=50
 
 background-color=#1e1e2e
 text-color=#cdd6f4
@@ -27,3 +28,7 @@ border-color=#fab387
 ignore-timeout=1
 default-timeout=0
 invisible=1
+
+[mode=dnd app-name="pi"]
+invisible=0
+default-timeout=6000

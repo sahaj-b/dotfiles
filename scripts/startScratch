@@ -1,7 +1,9 @@
 #!/bin/bash
 
-# ghostty --gtk-single-instance=true --class=scratch -e tmux new-session -A -s scratch
-# foot -a scratch -e tmux new-session -A -s "scratch"
-kitty -1 --class=scratch -e tmux new-session -A -s scratch
-sleep 6
+kitty -1 --class=scratch -e tmux new-session -A -s scratch &
+
+while ! tmux has-session -t scratch 2>/dev/null; do
+  sleep 0.5
+done
+
 tmux send-keys -t scratch.1 "f" ENTER

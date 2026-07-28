@@ -1,6 +1,9 @@
 --- WINDOW RULES ---
 -- https://wiki.hypr.land/Configuring/Basics/Window-Rules/
 
+-- disable sleeping on fullscreen apps
+hl.window_rule({ match = { class = ".*" }, idle_inhibit = "fullscreen" })
+
 -- Suppress maximize
 hl.window_rule({
   name = "suppress-maximize",

@@ -43,20 +43,20 @@ const AGENTS: Record<string, AgentEntry> = {
 		commands: ["/mode ro"],
 		systemPrompt:
 			"You are a codebase explorer. Explore the codebase extensively and deeply to find the relevant information needed, using tools provided",
-		thinking: "medium",
+		thinking: "high",
 	},
 	researcher: {
 		name: "researcher",
 		model: "oc/deepseek-v4-flash-free",
 		commands: [],
 		systemPrompt: "~/.pi/agent/prompts/research.md",
-		thinking: "medium",
+		thinking: "high",
 	},
 	worker: {
 		name: "worker",
-		model: "oc/deepseek-v4-flash-free",
+		model: "oc/mimo-v2.5-free",
 		commands: [],
-		thinking: "medium",
+		thinking: "high",
 	},
 };
 

@@ -15,7 +15,6 @@ hl.on("hyprland.start", function()
   hl.exec_cmd("tymr 4pm 'shake'")
   hl.exec_cmd("tymr 5pm 'gym'")
 
-  -- hl.exec_cmd("easyeffects --gapplication-service")
   hl.exec_cmd("nm-applet --no-agent")
   hl.exec_cmd("~/scripts/blu-notif")
   hl.exec_cmd("/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")
@@ -31,7 +30,10 @@ hl.on("hyprland.start", function()
   hl.exec_cmd("pi update")
   hl.exec_cmd('hyprctl setcursor "Bibata-Modern-Classic" 24')
   hl.exec_cmd("zen-browser")
-  hl.exec_cmd("[[ $(cat /sys/class/power_supply/BAT*/status) == Discharging ]] || ~/scripts/ytm")
+
+  hl.exec_cmd("easyeffects --gapplication-service")
+  hl.exec_cmd(
+    "[[ $(cat /sys/class/power_supply/BAT*/status) == Discharging ]] || ~/scripts/ytm")
 
   hl.exec_cmd("~/scripts/vuln-detect")
   -- hl.exec_cmd("~/scripts/lock")

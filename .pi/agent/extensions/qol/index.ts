@@ -443,16 +443,23 @@ export default function (pi: ExtensionAPI) {
 		setSpinnerActive(true, () => updateStatusline(ctx));
 	});
 
-	// Tool errors: play error sound + notify
-	pi.on("agent_end", async (event: any, ctx: any) => {
+	// Spinner off on each low-level run end
+	pi.on("agent_end", async (_event: any, ctx: any) => {
 		setSpinnerActive(false, () => updateStatusline(ctx));
+	});
 
-		const messages = Array.isArray(event.messages) ? event.messages : [];
+	// Notifications only when pi is fully settled (no retries/comaction left)
+	pi.on("agent_settled", async (_event: any, ctx: any) => {
+		if (!ctx.isIdle()) return;
+
+		const branch = ctx.sessionManager.getBranch();
 		let lastText = "";
-		for (let i = messages.length - 1; i >= 0; i--) {
-			const m = messages[i];
-			if (m?.role === "assistant") {
-				const content = Array.isArray(m.content) ? m.content : [];
+		for (let i = branch.length - 1; i >= 0; i--) {
+			const m = branch[i];
+			if (m?.type === "message" && m.message?.role === "assistant") {
+				const content = Array.isArray(m.message.content)
+					? m.message.content
+					: [];
 				lastText = content
 					.filter((c: any) => c?.type === "text" && typeof c.text === "string")
 					.map((c: any) => c.text)
@@ -462,14 +469,34 @@ export default function (pi: ExtensionAPI) {
 		}
 
 		if (lastText) {
+			// "Error: 500: {\"type\":\"error\",\"message\":\"...\"}"
+			const errorMatch = lastText.match(/Error:\s*(\d{3}):\s*(\{.*\})/s);
+			if (errorMatch) {
+				const status = errorMatch[1];
+				let msg = "Server error";
+				try {
+					const parsed = JSON.parse(errorMatch[2]);
+					msg = parsed.message ?? parsed.error?.message ?? JSON.stringify(parsed);
+				} catch {
+					msg = errorMatch[2];
+				}
+				sendQolNotification(
+					ctx,
+					"critical",
+					`${status} ${msg}`,
+					"error",
+				);
+				return;
+			}
+
 			const criticalMatch = lastText.match(
-				/\b(critical|urgent|warning|blocked|cannot proceed|security|vulnerab|secret|credential|rate limit|context (overflow|full)|manual action required)\b/i,
+				/\b(rate[_ ]limit(_error|_exceeded)?|(rate limit)\s+(exceeded|reached)|context[_ ]length[_ ]exceeded|context window (overflow|exceeded|full)|overloaded|quota (exceeded|will reset)|API key (not valid|invalid|expired)|manual action required)\b/i,
 			);
 			if (criticalMatch) {
 				sendQolNotification(
 					ctx,
 					"critical",
-					`Critical: ${criticalMatch[0]}`,
+					`${criticalMatch[0]}`,
 					"error",
 				);
 				return;

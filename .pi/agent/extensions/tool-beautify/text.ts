@@ -1,7 +1,7 @@
 import { basename, extname, relative } from "node:path";
 import { wrapTextWithAnsi } from "@earendil-works/pi-tui";
 
-import { stableRenderWidth, stripAnsi } from "./ansi.js";
+import { stableRenderWidth, stripAnsi, terminalWidth } from "./ansi.js";
 import { settingNumber } from "./settings.js";
 import { treeConnector } from "./theme.js";
 
@@ -61,7 +61,7 @@ export function textContent(result: any): string {
 export function clipLine(line: string, cwd?: string): string {
 	const max = Math.max(
 		40,
-		Math.floor(settingNumber("maxLineWidth", 1000, cwd)),
+		Math.floor(settingNumber("maxLineWidth", terminalWidth(cwd), cwd)) - 5,
 	);
 	return line.length > max ? `${line.slice(0, max - 1)}…` : line;
 }

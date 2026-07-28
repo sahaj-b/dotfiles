@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.80.10",
+  "lastChangelogVersion": "0.82.1",
   "packages": [],
   "defaultProvider": "oc",
   "defaultModel": "mimo-v2.5-free",
@@ -18,7 +18,6 @@
     "alignAssistantMessages": true,
     "workingIndicator": "default",
     "pendingStatusAnimation": false,
-    "maxLineWidth": 1000,
     "commandPreviewChars": 96,
     "commandMaxLines": 3,
     "bashLiveOutputDelayMs": 1000,

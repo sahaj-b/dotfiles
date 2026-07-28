@@ -42,14 +42,32 @@ else
   type="d"
   offset=0
 
-  [[ "${1:-}" =~ ^[dwmy]$ ]] && { type="$1"; shift; }
+  [[ "${1:-}" =~ ^[dwmy]$ ]] && {
+    type="$1"
+    shift
+  }
   [[ "${1:-}" =~ ^[+-]?[0-9]+$ ]] && offset="$1"
 
+  # before 3am, am still writing yesterday's journal
+  [[ "$type" == "d" ]] && (($(date +%H) < 3)) && offset=$((offset - 1))
+
   case "$type" in
-    d) file_path="$JOURNAL_DIR/$(date -d "$offset days" +"%d-%m-%y").md.enc"; template_name="daily" ;;
-    w) file_path="$JOURNAL_DIR/weekly/$(date -d "$offset weeks" +"%V-%y").md.enc"; template_name="weekly" ;;
-    m) file_path="$JOURNAL_DIR/monthly/$(date -d "$offset months" +"%m-%y").md.enc"; template_name="monthly" ;;
-    y) file_path="$JOURNAL_DIR/yearly/$(date -d "$offset years" +"%y").md.enc"; template_name="yearly" ;;
+  d)
+    file_path="$JOURNAL_DIR/$(date -d "$offset days" +"%d-%m-%y").md.enc"
+    template_name="daily"
+    ;;
+  w)
+    file_path="$JOURNAL_DIR/weekly/$(date -d "$offset weeks" +"%V-%y").md.enc"
+    template_name="weekly"
+    ;;
+  m)
+    file_path="$JOURNAL_DIR/monthly/$(date -d "$offset months" +"%m-%y").md.enc"
+    template_name="monthly"
+    ;;
+  y)
+    file_path="$JOURNAL_DIR/yearly/$(date -d "$offset years" +"%y").md.enc"
+    template_name="yearly"
+    ;;
   esac
 fi
 
@@ -95,10 +113,10 @@ template_path="$JOURNAL_DIR/template/${template_name}.md"
 
 if [[ -z "${journal_date:-}" ]]; then
   case "$type" in
-    d) journal_date=$(date -d "$offset days" +"%d-%m-%y") ;;
-    w) journal_date=$(date -d "$offset weeks" +"%V-%y") ;;
-    m) journal_date=$(date -d "$offset months" +"%m-%y") ;;
-    y) journal_date=$(date -d "$offset years" +"%y") ;;
+  d) journal_date=$(date -d "$offset days" +"%d-%m-%y") ;;
+  w) journal_date=$(date -d "$offset weeks" +"%V-%y") ;;
+  m) journal_date=$(date -d "$offset months" +"%m-%y") ;;
+  y) journal_date=$(date -d "$offset years" +"%y") ;;
   esac
 fi
 
@@ -113,7 +131,7 @@ elif [[ -f "$template_path" ]]; then
   cp "$template_path" "$temp"
 fi
 
-nvim +startinsert "$temp"
+nvim +startinsert +"Copilot disable" "$temp"
 
 if [[ -s "$temp" ]]; then
   encrypt "$temp" "$file_path"

@@ -76,23 +76,14 @@ export function registerRead(pi: ExtensionAPI, agent: any, cwd: string): void {
 				const firstLine = textContent(result).split(/\r?\n/)[0] || "";
 				const isNotFound = /ENOENT|no such file|not found/i.test(firstLine);
 				const label = isNotFound ? "not found" : firstLine;
-				let text = `${stackPrefix(theme)}${call}${theme.fg("dim", " · ")}${theme.fg("error", label)}`;
-				if (expanded && firstLine) {
-					text += `\n${treeConnector(theme, "│")}${theme.fg("dim", firstLine)}`;
-				}
+				const text = `${stackPrefix(theme)}${call}${theme.fg("dim", " · ")}${theme.fg("error", label)}`;
 				return makeTruncatedLines(text);
 			}
 			const content = textContent(result);
 			const count = lineCount(content);
 			const summary = readResultSummary(result, context?.args ?? {}, theme);
 			let text = `${stackPrefix(theme)}${call}${theme.fg("dim", " · ")}${summary}`;
-			if (mode === "preview" && expanded && content) {
-				const limit = Math.max(1, Math.floor(settingNumber("readPreviewLines", 80, context?.cwd)));
-				text += `\n${content.split(/\r?\n/).slice(0, limit)
-					.map((line) => `${treeConnector(theme, "│")}${theme.fg("dim", line)}`)
-					.join("\n")}`;
-				if (count > limit) text += `\n${treeConnector(theme, "│")}${theme.fg("muted", `… ${count - limit} more line(s)`)}`;
-			}
+
 			return makeTruncatedLines(text);
 		},
 	});

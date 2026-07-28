@@ -236,7 +236,10 @@ export function notifyDesktop(title: string, body: string, cwd?: string): void {
 		if (os === "linux") {
 			const args =
 				timeout > 0 ? ["-t", String(timeout), title, body] : [title, body];
-			spawn("notify-send", args, { stdio: "ignore", detached: true }).unref();
+			spawn("notify-send", ["-a", "pi", ...args], {
+				stdio: "ignore",
+				detached: true,
+			}).unref();
 		} else if (os === "darwin") {
 			const st = title.replace(/"/g, '\\"');
 			const sb = body.replace(/"/g, '\\"');

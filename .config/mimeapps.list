@@ -230,10 +230,10 @@ application/wps-office.ett=onlyoffice-desktopeditors.desktop
 application/wps-office.dps=onlyoffice-desktopeditors.desktop
 application/wps-office.dpt=onlyoffice-desktopeditors.desktop
 application/x-hwp=onlyoffice-desktopeditors.desktop
-application/epub+zip=onlyoffice-desktopeditors.desktop
+application/epub+zip=com.github.johnfactotum.Foliate.desktop
 application/oxps=onlyoffice-desktopeditors.desktop
 application/rtf=onlyoffice-desktopeditors.desktop
-application/x-fictionbook+xml=onlyoffice-desktopeditors.desktop
+application/x-fictionbook+xml=com.github.johnfactotum.Foliate.desktop
 image/vnd.djvu=onlyoffice-desktopeditors.desktop
 text/csv=onlyoffice-desktopeditors.desktop
 text/markdown=onlyoffice-desktopeditors.desktop
@@ -257,6 +257,11 @@ text/x-c=nvim.desktop
 text/x-c++=nvim.desktop
 x-scheme-handler/antigravity=antigravity.desktop
 inode/directory=yazi.desktop
+application/x-mobipocket-ebook=com.github.johnfactotum.Foliate.desktop
+application/vnd.amazon.mobi8-ebook=com.github.johnfactotum.Foliate.desktop
+application/x-zip-compressed-fb2=com.github.johnfactotum.Foliate.desktop
+application/vnd.comicbook+zip=com.github.johnfactotum.Foliate.desktop
+x-scheme-handler/opds=com.github.johnfactotum.Foliate.desktop
 
 [Added Associations]
 x-scheme-handler/http=userapp-Zen-MKM2P3.desktop;userapp-Zen-AN1SB3.desktop;zen.desktop;userapp-Zen-2994A3.desktop;userapp-Zen-9O1UA3.desktop;brave-browser.desktop;

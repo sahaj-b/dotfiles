@@ -214,9 +214,7 @@ hl.bind("XF86AudioPause", hl.dsp.exec_cmd(ppauseSmart), { locked = true, repeati
 hl.bind("XF86AudioNext", hl.dsp.exec_cmd(pnext), { locked = true, repeating = true })
 hl.bind("XF86AudioPrev", hl.dsp.exec_cmd(pprev), { locked = true, repeating = true })
 
--- Second terminal / DND
-hl.bind(mod .. " + SHIFT + S", hl.dsp.exec_cmd(terminal))
-hl.bind(mod2 .. " + SHIFT + D", hl.dsp.exec_cmd("makoctl mode -s dnd"))
+hl.bind(mod .. " + SHIFT + D", hl.dsp.exec_cmd("~/scripts/dnd toggle"))
 
 -- Dotool
 hl.bind(mod2 .. " + O", hl.dsp.exec_cmd('echo "wheel -5" | dotoolc'))

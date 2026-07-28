@@ -61,7 +61,10 @@ declare -A SP_FILTERS=(
   ["sort-date"]="CAISAhAB" ["sort-views"]="CAMSAhAB" ["sort-rating"]="CAESAhAB"
 )
 
+MAX_PARALLEL=10
+
 usage() {
+  local code=${1:-0}
   cat <<'EOF'
 USAGE:
   yts search <count> <query> [--summary] [--comments] [filters]
@@ -90,7 +93,7 @@ FOR AI AGENTS:
   Use `--comments` if you care about sentiment.
   If the user asks to reference timestamps, use `subs-raw`.
 EOF
-  exit 1
+  exit "$code"
 }
 
 need_args() {
@@ -250,9 +253,10 @@ search_videos() {
     return
   fi
 
+  local US=$'\x1F'
   _search_source "$1" "$2" 1 \
-    --print '%(id)s | %(title)s | %(channel)s | %(view_count)s | %(upload_date)s | %(duration_string)s | %(description).200s' |
-    awk -F' [|] ' 'BEGIN{OFS=" | "} $5 ~ /^[0-9]{8}$/ { $5 = substr($5,1,4) "-" substr($5,5,2) "-" substr($5,7,2) } 1'
+    --print "%(id)s${US}%(title)s${US}%(channel)s${US}%(view_count)s${US}%(upload_date)s${US}%(duration_string)s${US}%(description).200s" |
+    awk -v "fs=${US}" 'BEGIN{FS=fs; OFS=" | "} $5 ~ /^[0-9]{8}$/ { $5 = substr($5,1,4) "-" substr($5,5,2) "-" substr($5,7,2) } 1'
 }
 
 info_videos() {
@@ -391,6 +395,7 @@ _search_summarize() {
     return 1
   fi
 
+  local running=0
   while IFS=$'\t' read -r vid_id title upload_date; do
     (
       local subs_text subs_file summary comments_out=''
@@ -412,6 +417,11 @@ _search_summarize() {
         "${vid_id} | ${title} | ${date_str}" "$summary" "$subs_file" "$comments_out" >"${dl_dir}/result_${i}"
     ) &
     ((i += 1))
+    ((running++))
+    if ((running >= MAX_PARALLEL)); then
+      wait -n || true
+      ((running--))
+    fi
   done <"${dl_dir}/meta.tsv"
 
   wait
@@ -474,11 +484,12 @@ Sort:
 EOF
 }
 
-[[ $# -ge 1 ]] || usage
+[[ $# -ge 1 ]] || usage 1
 cmd=$1
 shift
 
 case "$cmd" in
+help|-h|--help) usage ;;
 search) search_videos "$@" ;;
 info) info_videos "$@" ;;
 info-single) info_single "$@" ;;
@@ -492,6 +503,6 @@ screenshot) extract_screenshot "$@" ;;
 filters) list_filters ;;
 *)
   echo "Unknown command: $cmd" >&2
-  usage
+  usage 1
   ;;
 esac
