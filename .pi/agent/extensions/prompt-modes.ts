@@ -112,25 +112,23 @@ export default function promptModes(p: ExtensionAPI): void {
 			}
 		}
 		emitChanged();
+	});
 
+	p.on("before_agent_start", async (event, ctx) => {
 		if (!activeMode) return;
-		if (isAlreadyInjected(ctx)) {
-			injectedThisSession = true;
-			return;
-		}
+		if (isAlreadyInjected(ctx)) return;
 
 		const content = loadPrompt(activeMode);
 		if (!content) return;
 
-		p.sendMessage(
-			{
+		injectedThisSession = true;
+		return {
+			message: {
 				customType: `${CUSTOM_TYPE_PREFIX}${activeMode}`,
 				content,
 				display: false,
 			},
-			{ deliverAs: "nextTurn" },
-		);
-		injectedThisSession = true;
+		};
 	});
 
 	p.on("session_shutdown", async () => {

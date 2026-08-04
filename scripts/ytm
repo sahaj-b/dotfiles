@@ -32,10 +32,3 @@ for _ in {1..30}; do
   fi
   sleep 0.5
 done
-
-# Close the special:music workspace if it's currently active
-sleep 0.5
-active_ws=$(hyprctl activeworkspace -j | jq -r '.name')
-if [[ "$active_ws" == "special:music" ]]; then
-  hyprctl dispatch togglespecialworkspace music
-fi

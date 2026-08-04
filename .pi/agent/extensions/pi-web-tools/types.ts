@@ -1,6 +1,6 @@
 // ── Shared types for pi-web-tools ──
 
-export type ProviderId = "exa" | "exa-free" | "firecrawl" | "tavily";
+export type ProviderId = "exa" | "exa-free" | "firecrawl" | "tavily" | "browserbase" | "local";
 export type ToolId = "web_search" | "code_search" | "web_fetch" | "web_crawl" | "web_extract";
 export type FetchFormat = "markdown" | "text" | "html";
 export type ContentKind = "html" | "text" | "raster-image" | "svg" | "binary";
@@ -26,6 +26,27 @@ export interface SearchOptions {
 	maxResults: number;
 }
 
+// ── Provider fetch (web_fetch fallback chain) ──
+
+export interface FetchOptions {
+	url: string;
+	format: FetchFormat;
+	maxBytes?: number;
+	timeoutSeconds?: number;
+}
+
+export interface FetchResponse {
+	/** Effective/final URL after redirects (providers may not resolve it). */
+	url: string;
+	content: string;
+	contentType?: string;
+	mime?: string;
+	status?: number;
+	bytes?: number;
+	/** Base64 raster image (local fetch only). */
+	image?: { mediaType: string; data: string };
+}
+
 // ── Fetch ──
 
 export interface ParsedContentType {
@@ -48,6 +69,8 @@ export interface FetchDetails {
 	image?: boolean;
 	truncated?: boolean;
 	fullOutputPath?: string;
+	provider?: string;
+	fallbacksUsed?: string[];
 }
 
 // ── Crawl ──

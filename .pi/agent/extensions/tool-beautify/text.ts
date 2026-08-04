@@ -58,10 +58,10 @@ export function textContent(result: any): string {
 	return part?.text ?? "";
 }
 
-export function clipLine(line: string, cwd?: string): string {
+export function clipLine(line: string, cwd?: string, suffixLen = 0): string {
 	const max = Math.max(
 		40,
-		Math.floor(settingNumber("maxLineWidth", terminalWidth(cwd), cwd)) - 5,
+		Math.floor(settingNumber("maxLineWidth", terminalWidth(cwd), cwd)) - 10 - suffixLen,
 	);
 	return line.length > max ? `${line.slice(0, max - 1)}…` : line;
 }

@@ -1,5 +1,17 @@
 return {
   {
+    -- "gunasekar/markview-smart-tables.nvim",
+    dir = "~/markview-smart-tables.nvim",
+    dependencies = { "OXY2DEV/markview.nvim" },
+    -- Auto-fit & word-wrap markdown tables that are wider than the window.
+    -- stock markview bails out on any table whose total width >= 90% of the
+    -- window when 'wrap' is on
+    opts = {
+      wrap_width = 1, -- max table width: window fraction (0<n<=1) or abs cols (n>1)
+      -- wrap_minwidth = 5, -- min column width before long words hard-break
+    },
+  },
+  {
     "OXY2DEV/markview.nvim",
     config = function()
       require("markview").setup({
@@ -16,9 +28,9 @@ return {
         preview = {
           filetypes = { "markdown", "codecompanion", "Avante" },
           -- ignore_buftypes = {},
-          --   enable_hybrid_mode = true,
-          --   hybrid_modes = { "i" },
-          --   ignore_previews = {}
+          -- enable_hybrid_mode = true,
+          -- hybrid_modes = { "i" },
+          -- ignore_previews = {}
         },
         markdown_inline = {
           checkboxes = {
@@ -41,6 +53,9 @@ return {
           }
         },
         renderers = {
+          markdown_table = function(buffer, item)
+            require("markview-smart-tables").render(buffer, item)
+          end,
           markdown_code_block = function(buffer, item)
             local fallback = function()
               return require("markview.renderers.markdown").code_block(buffer, item)

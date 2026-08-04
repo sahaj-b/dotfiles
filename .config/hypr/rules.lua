@@ -38,7 +38,77 @@ hl.window_rule({ match = { class = "^picker$", title = "picker-small$" }, float 
 hl.window_rule({ match = { class = "^scratch$" }, workspace = "special:term" })
 
 -- Music workspace
-hl.window_rule({ match = { class = "^com.github.th-ch.youtube-music$" }, workspace = "special:music" })
+hl.window_rule({ match = { class = "^com.github.th-ch.youtube-music$" }, workspace = "special:music silent" })
+hl.window_rule({ match = { class = "mpv" }, workspace = "special:music silent" })
+
+-- Rhythm Doctor: kill blur+border+dimming on the windows (floating ones have empty class, so match title).
+-- NOTE: NO `opacity 1 override` here on purpose - that would force the main game window opaque and
+-- defeat the auto-hide below. The dance sub-windows get their own opacity rule further down.
+hl.window_rule({ match = { title = "^Rhythm Doctor$" }, no_blur = true, border_size = 0, no_shadow = true, no_dim = true })
+
+-- Keep the dance sub-windows (empty class, ignore input) fully opaque (unfocused windows get
+-- inactive_opacity=0.9 dimming otherwise), never auto-focused on open, and never focused on
+-- mouse-hover (no_follow_mouse) so the keyboard stays on the main game window and space works
+-- even while windows dance around the cursor.
+hl.window_rule({
+  match = { class = "^$", title = "^Rhythm Doctor$" },
+  no_focus = true,
+  no_follow_mouse = true,
+  opacity = "1 override 1 override 1 override",
+})
+
+-- Rhythm Doctor window-dance auto-hide:
+-- - main window has class "rhythm doctor.exe" and is opaque (Hyprland XWayland ignores the Wine
+--   transparency the plugin sets), so it covers the game during dance.
+-- - dance sub-windows have class "" (empty).
+-- Whenever a dance sub-window exists, set the main window opacity to 0 (invisible but still alive
+-- so it keeps receiving game input); when the last one is destroyed, restore opacity to 1.
+local RD_MAIN = "class:rhythm doctor\\.exe" -- full-match regex of the main (Unity) window class.
+-- dance sub-windows have class "".
+local rdDanceCount = 0
+
+local function rdIsDanceWindow(win)
+  return win ~= nil and win.class == "" and (win.title or ""):find("Rhythm Doctor", 1, true) ~= nil
+end
+
+local function rdFocusMain()
+  local win = hl.get_window(RD_MAIN)
+  if win then hl.dispatch(hl.dsp.focus({ window = win })) end
+end
+
+local function rdSetMainOpacity(value)
+  local win = hl.get_window(RD_MAIN)
+  if win then
+    hl.dispatch(hl.dsp.window.set_prop({ window = win, prop = "opacity", value = value }))
+  end
+end
+
+local function rdRefresh()
+  local count = 0
+  for _, win in ipairs(hl.get_windows()) do
+    if rdIsDanceWindow(win) then count = count + 1 end
+  end
+  rdDanceCount = count
+  rdSetMainOpacity(count > 0 and 0 or 1)
+  if count > 0 then rdFocusMain() end
+end
+
+hl.on("window.open", function(win)
+  if rdIsDanceWindow(win) then
+    rdDanceCount = rdDanceCount + 1
+    rdSetMainOpacity(0)
+    rdFocusMain()
+  end
+end)
+
+hl.on("window.destroy", function(win)
+  if rdIsDanceWindow(win) then
+    if rdDanceCount > 0 then rdDanceCount = rdDanceCount - 1 end
+    if rdDanceCount == 0 then rdSetMainOpacity(1) end
+  end
+end)
+
+rdRefresh()
 
 -- FL Studio window rules (toggled by startFL-wayland)
 --hl.window_rule({ match = { class = "^fl64.exe$", title = "^()$" }, move = { "cursor_x", "cursor_y" } }) -- fl-toggle

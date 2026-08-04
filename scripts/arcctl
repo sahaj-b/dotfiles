@@ -1,0 +1,167 @@
+#!/bin/bash
+# =============================================================================
+# arcctl - Intel Arc A350M (DG2) power control for the ASUS Vivobook S15 (K5504VN)
+#
+# Why: the dGPU is headless (panel lives on the iGPU), but kept always-on by
+# i915 it leeched ~14W idle AND was the tripwire for the freeze bug (hard hangs
+# on hardware-output engagement). Removing it at boot fixes both.
+#
+# Three power modes:
+#   persist-disable  = udev rule ACTIVE -> Arc removed at every boot (default)
+#   persist-enable   = udev rule OFF    -> Arc present at every boot (gaming)
+#   oneshot (enable) = Arc present THIS session only, disabled again next boot
+#
+# Oneshot trick: the udev rule only removes the Arc when /run/arc-keep-gpu does
+# NOT exist (TEST!= guard). Touching that marker makes the rule skip the device
+# for the rest of the session. /run is tmpfs, so the marker dies on reboot and
+# the rule takes over again - no state to clean up, no udev reload needed.
+# =============================================================================
+
+DEV="0000:03:00.0"        # Arc A350M (dg2)
+BRIDGE="0000:02:01.0"     # PCIe bridge that owns bus 03 - tighter scoped rescan
+DPATH="/sys/bus/pci/devices/$DEV"
+
+RULE="/etc/udev/rules.d/99-disable-arc.rules"
+RULE_OFF="${RULE}.off"
+MARKER="/run/arc-keep-gpu"   # tmpfs: cleared on reboot -> session-only effect
+RULE_BODY='ACTION=="add", SUBSYSTEM=="pci", ATTR{device}=="0x5694", TEST!="/run/arc-keep-gpu", ATTR{power/control}="auto", ATTR{remove}="1"'
+
+# Re-run as root if needed (all the sysfs/udev paths are root-only)
+if [ "$(id -u)" -ne 0 ]; then
+  exec sudo "$0" "$@"
+fi
+
+# --- helpers ----------------------------------------------------------------
+
+card_present() { [ -e "$DPATH" ]; }
+
+bound_to() {
+  if ! card_present; then echo gone; return; fi
+  local d; d=$(readlink "$DPATH/driver" 2>/dev/null)
+  [ -n "$d" ] && basename "$d" || echo none
+}
+
+rule_state() {
+  if [ -f "$RULE" ]; then
+    grep -q 'arc-keep-gpu' "$RULE" 2>/dev/null && echo "active (guarded)" || echo "active (stale)"
+  elif [ -f "$RULE_OFF" ]; then
+    echo "off (.off exists)"
+  else
+    echo "off (absent)"
+  fi
+}
+
+now_w() { awk '{printf "%.1f W\n", $1/1e6}' /sys/class/power_supply/BAT0/power_now 2>/dev/null || echo "n/a"; }
+
+# Ensure the guarded rule is in place so the Arc dies on the NEXT add event
+ensure_rule_on() {
+  if [ -f "$RULE" ] && grep -q 'arc-keep-gpu' "$RULE" 2>/dev/null; then return; fi
+  printf '%s\n' "$RULE_BODY" > "$RULE"
+  udevadm control --reload-rules 2>/dev/null
+  echo "udev rule written + reloaded"
+}
+
+# Park the rule so the Arc survives the NEXT add event (i.e. next boot)
+rule_off() {
+  [ -f "$RULE" ] || return
+  mv "$RULE" "$RULE_OFF"
+  udevadm control --reload-rules 2>/dev/null
+  echo "udev rule parked ($RULE_OFF) - Arc will be present on next boot"
+}
+
+# Rescan (bridge first, whole-bus fallback), bind i915, force D0 (control=on)
+ensure_device() {
+  if ! card_present; then
+    echo "card absent - rescanning (bridge)..."
+    echo 1 > "/sys/bus/pci/devices/$BRIDGE/rescan" 2>/dev/null
+    sleep 2
+    if ! card_present; then
+      echo "  bridge found nothing - rescanning whole bus..."
+      echo 1 > /sys/bus/pci/rescan 2>/dev/null
+      sleep 2
+    fi
+  fi
+  if card_present; then
+    if [ "$(bound_to)" = none ]; then
+      echo "$DEV" > /sys/bus/pci/drivers/i915/bind 2>/dev/null
+    fi
+    echo on > "$DPATH/power/control" 2>/dev/null
+  else
+    echo "!! card still absent after rescan"
+  fi
+}
+
+remove_device() {
+  card_present || { echo "card already gone"; return; }
+  echo "$DEV" > /sys/bus/pci/drivers/i915/unbind 2>/dev/null
+  echo "$DEV" > /sys/bus/pci/drivers/xe/unbind 2>/dev/null
+  echo 1 > "$DPATH/remove" 2>/dev/null
+  echo "card removed"
+}
+
+# --- commands ---------------------------------------------------------------
+
+case "${1:-status}" in
+
+status|s)
+  echo "card:      $(card_present && echo PRESENT || echo GONE)"
+  echo "driver:    $(bound_to)"
+  if card_present; then
+    echo "power:     control=$(cat "$DPATH/power/control" 2>/dev/null) state=$(cat "$DPATH/power/runtime_status" 2>/dev/null)"
+  fi
+  echo "udev rule: $(rule_state)"
+  echo "oneshot:   $([ -e "$MARKER" ] && echo "active - Arc kept THIS session" || echo "inactive - udev applies next boot")"
+  echo "drm:       $(ls /dev/dri 2>/dev/null | tr '\n' ' ')"
+  echo "battery:   $(now_w)"
+  ;;
+
+enable|e) # oneshot: Arc on for this session, udev removes it again at next boot
+  touch "$MARKER"
+  ensure_device
+  echo
+  echo "enabled (oneshot). marker=$MARKER"
+  echo "next boot: marker gone -> udev rule removes the Arc again"
+  ;;
+
+disable|d) # persistent: rule on + remove now. Arc off this session AND every boot
+  rm -f "$MARKER"
+  ensure_rule_on
+  remove_device
+  echo
+  echo "disabled (persistent). udev rule active - Arc stays off across boots"
+  ;;
+
+persist-enable|p) # udev off + Arc on now. Stays on until you run 'disable'
+  rule_off
+  rm -f "$MARKER"   # irrelevant once the rule is parked; hygiene only
+  ensure_device
+  echo
+  echo "persist-enabled. rule parked - Arc present on this and next boots"
+  echo "run 'arcctl disable' to go back to battery mode"
+  ;;
+
+rescan|r) # diagnostic: re-enumerate the bridge (respects current rule/marker state)
+  echo "rescanning bridge $BRIDGE ..."
+  echo 1 > "/sys/bus/pci/devices/$BRIDGE/rescan" 2>/dev/null
+  sleep 2
+  if ! card_present; then
+    echo "  bridge found nothing - rescanning whole bus..."
+    echo 1 > /sys/bus/pci/rescan 2>/dev/null
+    sleep 2
+  fi
+  if card_present && [ "$(bound_to)" = none ]; then
+    echo "$DEV" > /sys/bus/pci/drivers/i915/bind 2>/dev/null
+  fi
+  echo "card: $(card_present && echo PRESENT || echo GONE), driver: $(bound_to)"
+  [ -e "$MARKER" ] || [ ! -f "$RULE" ] || echo "note: udev rule is active - a re-added Arc gets removed again unless the oneshot marker exists"
+  ;;
+
+*)
+  echo "usage: $0 {status|s|enable|e|disable|d|persist-enable|p|rescan|r}"
+  echo "  s / status          show card/rule/marker/power state"
+  echo "  e / enable          ONESHOT: Arc this session only, off again next boot"
+  echo "  d / disable         persistent OFF (udev rule active)"
+  echo "  p / persist-enable  persistent ON (udev rule parked)"
+  echo "  r / rescan          re-enumerate the PCI bridge (diagnostic)"
+  ;;
+esac

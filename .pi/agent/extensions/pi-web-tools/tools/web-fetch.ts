@@ -1,4 +1,4 @@
-// ── web_fetch tool (direct HTTP fetch, no provider) ──
+// ── web_fetch tool (provider fallback chain, ends with local fetch) ──
 
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -7,25 +7,31 @@ import { Type } from "typebox";
 import { Text } from "@earendil-works/pi-tui";
 import { truncateHead, DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, formatSize } from "@earendil-works/pi-coding-agent";
 import type { TextContent } from "@earendil-works/pi-ai";
-import type { WebToolsConfig, FetchDetails, FetchFormat } from "../types.ts";
-import { getToolConfig } from "../config.ts";
-import { htmlToMarkdown, htmlToText, isPoorMarkdownConversion } from "../html.ts";
-import {
-	normalizeAndValidateUrl, fetchWithRedirects, readBodyWithLimit,
-	parseContentType, decodeTextBuffer, createOperationSignal,
-	shouldRetryWithFallbackUserAgent, DEFAULT_USER_AGENT, FALLBACK_USER_AGENT,
-} from "../network.ts";
-import { animatedBullet, connectorText, cleanupSpinner, treeConnector } from "../spinner.ts";
+import type { FetchDetails, FetchFormat, WebToolsConfig } from "../types.ts";
+import { getToolConfig, getToolProviders } from "../config.ts";
+import { executeWithFallback } from "../fallback.ts";
+import type { Provider } from "../providers/types.ts";
+import { isFetchCapable } from "../providers/types.ts";
+import { normalizeAndValidateUrl, createOperationSignal } from "../network.ts";
+import { animatedBullet, connectorText, cleanupSpinner } from "../spinner.ts";
 
 function textContent(text: string): TextContent { return { type: "text", text }; }
 
-export function createWebFetchTool(config: WebToolsConfig) {
+/** Below this a provider result is treated as a failed extraction → next fallback. */
+const MIN_CONTENT_CHARS = 20;
+
+export function createWebFetchTool(config: WebToolsConfig, providers: Provider[]) {
 	const toolConfig = getToolConfig("web_fetch", config);
+	const providerOrder = getToolProviders("web_fetch", config);
+
+	const orderedProviders = providerOrder
+		.map((id) => providers.find((p) => p.id === id))
+		.filter((p): p is Provider => !!p && isFetchCapable(p));
 
 	return {
 		name: "web_fetch",
 		label: "󰖟 Fetch",
-		description: "Fetch a single URL and return its content as markdown, text, or raw HTML",
+		description: "Fetch a single URL and return its content as markdown, text, or raw HTML. Routes through the provider fallback chain (e.g. Browserbase → Firecrawl → Tavily) and ends with a direct local fetch when everything else fails.",
 		parameters: Type.Object({
 			url: Type.String({ description: "URL to fetch." }),
 			format: Type.Optional(Type.Union([Type.Literal("markdown"), Type.Literal("text"), Type.Literal("html")], { description: "Return format." })),
@@ -40,19 +46,73 @@ export function createWebFetchTool(config: WebToolsConfig) {
 			signal?: AbortSignal,
 			onUpdate?: (...args: any[]) => void,
 		) {
-			const url = normalizeAndValidateUrl(params.url);
+			const url = normalizeAndValidateUrl(params.url).href;
 			const format = params.format ?? (toolConfig.defaultFormat as FetchFormat) ?? "markdown";
 			const timeoutMs = (params.timeout ?? toolConfig.timeoutSeconds ?? 30) * 1000;
 			const maxBytes = (toolConfig.maxResponseMB ?? 5) * 1024 * 1024;
 
 			onUpdate?.({
-				content: [textContent(`Fetching ${url.href}...`)],
-				details: { requestedUrl: params.url, finalUrl: url.href, format, status: 0, mime: "", contentType: "", bytes: 0 },
+				content: [textContent(`Fetching ${url}...`)],
+				details: { requestedUrl: params.url, finalUrl: url, format, status: 0, mime: "", contentType: "", bytes: 0 },
 			});
+
+			if (orderedProviders.length === 0) throw new Error("No fetch providers configured");
 
 			const op = createOperationSignal(timeoutMs, signal);
 			try {
-				return await doFetch(url, format, maxBytes, op.signal);
+				const { result, provider, fallbacksUsed } = await executeWithFallback(
+					orderedProviders,
+					"fetch",
+					async (p) => {
+						if (!isFetchCapable(p)) throw new Error(`${p.id} doesn't support fetch`);
+						const r = await p.fetch({ url, format, maxBytes, timeoutSeconds: Math.ceil(timeoutMs / 1000) }, op.signal);
+						if (!r.image && r.content.trim().length < MIN_CONTENT_CHARS) {
+							throw new Error(`empty content from ${p.id}`);
+						}
+						return r;
+					},
+					op.signal,
+				);
+
+				// Raster image (local fetch only)
+				if (result.image) {
+					const details: FetchDetails = {
+						requestedUrl: params.url, finalUrl: result.url, format,
+						status: result.status ?? 200,
+						mime: result.mime ?? result.image.mediaType,
+						contentType: result.contentType ?? result.image.mediaType,
+						bytes: result.bytes ?? 0, image: true,
+						provider, fallbacksUsed,
+					};
+					return {
+						content: [{ type: "image" as const, source: { type: "base64" as const, media_type: result.image.mediaType, data: result.image.data } }],
+						details,
+					};
+				}
+
+				// Truncation
+				const truncation = truncateHead(result.content, { maxBytes: DEFAULT_MAX_BYTES, maxLines: DEFAULT_MAX_LINES });
+				let content = truncation.content;
+				let truncated = false;
+				let fullOutputPath: string | undefined;
+				if (truncation.truncated) {
+					truncated = true;
+					const dir = await mkdtemp(join(tmpdir(), "pi-web-fetch-"));
+					fullOutputPath = join(dir, "output.txt");
+					await writeFile(fullOutputPath, result.content, "utf8");
+					content = `${truncation.content}\n\n[Output truncated: ${truncation.outputLines} of ${truncation.totalLines} lines (${formatSize(truncation.outputBytes)} of ${formatSize(truncation.totalBytes)}). Full output saved to: ${fullOutputPath}]`;
+				}
+
+				const details: FetchDetails = {
+					requestedUrl: params.url, finalUrl: result.url, format,
+					status: result.status ?? 200,
+					mime: result.mime ?? "",
+					contentType: result.contentType ?? "",
+					bytes: result.bytes ?? Buffer.byteLength(result.content),
+					truncated, fullOutputPath,
+					provider, fallbacksUsed,
+				};
+				return { content: [textContent(content)], details };
 			} finally { op.cleanup(); }
 		},
 
@@ -65,9 +125,12 @@ export function createWebFetchTool(config: WebToolsConfig) {
 
 		renderResult(result: any, options: { expanded: boolean; isPartial: boolean }, theme: any, ctx: any) {
 			if (options.isPartial) return connectorText(ctx, theme, "Fetching...");
+			cleanupSpinner(ctx);
 			if (result.isError) return connectorText(ctx, theme, theme.fg("error", `✗ ${result.content?.[0]?.text || "Fetch failed"}`));
 			const d = result.details as FetchDetails | undefined;
 			let text = theme.fg("success", `${d?.mime || "content"} (${formatSize(d?.bytes ?? 0)})`);
+			if (d?.provider) text += theme.fg("muted", ` (${d.provider})`);
+			if (d?.fallbacksUsed?.length) text += theme.fg("dim", ` [fallbacks: ${d.fallbacksUsed.join(", ")}]`);
 			if (d?.truncated) text += theme.fg("warning", " [truncated]");
 			if (options.expanded && result.content?.[0]?.text) {
 				const lines = result.content[0].text.split("\n").slice(0, 12);
@@ -76,55 +139,4 @@ export function createWebFetchTool(config: WebToolsConfig) {
 			return connectorText(ctx, theme, text);
 		},
 	};
-}
-
-async function doFetch(url: URL, format: FetchFormat, maxBytes: number, signal: AbortSignal) {
-	const headers: Record<string, string> = { "User-Agent": DEFAULT_USER_AGENT, "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" };
-	let { response, finalUrl } = await fetchWithRedirects(url, { headers, signal, maxRedirects: 10, blockPrivateHosts: true });
-
-	// Retry on Cloudflare challenge
-	if (shouldRetryWithFallbackUserAgent(response)) {
-		await response.body?.cancel().catch(() => { });
-		headers["User-Agent"] = FALLBACK_USER_AGENT;
-		({ response, finalUrl } = await fetchWithRedirects(url, { headers, signal, maxRedirects: 10, blockPrivateHosts: true }));
-	}
-
-	if (!response.ok) { await response.body?.cancel().catch(() => { }); throw new Error(`HTTP ${response.status} fetching ${finalUrl.href}`); }
-
-	const ct = parseContentType(response.headers.get("content-type"));
-	const { buffer, bytes } = await readBodyWithLimit(response, maxBytes, signal);
-
-	// Raster images → base64
-	if (ct.kind === "raster-image") {
-		const b64 = buffer.toString("base64");
-		const details: FetchDetails = { requestedUrl: url.href, finalUrl: finalUrl.href, format, status: response.status, mime: ct.mime, contentType: ct.contentType, bytes, image: true };
-		return { content: [{ type: "image" as const, source: { type: "base64" as const, media_type: ct.mime, data: b64 } }], details };
-	}
-
-	// Text/HTML
-	const { text: rawText, decoder } = decodeTextBuffer(buffer, ct.charset);
-	let content: string;
-	if (ct.kind === "html") {
-		if (format === "html") { content = rawText; }
-		else if (format === "text") { content = htmlToText(rawText, finalUrl.href); }
-		else {
-			content = htmlToMarkdown(rawText, finalUrl.href);
-			if (isPoorMarkdownConversion(content)) content = htmlToText(rawText, finalUrl.href);
-		}
-	} else { content = rawText; }
-
-	// Truncation
-	const truncation = truncateHead(content, { maxBytes: DEFAULT_MAX_BYTES, maxLines: DEFAULT_MAX_LINES });
-	let truncated = false;
-	let fullOutputPath: string | undefined;
-	if (truncation.truncated) {
-		truncated = true;
-		const dir = await mkdtemp(join(tmpdir(), "pi-web-fetch-"));
-		fullOutputPath = join(dir, "output.txt");
-		await writeFile(fullOutputPath, content, "utf8");
-		content = `${truncation.content}\n\n[Output truncated: ${truncation.outputLines} of ${truncation.totalLines} lines (${formatSize(truncation.outputBytes)} of ${formatSize(truncation.totalBytes)}). Full output saved to: ${fullOutputPath}]`;
-	}
-
-	const details: FetchDetails = { requestedUrl: url.href, finalUrl: finalUrl.href, format, status: response.status, mime: ct.mime, contentType: ct.contentType, charset: ct.charset, decoder, bytes, truncated, fullOutputPath };
-	return { content: [textContent(content)], details };
 }

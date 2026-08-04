@@ -1,0 +1,11 @@
+[Unit]
+Description=eDP display health monitor (flicker/blackout/AUX fault logging)
+After=graphical-session.target
+
+[Service]
+ExecStart=%h/.local/bin/display-health.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

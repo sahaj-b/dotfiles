@@ -11,12 +11,14 @@ import { contextCwd, getBuiltInTool } from "./read.js";
 import { stackPrefix, toolLabel } from "./theme.js";
 import {
 	clearSpinner,
+	clipLine,
 	displayPath,
 	makeTruncatedLines,
 	renderPendingCall,
 	renderPendingDetail,
 	textContent,
 } from "./text.js";
+import { visibleWidth } from "./ansi.js";
 
 export function registerEdit(pi: ExtensionAPI, agent: any, cwd: string): void {
 	const original = getBuiltInTool(agent, cwd, "edit");
@@ -38,21 +40,25 @@ export function registerEdit(pi: ExtensionAPI, agent: any, cwd: string): void {
 		renderCall(args: any, theme: any, context: any) {
 			const targetPath = args?.path ?? args?.file_path ?? "";
 			const displayTarget = displayPath(targetPath, context?.cwd ?? cwd);
-			return renderPendingCall(`${toolLabel(theme, "Edit ")}${theme.fg("accent", displayTarget)}`, theme, context);
+			return renderPendingCall(`${toolLabel(theme, "Edit ")}${theme.fg("accent", clipLine(displayTarget, context?.cwd ?? cwd))}`, theme, context);
 		},
 		renderResult(result: any, { expanded, isPartial }: any, theme: any, context: any) {
 			const args = context?.args ?? {};
 			const targetPath = args.path ?? args.file_path ?? "";
 			const displayTarget = displayPath(targetPath, context?.cwd ?? cwd);
-			const call = `${toolLabel(theme, "Edit ")}${theme.fg("accent", displayTarget)}`;
+			const structured = result?.details?.toolDiff as StructuredDiff | undefined;
 			if (isPartial) return renderPendingDetail("editing…", theme);
 			clearSpinner(context);
-			const structured = result?.details?.toolDiff as StructuredDiff | undefined;
 			if (context?.isError || result?.isError) {
 				const errorText = textContent(result).split(/\r?\n/)[0] || "edit failed";
+				const suffix = ` · ${errorText}`;
+				const suffixLen = visibleWidth(theme.fg("error", suffix));
+				const call = `${toolLabel(theme, "Edit ")}${theme.fg("accent", clipLine(displayTarget, context?.cwd ?? cwd, suffixLen))}`;
 				return makeTruncatedLines(`${stackPrefix(theme)}${call}${theme.fg("dim", " · ")}${theme.fg("error", errorText)}`);
 			}
 			const summary = structured ? diffSummary(structured, theme, context?.cwd ?? cwd) : theme.fg("success", "applied");
+			const suffixLen = visibleWidth(theme.fg("dim", " · ")) + visibleWidth(summary);
+			const call = `${toolLabel(theme, "Edit ")}${theme.fg("accent", clipLine(displayTarget, context?.cwd ?? cwd, suffixLen))}`;
 			const header = `${stackPrefix(theme)}${call}${theme.fg("dim", " · ")}${summary}`;
 			if (structured) return new DiffResult(header, structured, theme, expanded, context?.cwd ?? cwd, targetPath);
 			return makeTruncatedLines(header);

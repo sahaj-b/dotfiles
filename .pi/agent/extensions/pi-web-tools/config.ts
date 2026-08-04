@@ -13,10 +13,11 @@ const commandCache = new Map<string, { value?: string; error?: string }>();
 // ── Default fallback chains ──
 
 const DEFAULT_TOOL_PROVIDERS: Record<string, ProviderId[]> = {
-	web_search: ["exa", "firecrawl", "tavily", "exa-free"],
+	web_search: ["exa", "firecrawl", "tavily", "browserbase", "exa-free"],
 	code_search: ["exa"],
 	web_crawl: ["firecrawl", "tavily"],
-	web_extract: ["firecrawl", "tavily"],
+	web_extract: ["firecrawl", "tavily", "browserbase"],
+	web_fetch: ["browserbase", "firecrawl", "tavily", "local"],
 };
 
 const DEFAULT_TOOL_CONFIG: Record<string, Partial<ToolConfig>> = {
@@ -80,6 +81,7 @@ export function resolveApiKey(providerId: ProviderId, config: WebToolsConfig): s
 		exa: "EXA_API_KEY",
 		firecrawl: "FIRECRAWL_API_KEY",
 		tavily: "TAVILY_API_KEY",
+		browserbase: "BROWSERBASE_API_KEY",
 	};
 
 	// Config override
@@ -139,10 +141,10 @@ export function loadConfig(): WebToolsConfig {
 export function getProviderStatus(config: WebToolsConfig): string {
 	const lines: string[] = ["Web Tools — Provider Status", ""];
 
-	const providerIds: ProviderId[] = ["exa", "exa-free", "firecrawl", "tavily"];
+	const providerIds: ProviderId[] = ["exa", "exa-free", "firecrawl", "tavily", "browserbase", "local"];
 	for (const id of providerIds) {
-		if (id === "exa-free") {
-			lines.push(`  ${id}: ✓ available (free, no key needed)`);
+		if (id === "exa-free" || id === "local") {
+			lines.push(`  ${id}: ✓ available (no key needed)`);
 			continue;
 		}
 		const key = resolveApiKey(id, config);

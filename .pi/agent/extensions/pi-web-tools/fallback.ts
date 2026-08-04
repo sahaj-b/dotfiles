@@ -131,7 +131,9 @@ export function classifyError(error: unknown): ErrorKind {
 			if (error.status === 429 || error.status === 402) return "quota";
 			if (error.status >= 500) return "network";
 		}
-		// Fall through to message-based classification
+		// ProviderErrors without an explicit status carry their own kind
+		// (e.g. local fetch always throws "other" so it never gets cooled down)
+		return "other";
 	}
 	if (!(error instanceof Error)) return "other";
 	const msg = error.message.toLowerCase();

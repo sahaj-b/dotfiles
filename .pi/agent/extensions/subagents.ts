@@ -7,6 +7,7 @@
 import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
+import * as path from "node:path";
 import type {
 	ExtensionAPI,
 	ExtensionContext,
@@ -36,6 +37,26 @@ interface AgentEntry {
 	thinking?: string;
 }
 
+/**
+ * Dedicated session storage for subagents, isolated from the default
+ * `~/.pi/agent/sessions/<encoded-cwd>/` tree so `/resume` in the interactive
+ * picker never surfaces these runs.
+ */
+const SUBAGENT_SESSION_DIR = path.join(
+	os.homedir(),
+	".pi",
+	"agent",
+	"sessions",
+	"subagents",
+);
+
+/**
+ * Lazily registered tool used to resume a failed subagent.
+ * Not in the registry at all until a subagent errors, so it costs zero
+ * context tokens in the happy path.
+ */
+const RESUME_TOOL_NAME = "resume_subagent";
+
 const AGENTS: Record<string, AgentEntry> = {
 	scout: {
 		name: "scout",
@@ -54,7 +75,7 @@ const AGENTS: Record<string, AgentEntry> = {
 	},
 	worker: {
 		name: "worker",
-		model: "oc/mimo-v2.5-free",
+		model: "oc/deepseek-v4-flash-free",
 		commands: [],
 		thinking: "high",
 	},
@@ -115,6 +136,9 @@ interface AgentResult {
 		cost: number;
 		turns: number;
 	};
+	/** Persisted session id/file so a failed run can be resumed. */
+	sessionId?: string;
+	sessionFile?: string;
 }
 
 interface Details {
@@ -199,16 +223,21 @@ async function buildPiArgs(
 	agent: AgentEntry,
 	task: string,
 	cwd: string,
+	opts: { sessionDir?: string; resumeFrom?: string } = {},
 ): Promise<{ args: string[] }> {
 	const piBin = resolvePiBinary();
 
+	// Subagents persist to a quarantined session dir (hidden from the user's
+	// default picker) instead of running ephemeral with --no-session. That's
+	// what makes a failed run resumable via resume_subagent.
 	const args = [
 		...piBin.baseArgs,
 		"--mode",
 		"rpc",
-		"--no-session",
 		"--no-context-files",
 	];
+	if (opts.sessionDir) args.push("--session-dir", opts.sessionDir);
+	if (opts.resumeFrom) args.push("--session", opts.resumeFrom);
 
 	args.push("--model", agent.model);
 	if (agent.thinking) args.push("--thinking", agent.thinking);
@@ -271,8 +300,13 @@ async function runSubagent(
 	contextWindow: number | undefined,
 	signal: AbortSignal | undefined,
 	onUpdate?: (result: AgentResult) => void,
+	opts: { sessionDir?: string; resumeFrom?: string } = {},
 ): Promise<AgentResult> {
-	const { args } = await buildPiArgs(agent, task, cwd);
+	const sessionDir = opts.sessionDir ?? SUBAGENT_SESSION_DIR;
+	const { args } = await buildPiArgs(agent, task, cwd, {
+		sessionDir,
+		resumeFrom: opts.resumeFrom,
+	});
 	const command = args[0];
 	const spawnArgs = args.slice(1);
 
@@ -328,6 +362,12 @@ async function runSubagent(
 				);
 			}
 		}
+
+		// Query session identity early. The session file path/id is fixed by the
+		// SessionManager constructor, so a pre-flight get_state yields the stable
+		// resume target long before the run finishes.
+		let stateId = `state-${Date.now()}`;
+		proc.stdin.write(JSON.stringify({ id: stateId, type: "get_state" }) + "\n");
 		proc.stdin.write(
 			JSON.stringify({ id: "task", type: "prompt", message: task }) + "\n",
 		);
@@ -340,6 +380,13 @@ async function runSubagent(
 			try {
 				const evt = JSON.parse(line) as any;
 				progress.durationMs = Date.now() - startTime;
+
+				if (evt.type === "response" && evt.command === "get_state" && evt.id === stateId) {
+					if (evt.success && evt.data) {
+						result.sessionId = evt.data.sessionId || undefined;
+						result.sessionFile = evt.data.sessionFile || undefined;
+					}
+				}
 
 				if (evt.type === "agent_end") {
 					proc.stdin.end();
@@ -531,6 +578,124 @@ function throttle<T extends (...args: any[]) => void>(fn: T, ms: number): T {
 	}) as T;
 }
 
+// ── Resume Tool (lazy) ────────────────────────────────────────────────
+
+/** Tracks whether resume_subagent has been registered for this session. */
+let resumeToolRegistered = false;
+
+function resolveSubagentSession(session: unknown): string | undefined {
+	if (typeof session !== "string" || !session) return undefined;
+	const s = session.replace(/^~(?=$|\/|\\)/, os.homedir());
+	const looksLikePath =
+		s.includes("/") || s.includes("\\") || s.endsWith(".jsonl");
+	if (looksLikePath && fs.existsSync(s)) {
+		return path.normalize(s);
+	}
+	if (!fs.existsSync(SUBAGENT_SESSION_DIR)) return undefined;
+	const hit = fs
+		.readdirSync(SUBAGENT_SESSION_DIR)
+		.find((f) => f.endsWith(".jsonl") && f.includes(session));
+	return hit
+		? path.join(SUBAGENT_SESSION_DIR, hit)
+		: undefined;
+}
+
+/**
+ * Register + activate resume_subagent only when a subagent actually erred.
+ * Keeping it out of the registry/active set otherwise is what guarantees zero
+ * context cost in the happy path.
+ */
+function ensureResumeTool(pi: ExtensionAPI) {
+	if (!resumeToolRegistered) {
+		resumeToolRegistered = true;
+		pi.registerTool({
+			name: RESUME_TOOL_NAME,
+			label: "Resume subagent",
+			description:
+				"Resume/retry a previously run subagent that failed or was interrupted. Continues the same preserved session with new instructions.",
+			promptSnippet: "Resume a failed subagent session",
+			promptGuidelines: [
+				"Use resume_subagent when a prior subagent tool call errored and a session id/file was reported. Give the session id/path plus the specific fix/continuation.",
+			],
+			parameters: Type.Object({
+				session: Type.String({
+					description:
+						"Session id or full session file path returned by the failed subagent result.",
+				}),
+				task: Type.String({
+					description:
+						"New instruction continuing where the failed subagent left off.",
+				}),
+				agent: Type.Optional(
+					Type.String({
+						description: "Agent type to run under (scout, researcher, worker).",
+					}),
+				),
+				cwd: Type.Optional(
+					Type.String({
+						description: "Working directory for the resumed agent process.",
+					}),
+				),
+			}),
+
+			async execute(toolCallId, params, signal, onUpdate, ctx) {
+				const sessionPath = resolveSubagentSession(params.session);
+				if (!sessionPath) {
+					deactivateResumeTool(pi);
+					throw new Error(
+						`${RESUME_TOOL_NAME}: unknown session: ${params.session}`,
+					);
+				}
+				const agentEntry =
+					(params.agent && AGENTS[params.agent]) || AGENTS.worker;
+
+				const [provider, modelId] = (agentEntry.model || "").split("/");
+				const contextWindow =
+					provider && modelId
+						? ctx.modelRegistry.find(provider, modelId)?.contextWindow
+						: undefined;
+
+				const result = await runSubagent(
+					agentEntry,
+					params.task!,
+					params.cwd ?? ctx.cwd,
+					contextWindow,
+					signal,
+					onUpdate
+						? (r) => {
+								onUpdate({
+									content: [{ type: "text", text: "(resuming...)" }],
+									details: { results: [r] },
+								});
+							}
+						: undefined,
+					{ sessionDir: SUBAGENT_SESSION_DIR, resumeFrom: sessionPath },
+				);
+
+				const isError = result.exitCode !== 0 || !!result.progress.error;
+				if (!isError) deactivateResumeTool(pi);
+				return {
+					content: [{ type: "text", text: result.output || "(no output)" }],
+					details: { results: [result] },
+					...(isError ? { isError: true } : {}),
+				};
+			},
+		});
+	}
+	if (!pi.getActiveTools().includes(RESUME_TOOL_NAME)) {
+		pi.setActiveTools([...pi.getActiveTools(), RESUME_TOOL_NAME]);
+	}
+}
+
+/** Pull resume_subagent back out of the active set once the crisis is solved. */
+function deactivateResumeTool(pi: ExtensionAPI) {
+	if (pi.getActiveTools().includes(RESUME_TOOL_NAME)) {
+		pi.setActiveTools(
+			pi.getActiveTools().filter((n) => n !== RESUME_TOOL_NAME),
+		);
+	}
+}
+
 // ── Rendering ─────────────────────────────────────────────────────────
 
 type Theme = ExtensionContext["ui"]["theme"];
@@ -538,6 +703,13 @@ type Theme = ExtensionContext["ui"]["theme"];
 function getTermWidth(): number {
 	return process.stdout.columns || 120;
 }
+
+/**
+ * Number of trailing tool calls to show per subagent in collapsed (non-
+ * Ctrl-O) view. Newer calls push older ones out the top — a lazy fixed window
+ * instead of dumping the whole history. Expanded view always shows everything.
+ */
+const MAX_COLLAPSED_TOOL_ROWS = 5;
 
 function renderAgentProgress(
 	r: AgentResult,
@@ -564,7 +736,7 @@ function renderAgentProgress(
 		}
 	};
 
-	// Header: icon + agent + stats
+	// Header: icon + agent only. Stats live at the bottom with the ctx gauge.
 	const icon = isRunning
 		? theme.fg("warning", "⟳")
 		: isPending
@@ -572,11 +744,8 @@ function renderAgentProgress(
 			: r.exitCode === 0
 				? theme.fg("success", "✓")
 				: theme.fg("error", "✗");
-	const stats = `${prog.toolCount} tools · ${formatDuration(prog.durationMs)}`;
 	const modelStr = r.model ? theme.fg("dim", ` (${r.model})`) : "";
-	addLine(
-		`${icon} ${theme.fg("toolTitle", theme.bold(r.agent))}${modelStr} — ${theme.fg("dim", stats)}`,
-	);
+	addLine(`${icon} ${theme.fg("toolTitle", theme.bold(r.agent))}${modelStr}`);
 
 	// Tool rows + recursive children
 	const renderToolRow = (
@@ -598,7 +767,12 @@ function renderAgentProgress(
 		}
 	};
 
-	for (const t of prog.recentTools) {
+	// Tool rows, clamped to a trailing window when collapsed so the view scrolls
+	// with the newest calls instead of stacking the entire list.
+	const visibleTools = expanded
+		? prog.recentTools
+		: prog.recentTools.slice(-MAX_COLLAPSED_TOOL_ROWS);
+	for (const t of visibleTools) {
 		renderToolRow(t.tool, t.args, t.children, t.status === "running");
 	}
 
@@ -616,7 +790,9 @@ function renderAgentProgress(
 	}
 
 	if (!nested) c.addChild(new Spacer(1));
-	const usageParts: string[] = [];
+	const usageParts: string[] = [
+		theme.fg("dim", `${prog.toolCount} tools · ${formatDuration(prog.durationMs)}`),
+	];
 	if (prog.tokens > 0) {
 		const ctxStr = formatContextUsage(prog.tokens, r.contextWindow);
 		const pct = r.contextWindow ? (prog.tokens / r.contextWindow) * 100 : 0;
@@ -628,9 +804,7 @@ function renderAgentProgress(
 					: theme.fg("dim", ctxStr);
 		usageParts.push(coloredCtx);
 	}
-	if (usageParts.length) {
-		addLine(usageParts.join(" "));
-	}
+	addLine(usageParts.join(" · "));
 
 	if (prog.error) {
 		addLine(theme.fg("error", `Error: ${prog.error}`));
@@ -703,11 +877,25 @@ export default function (pi: ExtensionAPI) {
 							});
 						}
 					: undefined,
+				{ sessionDir: SUBAGENT_SESSION_DIR },
 			);
 
 			const isError = result.exitCode !== 0 || !!result.progress.error;
+			let text = result.output || "(no output)";
+			if (isError && (result.sessionFile || result.sessionId)) {
+				// Only on failure is resume_subagent injected into the agent's context
+				// (registry + active set) and announced with concrete usage.
+				ensureResumeTool(pi);
+				const sessionRef = result.sessionFile || result.sessionId!;
+				text +=
+					"\n\n" +
+					`[resume] This ${agent.name} subagent errored. Its session is preserved. ` +
+					"Resume/retry it with the `resume_subagent` tool (now available in this context):\n" +
+					`resume_subagent({ agent: "${agent.name}", session: "${sessionRef}", ` +
+					"task: \"Continue where it left off, fixing the reported error, and report the result.\" })";
+			}
 			return {
-				content: [{ type: "text", text: result.output || "(no output)" }],
+				content: [{ type: "text", text }],
 				details: { results: [result] },
 				...(isError ? { isError: true } : {}),
 			};

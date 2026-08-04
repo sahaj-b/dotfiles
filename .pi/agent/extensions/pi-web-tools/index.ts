@@ -7,6 +7,8 @@ import { ExaApiProvider } from "./providers/exa.ts";
 import { ExaFreeProvider } from "./providers/exa-free.ts";
 import { FirecrawlProvider } from "./providers/firecrawl.ts";
 import { TavilyProvider } from "./providers/tavily.ts";
+import { BrowserbaseProvider } from "./providers/browserbase.ts";
+import { LocalFetchProvider } from "./providers/local.ts";
 import { createWebSearchTool } from "./tools/web-search.ts";
 import { createCodeSearchTool } from "./tools/code-search.ts";
 import { createWebFetchTool } from "./tools/web-fetch.ts";
@@ -41,11 +43,20 @@ export default function (pi: ExtensionAPI) {
 		providers.push(new TavilyProvider(tavilyApiKey));
 	}
 
+	// Browserbase — only if key is available (free tier: 1,000 fetch + 1,000 search/mo)
+	const browserbaseApiKey = resolveApiKey("browserbase", config);
+	if (browserbaseApiKey) {
+		providers.push(new BrowserbaseProvider(browserbaseApiKey));
+	}
+
+	// Local fetch — always available, final fallback for web_fetch
+	providers.push(new LocalFetchProvider());
+
 	// ── Register tools ──
 
 	pi.registerTool(createWebSearchTool(config, providers) as any);
 	pi.registerTool(createCodeSearchTool(config, providers) as any);
-	pi.registerTool(createWebFetchTool(config) as any);
+	pi.registerTool(createWebFetchTool(config, providers) as any);
 	pi.registerTool(createWebCrawlTool(config, providers) as any);
 	pi.registerTool(createWebExtractTool(config, providers) as any);
 
@@ -53,7 +64,7 @@ export default function (pi: ExtensionAPI) {
 
 	pi.registerCommand("web-tools", {
 		description: "Show web-tools provider status and configuration",
-		handler: async (_args: string[], ctx: any) => {
+		handler: async (_args: string, ctx: any) => {
 			const status = getProviderStatus(config);
 			ctx.ui.notify(status, "info");
 		},

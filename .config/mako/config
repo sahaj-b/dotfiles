@@ -29,6 +29,6 @@ ignore-timeout=1
 default-timeout=0
 invisible=1
 
-[mode=dnd app-name="pi"]
-invisible=0
-default-timeout=6000
+#[mode=dnd app-name="pi"]
+#invisible=0
+#default-timeout=6000

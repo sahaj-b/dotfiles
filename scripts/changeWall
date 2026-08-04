@@ -21,4 +21,5 @@ fi
 
 [[ "$next" == "$curr" || -z "$next" ]] && next=$cycleTo
 echo "$next" >$cacheFile
-awww img $wallDir"$next" --transition-type wipe --transition-angle $angle --transition-fps 60 --transition-duration 0.7
+awww img $wallDir"$next" --transition-type wave --transition-angle $angle --transition-fps 60 --transition-duration 0.7 --transition-wave 100,50
+# awww img $wallDir"$next" --transition-type none

@@ -131,7 +131,7 @@ elif [[ -f "$template_path" ]]; then
   cp "$template_path" "$temp"
 fi
 
-nvim +startinsert +"Copilot disable" "$temp"
+nvim +"Copilot disable" "$temp"
 
 if [[ -s "$temp" ]]; then
   encrypt "$temp" "$file_path"

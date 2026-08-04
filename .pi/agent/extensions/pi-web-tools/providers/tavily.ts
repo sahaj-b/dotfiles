@@ -1,10 +1,10 @@
 // ── Tavily Provider (requires TAVILY_API_KEY) ──
 
 import type {
-	CrawlOptions, CrawlResponse, ExtractOptions, ExtractResponse,
+	CrawlOptions, CrawlResponse, ExtractOptions, ExtractResponse, FetchOptions, FetchResponse,
 	SearchOptions, SearchResponse,
 } from "../types.ts";
-import type { Capability, CrawlCapable, ExtractCapable, Provider, SearchCapable } from "./types.ts";
+import type { Capability, CrawlCapable, ExtractCapable, FetchCapable, Provider, SearchCapable } from "./types.ts";
 import { httpError } from "../fallback.ts";
 
 const BASE = "https://api.tavily.com";
@@ -12,7 +12,7 @@ const BASE = "https://api.tavily.com";
 export class TavilyProvider implements Provider, SearchCapable, CrawlCapable, ExtractCapable {
 	readonly id = "tavily" as const;
 	readonly name = "Tavily";
-	readonly capabilities: Capability[] = ["search", "crawl", "extract"];
+	readonly capabilities: Capability[] = ["search", "crawl", "extract", "fetch"];
 
 	constructor(private readonly apiKey: string) {}
 
@@ -36,6 +36,29 @@ export class TavilyProvider implements Provider, SearchCapable, CrawlCapable, Ex
 				snippet: r.content?.slice(0, 280) ?? "",
 				publishedAt: r.published_date,
 			})),
+		};
+	}
+
+	async fetch(options: FetchOptions, signal?: AbortSignal): Promise<FetchResponse> {
+		const sig = signal ? AbortSignal.any([signal, AbortSignal.timeout(30000)]) : AbortSignal.timeout(30000);
+		const res = await fetch(`${BASE}/extract`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json", "Authorization": `Bearer ${this.apiKey}` },
+			body: JSON.stringify({ urls: [options.url] }),
+			signal: sig,
+		});
+		if (!res.ok) throw await httpError(this.id, res, "Tavily");
+		const data = await res.json() as TavilyExtractResponse;
+		const r = data.results?.[0];
+		if (!r?.url && !r?.raw_content) throw new Error("Tavily extract returned no content");
+		const content = r?.raw_content ?? "";
+		return {
+			url: r?.url || options.url,
+			content,
+			contentType: "text/plain",
+			mime: "text/plain",
+			status: 200,
+			bytes: Buffer.byteLength(content),
 		};
 	}
 

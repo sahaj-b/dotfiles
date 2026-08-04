@@ -32,6 +32,25 @@ export function htmlToText(rawHtml: string, baseUrl: string): string {
 	return cleanupText(compiledText(sanitize(rawHtml, baseUrl)));
 }
 
+/** Crude markdown → plain text strip for providers that only return markdown. */
+export function markdownToText(md: string): string {
+	return md
+		.replace(/\r\n/g, "\n")
+		.replace(/```[\s\S]*?```/g, block => block.replace(/^```.*$/gm, "").trim())
+		.replace(/`([^`]+)`/g, "$1")
+		.replace(/^#{1,6}\s+/gm, "")
+		.replace(/^\s*[-*+]\s+/gm, "")
+		.replace(/^\s*\d+\.\s+/gm, "")
+		.replace(/^\s*>\s?/gm, "")
+		.replace(/^---+$/gm, "")
+		.replace(/!\[[^\]]*\]\(([^)]+)\)/g, "$1")
+		.replace(/\[([^\]]*)\]\(([^)]+)\)/g, "$1 ($2)")
+		.replace(/[*_]{1,3}([^*_]+)[*_]{1,3}/g, "$1")
+		.replace(/^[ \t]+/gm, "")
+		.replace(/\n{3,}/g, "\n\n")
+		.trim();
+}
+
 export function isPoorMarkdownConversion(md: string): boolean {
 	return (md.match(RAW_HTML_BLOCK_RE)?.length ?? 0) >= 6 || /^\s*<(table|tbody|thead|tfoot|tr|td|th|div|section|article|main)\b/i.test(md);
 }

@@ -15,6 +15,15 @@
          "preferences": {
             "wallpaperPath": "/home/sahaj/wallpapers"
          }
+      },
+      "clipboard": {
+         "entrypoints": {
+            "history": {
+               "preferences": {
+                  "defaultAction": "copy"
+               }
+            }
+         }
       }
    }
 }

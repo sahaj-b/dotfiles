@@ -1,9 +1,10 @@
 -- https://wiki.hypr.land/Configuring/Basics/Autostart/
 
 hl.on("hyprland.start", function()
+  hl.exec_cmd("swaylock -c 000000 -F")
+
   hl.exec_cmd("sudo /usr/local/sbin/mute-led")
   hl.exec_cmd("pkill awww-daemon; awww-daemon & sleep 1 && ~/scripts/changeWall rand")
-  hl.exec_cmd("swaylock -c 000000 -F")
   hl.exec_cmd("waybar")
   hl.exec_cmd("hyprpm reload")
   hl.exec_cmd("wl-paste --watch cliphist store")
@@ -28,10 +29,13 @@ hl.on("hyprland.start", function()
   hl.exec_cmd("hypridle")
   hl.exec_cmd("opencode upgrade")
   hl.exec_cmd("pi update")
+  hl.exec_cmd("pi -h")
   hl.exec_cmd('hyprctl setcursor "Bibata-Modern-Classic" 24')
   hl.exec_cmd("zen-browser")
 
   hl.exec_cmd("easyeffects --gapplication-service")
+
+  -- hl.exec_cmd("antigravity")
   hl.exec_cmd(
     "[[ $(cat /sys/class/power_supply/BAT*/status) == Discharging ]] || ~/scripts/ytm")
 
@@ -65,5 +69,4 @@ hl.on("hyprland.start", function()
   -- hl.exec_cmd('gsettings set org.gnome.desktop.interface cursor-size 32')
   -- hl.exec_cmd("env LUTRIS_SKIP_INIT=1 lutris lutris:rungameid/8")
   -- hl.exec_cmd("steam steam://rungameid/11561827269651464192")
-  -- hl.exec_cmd("antigravity")
 end)

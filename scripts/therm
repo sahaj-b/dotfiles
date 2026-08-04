@@ -4,6 +4,18 @@
 
 set -euo pipefail
 
+# Self-elevate to root ONLY for commands that mutate root-only sysfs. Read-only
+# views (status/list/read/help) run as the normal user, so no password prompt.
+needs_root() {
+  case "${1:-help}" in
+    preset|p|pl|gov|g|epp|e|gpu) return 0 ;;   # write into sysfs
+    *) return 1 ;;                             # status/list/read/help = safe
+  esac
+}
+if [[ $EUID -ne 0 ]] && needs_root "${1:-help}"; then
+  exec sudo "$0" "$@"
+fi
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'

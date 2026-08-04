@@ -1,18 +1,19 @@
 // ── Firecrawl Provider (requires FIRECRAWL_API_KEY) ──
 
 import type {
-	CrawlOptions, CrawlResponse, ExtractOptions, ExtractResponse,
+	CrawlOptions, CrawlResponse, ExtractOptions, ExtractResponse, FetchOptions, FetchResponse,
 	SearchOptions, SearchResponse,
 } from "../types.ts";
-import type { Capability, CrawlCapable, ExtractCapable, Provider, SearchCapable } from "./types.ts";
-import { httpError } from "../fallback.ts";
+import type { Capability, CrawlCapable, ExtractCapable, FetchCapable, Provider, SearchCapable } from "./types.ts";
+import { httpError, ProviderError } from "../fallback.ts";
+import { markdownToText } from "../html.ts";
 
 const BASE = "https://api.firecrawl.dev";
 
 export class FirecrawlProvider implements Provider, SearchCapable, CrawlCapable, ExtractCapable {
 	readonly id = "firecrawl" as const;
 	readonly name = "Firecrawl";
-	readonly capabilities: Capability[] = ["search", "crawl", "extract"];
+	readonly capabilities: Capability[] = ["search", "crawl", "extract", "fetch"];
 
 	constructor(private readonly apiKey: string) {}
 
@@ -37,6 +38,34 @@ export class FirecrawlProvider implements Provider, SearchCapable, CrawlCapable,
 				url: r.url,
 				snippet: r.markdown?.slice(0, 280) ?? r.description ?? "",
 			})),
+		};
+	}
+
+	async fetch(options: FetchOptions, signal?: AbortSignal): Promise<FetchResponse> {
+		const sig = signal ? AbortSignal.any([signal, AbortSignal.timeout(45000)]) : AbortSignal.timeout(45000);
+		const res = await fetch(`${BASE}/v1/scrape`, {
+			method: "POST", headers: this.headers(),
+			body: JSON.stringify({ url: options.url, formats: [options.format === "html" ? "rawHtml" : "markdown"] }),
+			signal: sig,
+		});
+		if (!res.ok) throw await httpError(this.id, res, "Firecrawl");
+		const data = await res.json() as { data?: { markdown?: string; rawHtml?: string; html?: string; metadata?: { title?: string; sourceURL?: string; statusCode?: number } } };
+		const status = data.data?.metadata?.statusCode;
+		if (status && status >= 400) {
+			throw new ProviderError({ providerId: this.id, status, message: `Firecrawl scrape ${status} for ${options.url}` });
+		}
+
+		let content = options.format === "html"
+			? (data.data?.rawHtml ?? data.data?.html ?? "")
+			: (data.data?.markdown ?? "");
+		if (options.format === "text") content = markdownToText(content);
+		return {
+			url: data.data?.metadata?.sourceURL ?? options.url,
+			content,
+			contentType: options.format === "html" ? "text/html" : "text/markdown",
+			mime: options.format === "html" ? "text/html" : "text/markdown",
+			status: status ?? 200,
+			bytes: Buffer.byteLength(content),
 		};
 	}
 

@@ -3,11 +3,12 @@
 import type {
 	CrawlOptions, CrawlResponse,
 	ExtractOptions, ExtractResponse,
+	FetchOptions, FetchResponse,
 	ProviderId,
 	SearchOptions, SearchResponse,
 } from "../types.ts";
 
-export type Capability = "search" | "codeSearch" | "crawl" | "extract";
+export type Capability = "search" | "codeSearch" | "crawl" | "extract" | "fetch";
 
 export interface SearchCapable {
 	search(options: SearchOptions, signal?: AbortSignal): Promise<SearchResponse>;
@@ -23,6 +24,10 @@ export interface CrawlCapable {
 
 export interface ExtractCapable {
 	extract(options: ExtractOptions, signal?: AbortSignal): Promise<ExtractResponse>;
+}
+
+export interface FetchCapable {
+	fetch(options: FetchOptions, signal?: AbortSignal): Promise<FetchResponse>;
 }
 
 export interface Provider {
@@ -48,4 +53,8 @@ export function isCrawlCapable(provider: Provider): provider is Provider & Crawl
 
 export function isExtractCapable(provider: Provider): provider is Provider & ExtractCapable {
 	return provider.capabilities.includes("extract") && "extract" in provider;
+}
+
+export function isFetchCapable(provider: Provider): provider is Provider & FetchCapable {
+	return provider.capabilities.includes("fetch") && "fetch" in provider;
 }
