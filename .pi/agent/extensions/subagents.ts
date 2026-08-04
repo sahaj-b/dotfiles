@@ -60,7 +60,7 @@ const RESUME_TOOL_NAME = "resume_subagent";
 const AGENTS: Record<string, AgentEntry> = {
 	scout: {
 		name: "scout",
-		model: "oc/deepseek-v4-flash-free",
+		model: "oc/mimo-v2.5-free",
 		commands: ["/mode ro"],
 		systemPrompt:
 			"You are a codebase explorer. Explore the codebase extensively and deeply to find the relevant information needed, using tools provided",
@@ -68,7 +68,7 @@ const AGENTS: Record<string, AgentEntry> = {
 	},
 	researcher: {
 		name: "researcher",
-		model: "oc/deepseek-v4-flash-free",
+		model: "oc/mimo-v2.5-free",
 		commands: [],
 		systemPrompt: "~/.pi/agent/prompts/research.md",
 		thinking: "high",
@@ -230,12 +230,7 @@ async function buildPiArgs(
 	// Subagents persist to a quarantined session dir (hidden from the user's
 	// default picker) instead of running ephemeral with --no-session. That's
 	// what makes a failed run resumable via resume_subagent.
-	const args = [
-		...piBin.baseArgs,
-		"--mode",
-		"rpc",
-		"--no-context-files",
-	];
+	const args = [...piBin.baseArgs, "--mode", "rpc", "--no-context-files"];
 	if (opts.sessionDir) args.push("--session-dir", opts.sessionDir);
 	if (opts.resumeFrom) args.push("--session", opts.resumeFrom);
 
@@ -381,7 +376,11 @@ async function runSubagent(
 				const evt = JSON.parse(line) as any;
 				progress.durationMs = Date.now() - startTime;
 
-				if (evt.type === "response" && evt.command === "get_state" && evt.id === stateId) {
+				if (
+					evt.type === "response" &&
+					evt.command === "get_state" &&
+					evt.id === stateId
+				) {
 					if (evt.success && evt.data) {
 						result.sessionId = evt.data.sessionId || undefined;
 						result.sessionFile = evt.data.sessionFile || undefined;
@@ -595,9 +594,7 @@ function resolveSubagentSession(session: unknown): string | undefined {
 	const hit = fs
 		.readdirSync(SUBAGENT_SESSION_DIR)
 		.find((f) => f.endsWith(".jsonl") && f.includes(session));
-	return hit
-		? path.join(SUBAGENT_SESSION_DIR, hit)
-		: undefined;
+	return hit ? path.join(SUBAGENT_SESSION_DIR, hit) : undefined;
 }
 
 /**
@@ -680,6 +677,54 @@ function ensureResumeTool(pi: ExtensionAPI) {
 					...(isError ? { isError: true } : {}),
 				};
 			},
+
+			renderCall(args, theme, context) {
+				if (!context.expanded) {
+					const sessionPreview = args.session
+						? args.session.length > 30
+							? "…" + args.session.slice(-27)
+							: args.session
+						: "";
+					return new Text(
+						`${theme.fg("toolTitle", theme.bold("resume_subagent"))} ${theme.fg("accent", args.agent || "worker")} ${theme.fg("dim", sessionPreview)}`,
+						0,
+						0,
+					);
+				}
+
+				const c =
+					context.lastComponent instanceof Container
+						? (context.lastComponent.clear(), context.lastComponent)
+						: new Container();
+				const agentLabel = args.agent
+					? ` ${theme.fg("accent", args.agent)}`
+					: "";
+				const cwdLabel = args.cwd ? theme.fg("dim", ` (cwd: ${args.cwd})`) : "";
+				const taskPreview = args.task ? args.task.replace(/\n/g, " ") : "";
+				c.addChild(
+					new Text(
+						`${theme.fg("toolTitle", theme.bold("resume_subagent"))}${agentLabel}${cwdLabel} ${theme.fg("dim", taskPreview)}`,
+						0,
+						0,
+					),
+				);
+				return c;
+			},
+
+			renderResult(result, options, theme, context) {
+				const details = result.details as Details | undefined;
+				if (!details?.results?.length) {
+					const t = result.content[0];
+					const text = t?.type === "text" ? t.text : "(no output)";
+					return new Text(text.slice(0, 200), 0, 0);
+				}
+
+				const w = getTermWidth() - 4;
+				const expanded = options.expanded;
+				const c = new Container();
+				c.addChild(renderAgentProgress(details.results[0], theme, expanded, w));
+				return c;
+			},
 		});
 	}
 	if (!pi.getActiveTools().includes(RESUME_TOOL_NAME)) {
@@ -744,8 +789,19 @@ function renderAgentProgress(
 			: r.exitCode === 0
 				? theme.fg("success", "✓")
 				: theme.fg("error", "✗");
-	const modelStr = r.model ? theme.fg("dim", ` (${r.model})`) : "";
-	addLine(`${icon} ${theme.fg("toolTitle", theme.bold(r.agent))}${modelStr}`);
+	const modelStr = r.model ? theme.fg("dim", `(${r.model})`) : "";
+	const taskPreview = r.task
+		? theme.fg(
+				"dim",
+				` ${r.task.length > 40 ? r.task.slice(0, 40) + "…" : r.task}`.replace(
+					/\n/g,
+					" ",
+				),
+			)
+		: "";
+	addLine(
+		`${icon} ${theme.fg("toolTitle", theme.bold(r.agent))}${modelStr}${taskPreview}`,
+	);
 
 	// Tool rows + recursive children
 	const renderToolRow = (
@@ -776,12 +832,6 @@ function renderAgentProgress(
 		renderToolRow(t.tool, t.args, t.children, t.status === "running");
 	}
 
-	// Latest prose "thinking" preview
-	if (prog.lastMessage) {
-		if (!nested) c.addChild(new Spacer(1));
-		addLine(theme.fg("text", prog.lastMessage));
-	}
-
 	// Expanded final output (depth 0 only)
 	if (!nested && !isRunning && r.output && expanded) {
 		c.addChild(new Spacer(1));
@@ -789,9 +839,11 @@ function renderAgentProgress(
 		c.addChild(new Markdown(r.output, 0, 0, mdTheme));
 	}
 
-	if (!nested) c.addChild(new Spacer(1));
 	const usageParts: string[] = [
-		theme.fg("dim", `${prog.toolCount} tools · ${formatDuration(prog.durationMs)}`),
+		theme.fg(
+			"dim",
+			`${prog.toolCount} tools · ${formatDuration(prog.durationMs)}`,
+		),
 	];
 	if (prog.tokens > 0) {
 		const ctxStr = formatContextUsage(prog.tokens, r.contextWindow);
@@ -822,12 +874,14 @@ export default function (pi: ExtensionAPI) {
 		name: "subagent",
 		label: "Subagent",
 		description:
-			"Run a subagent to complete a task. Subagents have NO context from the current conversation — include all necessary context in the task description.",
+			"Run a subagent to complete a task. Subagents have NO context from the current conversation",
 		promptSnippet: "Run subagents for delegated tasks",
 		promptGuidelines: [
-			"Use subagent to delegate *reasoning and decisions*: codebase exploration (scout), web research (researcher), or isolated code changes (worker)",
-			"For multiple independent subagent tasks, emit multiple `subagent` tool calls in the same turn — they run in parallel automatically.",
-			"Subagents have NO context from the current conversation — include ALL necessary context in the task description",
+			"Use subagent to delegate *reasoning and decisions*: codebase exploration (scout), web research (researcher), or generic (worker)",
+			"For multiple independent PARALLEL subagent tasks, emit multiple `subagent` tool calls in the same turn",
+			"include ALL necessary context in the task description",
+			"DELEGATE when: output is verbose (webpages, logs, big codebase, want summary) and self-contained; utilize parallel runs",
+			"DO NOT delegate when: the task needs back-and-forth or shared context with this convo; data isn't too big; specific data(not summary) is needed; quick tasks",
 		],
 		parameters: Type.Object({
 			agent: Type.String({
@@ -892,7 +946,7 @@ export default function (pi: ExtensionAPI) {
 					`[resume] This ${agent.name} subagent errored. Its session is preserved. ` +
 					"Resume/retry it with the `resume_subagent` tool (now available in this context):\n" +
 					`resume_subagent({ agent: "${agent.name}", session: "${sessionRef}", ` +
-					"task: \"Continue where it left off, fixing the reported error, and report the result.\" })";
+					'task: "Continue where it left off, fixing the reported error, and report the result." })';
 			}
 			return {
 				content: [{ type: "text", text }],
@@ -926,17 +980,14 @@ export default function (pi: ExtensionAPI) {
 					: new Container();
 			const agentLabel = args.agent ? ` ${theme.fg("accent", args.agent)}` : "";
 			const cwdLabel = args.cwd ? theme.fg("dim", ` (cwd: ${args.cwd})`) : "";
+			const taskPreview = args.task ? args.task.replace(/\n/g, " ") : "";
 			c.addChild(
 				new Text(
-					`${theme.fg("toolTitle", theme.bold("subagent"))}${agentLabel}${cwdLabel}`,
+					`${theme.fg("toolTitle", theme.bold("subagent"))}${agentLabel}${cwdLabel} ${theme.fg("dim", taskPreview)}`,
 					0,
 					0,
 				),
 			);
-			if (args.task) {
-				c.addChild(new Spacer(1));
-				c.addChild(new Text(theme.fg("text", args.task), 0, 0));
-			}
 			return c;
 		},
 

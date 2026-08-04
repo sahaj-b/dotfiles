@@ -4,15 +4,21 @@
 TTY=2
 AUTHFILE="/tmp/.X${TTY}-auth-$(id -u)"
 
-# Kill X session first — this kills everything running on it
-# (FL Studio, openbox, picom, all die together)
+# Kill Wine processes FIRST — before Xorg, so wineserver is alive to clean up
+wineserver -k 2>/dev/null
+sleep 1
+pkill -f 'winedevice' 2>/dev/null
+pkill -f 'FL64.exe' 2>/dev/null
+pkill -f 'lutris:rungameid' 2>/dev/null
+pkill -f 'wine-preloader' 2>/dev/null
+sleep 0.5
+
+# Kill X session — now nothing Wine-related should survive
 sudo pkill -f "Xorg vt${TTY}" 2>/dev/null
 sleep 0.5
 
-# Clean up any stragglers
-pkill -f 'FL64.exe' 2>/dev/null
-pkill -f 'lutris:rungameid' 2>/dev/null
-wineserver -k 2>/dev/null
+# Nuclear option: kill anything wine-related that survived
+pkill -f -9 'wine' 2>/dev/null
 
 # Clean up lock files and auth
 export XAUTHORITY="$AUTHFILE"

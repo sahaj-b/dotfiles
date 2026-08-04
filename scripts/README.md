@@ -22,9 +22,8 @@
 | `startScratch`                            | Toggles scratchpad terminal (hyprland)                                                           |
 | `stopwatch`, `countdown`                  | Timers                                                                                           |
 | `fstat`                                   | Pretty file statistics using `stat`                                                              |
-| `powermgmt`                               | Daemon to run commands and manage services based on charging state                               |
-| `therm`                                   | Thermal & power (for my lappy): CPU power limits, governor, EPP, GPU freq                        |
-| `arcctl`                                  | remove/rescan Intel ARC dgpu to save power                                                       |
+| `pwr <0/1/2/3>`                           | Power mode controller: RAPL, governor, EPP, GPU, ASPM, WiFi, BT, sound PM                        |
+| `arc`                                     | remove/rescan Intel ARC dgpu to save power                                                       |
 | `changeWall <rand/prev/next>`             | Changes wallpaper using `awww`                                                                   |
 | `curlToHttp`                              | Converts curl command to HTTP request using `curlconverter`                                      |
 | `automate <db/copy/paste/run..>`          | keyboard/mouse automation stuff code from neovim to Leetcode,youtube,dbdiagrams,etc              |

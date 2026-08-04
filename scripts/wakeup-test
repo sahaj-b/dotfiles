@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+# wakeup-test: Kill a process, measure powertop impact, show diff
+# Usage: wakeup-test <process_name|pid> [duration_seconds]
+# Example: wakeup-test electron 30
+#          wakeup-test easyeffects
+
+set -euo pipefail
+
+DURATION="${2:-30}"
+TARGET="${1:-}"
+
+if [[ -z "$TARGET" ]]; then
+    echo "Usage: wakeup-test <process_name|pid> [duration_seconds]"
+    echo "  Measures powertop wakeup impact of killing a process"
+    echo ""
+    echo "Examples:"
+    echo "  wakeup-test electron       # kill all electron, measure 30s"
+    echo "  wakeup-test easyeffects    # kill easyeffects, measure 30s"
+    echo "  wakeup-test 1081 60        # kill PID 1081, measure 60s"
+    exit 1
+fi
+
+# Check if target exists
+if ! pgrep -x "$TARGET" >/dev/null 2>&1 && ! pgrep -f "$TARGET" >/dev/null 2>&1; then
+    echo "Process '$TARGET' not found. Running powertop on current state..."
+fi
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+DIM='\033[2m'
+NC='\033[0m'
+
+BASELINE_CSV="/tmp/wakeup-baseline.csv"
+AFTER_CSV="/tmp/wakeup-after.csv"
+DIFF_FILE="/tmp/wakeup-diff.txt"
+
+extract_key_lines() {
+    # Extract the important power consumers from CSV
+    grep -E "tick_nohz|sched\(softirq\)|i915|intel_atomic|iwlwifi|rcu|Timer,|Interrupt,|Process," "$1" 2>/dev/null \
+        | grep -v "^#" \
+        | sort -t',' -k1 -rn \
+        | head -20
+}
+
+get_total_power() {
+    # Sum all PW Estimate values from the CSV
+    grep -oP '[\d.]+\s*[mu]?W' "$1" 2>/dev/null \
+        | sed 's/ W/*1000000/;s/ mW/*1000/;s/ uW/*1/' \
+        | bc 2>/dev/null \
+        | awk '{s+=$1} END {printf "%.2f", s/1000000}'
+}
+
+echo -e "\n${BOLD}${CYAN}═══ WAKEUP TEST ═══${NC}\n"
+
+# ── Phase 1: Baseline ──
+echo -e "${YELLOW}Phase 1: Measuring baseline (${DURATION}s)...${NC}"
+echo -e "  ${DIM}Keep system idle — don't move mouse or type${NC}"
+echo ""
+
+pkexec powertop --time="$DURATION" --csv="$BASELINE_CSV" 2>/dev/null
+
+echo -e "\n${GREEN}Baseline captured.${NC}\n"
+
+# ── Phase 2: Kill target ──
+echo -e "${YELLOW}Phase 2: Killing '${TARGET}'...${NC}"
+
+if [[ "$TARGET" =~ ^[0-9]+$ ]]; then
+    # PID provided
+    kill "$TARGET" 2>/dev/null && echo -e "  ${RED}Killed PID $TARGET${NC}" || echo -e "  ${DIM}PID $TARGET already gone${NC}"
+else
+    # Name provided — kill all matching
+    COUNT=$(pgrep -c -f "$TARGET" 2>/dev/null || echo 0)
+    if [[ "$COUNT" -gt 0 ]]; then
+        pkill -f "$TARGET" 2>/dev/null
+        echo -e "  ${RED}Killed $COUNT '${TARGET}' processes${NC}"
+    else
+        echo -e "  ${DIM}'${TARGET}' not running — measuring anyway${NC}"
+    fi
+fi
+
+# Wait for system to settle
+echo -e "  ${DIM}Waiting 5s for system to settle...${NC}"
+sleep 5
+
+# ── Phase 3: After kill ──
+echo -e "\n${YELLOW}Phase 3: Measuring after kill (${DURATION}s)...${NC}"
+echo -e "  ${DIM}Keep system idle${NC}"
+echo ""
+
+pkexec powertop --time="$DURATION" --csv="$AFTER_CSV" 2>/dev/null
+
+echo -e "\n${GREEN}After-kill captured.${NC}\n"
+
+# ── Phase 4: Compare ──
+echo -e "${BOLD}${CYAN}═══ RESULTS ═══${NC}\n"
+
+echo -e "${BOLD}Top consumers BEFORE:${NC}"
+extract_key_lines "$BASELINE_CSV" | head -10
+echo ""
+echo -e "${BOLD}Top consumers AFTER:${NC}"
+extract_key_lines "$AFTER_CSV" | head -10
+echo ""
+
+# Try to extract specific metrics
+echo -e "${BOLD}${CYAN}═══ KEY METRICS ═══${NC}\n"
+
+for metric in "tick_nohz_handler" "sched(softirq)" "i915" "intel_atomic_commit"; do
+    before=$(grep "$metric" "$BASELINE_CSV" 2>/dev/null | head -1 | grep -oP '[\d.]+\s*[mu]?W' | head -1 || echo "N/A")
+    after=$(grep "$metric" "$AFTER_CSV" 2>/dev/null | head -1 | grep -oP '[\d.]+\s*[mu]?W' | head -1 || echo "N/A")
+    printf "  %-35s ${DIM}before:${NC} %-10s ${DIM}after:${NC} %-10s\n" "$metric" "$before" "$after"
+done
+
+echo ""
+echo -e "${BOLD}Full CSVs saved to:${NC}"
+echo "  Baseline: $BASELINE_CSV"
+echo "  After:    $AFTER_CSV"
+echo ""
+echo -e "${DIM}Tip: Run 'powertop --html=report.html' for a visual HTML report${NC}"
+echo ""

@@ -37,14 +37,13 @@ const DEFAULT_ANNOTATE_FILE_FEEDBACK =
 const DEFAULT_REVIEW_DENIED =
 	"Your changes were not approved.\n\nAddress ALL of the feedback below before calling {{toolName}} again.\n\nRules:\n{{planFileRule}}- Do not resubmit the same content unchanged.\n\n{{feedback}}";
 
-const DEFAULT_REVIEW_APPROVED =
-	"PLAN APPROVED. HALT EXECUTION. Do not write any code.";
+const DEFAULT_REVIEW_APPROVED = "PLAN APPROVED.";
 
 const DEFAULT_REVIEW_APPROVED_WITH_NOTES =
-	"PLAN APPROVED WITH NOTES. HALT EXECUTION. Do not write any code..\n\n## Review Notes\n\n{{feedback}}";
+	"PLAN APPROVED WITH NOTES.\n\n## Review Notes\n\n{{feedback}}";
 
 const DEFAULT_REVIEW_AUTO_APPROVED =
-	"Content auto-approved (non-interactive mode). HALT EXECUTION.";
+	"Content auto-approved (non-interactive mode)";
 
 function resolveUserPath(input: string, baseDir = process.cwd()): string {
 	let p = input.trim().replace(/^['"]|['"]$/g, "");
@@ -237,10 +236,7 @@ export default function plannotator(pi: ExtensionAPI): void {
 					// If it does, treat it as follow-up feedback.
 					const raw = readFileSync(absolutePath, "utf-8");
 					if (raw.trim().length > 0) {
-						ctx.ui.notify(
-							"Annotation session closed with content.",
-							"info",
-						);
+						ctx.ui.notify("Annotation session closed with content.", "info");
 						pi.sendUserMessage(
 							resolveTemplate(DEFAULT_ANNOTATE_FILE_FEEDBACK, {
 								fileHeader: "File",
@@ -294,7 +290,8 @@ export default function plannotator(pi: ExtensionAPI): void {
 		description:
 			"Submit a markdown file for review. The user will review it in neovim and can approve, deny with feedback, or annotate it",
 		promptGuidelines: [
-			"ONLY use this when you have written or updated the plan and need the user's feedback or approval.",
+			"ONLY use this when you have written or updated the plan and need the user's feedback or approval",
+			"DO NOT use this for general analysis/research/reports until explicitly said so",
 		],
 		parameters: Type.Object({
 			filePath: Type.String({

@@ -1,0 +1,651 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# Self-elevate for write operations
+if [[ $EUID -ne 0 ]]; then
+  case "${1:-}" in
+  0 | 1 | 2 | 3 | max | saver | light | balanced | bal | b | performance | perf | p | rapl | gpu | epp | gov | aspm | wifi | sound | bt | turbo | pp | pp-auto)
+    exec sudo "$0" "$@"
+    ;;
+  esac
+fi
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+DIM='\033[2m'
+NC='\033[0m'
+
+# Paths
+RAPL_PL1="/sys/class/powercap/intel-rapl:0/constraint_0_power_limit_uw"
+RAPL_PL2="/sys/class/powercap/intel-rapl:0/constraint_1_power_limit_uw"
+RAPL_PL1_MAX="/sys/class/powercap/intel-rapl:0/constraint_0_max_power_uw"
+RAPL_PL2_MAX="/sys/class/powercap/intel-rapl:0/constraint_1_max_power_uw"
+CPU_EPP="/sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference"
+CPU_EPP_AVAIL="/sys/devices/system/cpu/cpu0/cpufreq/energy_performance_available_preferences"
+CPU_GOV="/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor"
+CPU_GOV_AVAIL="/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors"
+GPU_MAX="/sys/class/drm/card1/gt_max_freq_mhz"
+GPU_CUR="/sys/class/drm/card1/gt_cur_freq_mhz"
+GPU_MIN="/sys/class/drm/card1/gt_min_freq_mhz"
+PCIE_ASPM="/sys/module/pcie_aspm/parameters/policy"
+SOUND_PM="/sys/module/snd_hda_intel/parameters/power_save"
+CPU_FREQ_CUR="/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq"
+NO_TURBO="/sys/devices/system/cpu/intel_pstate/no_turbo"
+PLATFORM_PROFILE="/sys/firmware/acpi/platform_profile"
+PLATFORM_PROFILE_AVAIL="/sys/firmware/acpi/platform_profile_choices"
+BAT_LIMIT="/sys/class/power_supply/BAT0/charge_control_end_threshold"
+BAT_STATE="/var/lib/pwr/bat_limit"
+BAT_STATE_DIR="/var/lib/pwr"
+BAT_RULE="/etc/udev/rules.d/99-pwr-battery.rules"
+BAT_RULE_OFF="${BAT_RULE}.off"
+BAT_SERVICE="/usr/lib/systemd/system/pwr-battery-restore.service"
+PP_AC="/var/lib/pwr/pp_ac"
+PP_DC="/var/lib/pwr/pp_dc"
+PP_RULE="/etc/udev/rules.d/99-pwr-pp.rules"
+PP_RULE_OFF="${PP_RULE}.off"
+
+ok() { echo -e "  ${GREEN}✓${NC} $*"; }
+warn() { echo -e "  ${YELLOW}!${NC} $*"; }
+info() { echo -e "  ${CYAN}→${NC} $*"; }
+hr() { echo -e "${DIM}$(printf '%.0s─' {1..50})${NC}"; }
+
+write() { echo "$2" >"$1" 2>/dev/null && return 0 || return 1; }
+write_safe() { write "$1" "$2" || true; }
+read_safe() { cat "$1" 2>/dev/null || echo "N/A"; }
+to_watts() { echo $(($1 / 1000000)); }
+to_mhz() { echo $(($1 / 1000)); }
+
+# Apply functions
+
+apply_rapl() {
+  local pl1="$1" pl2="$2"
+  write_safe "$RAPL_PL1" "$((pl1 * 1000000))" && ok "PL1 → ${pl1}W"
+  write_safe "$RAPL_PL2" "$((pl2 * 1000000))" && ok "PL2 → ${pl2}W"
+}
+
+# IMPORTANT: powersave is actually auto-balance-load type shi, and performance locks CPU to max freq(overrides EPP)
+apply_governor() {
+  local gov="$1"
+  for g in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+    write_safe "$g" "$gov"
+  done
+  ok "Governor → $gov"
+}
+
+apply_epp() {
+  local epp="$1"
+  for p in /sys/devices/system/cpu/cpufreq/policy*/energy_performance_preference; do
+    write_safe "$p" "$epp"
+  done
+  ok "EPP → $epp"
+}
+
+apply_pcie_aspm() {
+  local mode="$1"
+  write_safe "$PCIE_ASPM" "$mode" && ok "PCIe ASPM → $mode" || warn "PCIe ASPM write failed"
+}
+
+apply_gpu() {
+  local freq="$1"
+  [[ -f "$GPU_MAX" ]] && write_safe "$GPU_MAX" "$freq" && ok "GPU max → ${freq} MHz" || warn "GPU not found"
+}
+
+apply_wifi_power() {
+  local state="$1"
+  iw dev wlan0 set power_save "$state" 2>/dev/null && ok "WiFi power save → $state" || warn "WiFi power save failed"
+}
+
+apply_sound_pm() {
+  local val="$1"
+  write_safe "$SOUND_PM" "$val" && ok "Sound PM → $val"
+}
+
+apply_turbo() {
+  local state="$1"
+  if [[ "$state" == "on" ]]; then
+    write_safe "$NO_TURBO" "0" && ok "Turbo → on"
+  else
+    write_safe "$NO_TURBO" "1" && ok "Turbo → off"
+  fi
+}
+
+# IMPORTANT: This can change shi like epp/freq/etc, depending on the lappy, on mine it changes the EPP. you can manually check it for urs.
+apply_platform_profile() {
+  local prof="$1"
+  [[ -f "$PLATFORM_PROFILE" ]] && write_safe "$PLATFORM_PROFILE" "$prof" && ok "Platform profile → $prof" || warn "Platform profile not supported"
+}
+
+apply_bat_limit() {
+  local limit="$1"
+  mkdir -p "$BAT_STATE_DIR" 2>/dev/null
+  write_safe "$BAT_LIMIT" "$limit" && ok "Charge limit → ${limit}%" || warn "Charge limit not supported"
+}
+
+bat_restore() {
+  if [[ -f "$BAT_STATE" ]]; then
+    apply_bat_limit "$(cat "$BAT_STATE")"
+  else
+    warn "No saved charge limit"
+  fi
+}
+
+bat_rule_state() {
+  if [[ -f "$BAT_RULE" ]]; then
+    echo "active"
+  elif [[ -f "$BAT_RULE_OFF" ]]; then
+    echo "off (.off)"
+  else
+    echo "absent"
+  fi
+}
+
+bat_install() {
+  local self
+  self=$(readlink -f "$0")
+  mkdir -p "$(dirname "$BAT_RULE")" 2>/dev/null
+  printf 'SUBSYSTEM=="power_supply", ACTION=="change", ATTR{type}=="Mains", ATTR{online}=="0", RUN+="%s bat restore"\n' "$self" >"$BAT_RULE"
+  printf '[Unit]\nDescription=Re-apply pwr battery charge limit at boot\nAfter=multi-user.target\n\n[Service]\nType=oneshot\nExecStart=%s bat restore\nRemainAfterExit=no\n\n[Install]\nWantedBy=multi-user.target\n' "$self" >"$BAT_SERVICE"
+  rm -f "$BAT_RULE_OFF"
+  udevadm control --reload-rules 2>/dev/null
+  systemctl daemon-reload 2>/dev/null
+  systemctl enable pwr-battery-restore.service >/dev/null 2>&1 || true
+  ok "udev rule + boot service installed (→ $BAT_RULE)"
+}
+
+bat_uninstall() {
+  rm -f "$BAT_RULE" "$BAT_RULE_OFF"
+  systemctl disable pwr-battery-restore.service >/dev/null 2>&1 || true
+  rm -f "$BAT_SERVICE"
+  udevadm control --reload-rules 2>/dev/null || true
+  ok "udev rule + boot service removed"
+}
+
+pp_rule_state() {
+  if [[ -f "$PP_RULE" ]]; then
+    echo "active"
+  elif [[ -f "$PP_RULE_OFF" ]]; then
+    echo "off (.off)"
+  else
+    echo "absent"
+  fi
+}
+
+pp_epp_for() {
+  case "$1" in
+  performance) echo performance ;;
+  balanced) echo balance_power ;;
+  quiet) echo power ;;
+  *) echo balance_power ;;
+  esac
+}
+
+pp_install() {
+  local self
+  self=$(readlink -f "$0")
+  mkdir -p "$(dirname "$PP_RULE")" 2>/dev/null
+  printf 'SUBSYSTEM=="power_supply", ACTION=="change", ATTR{type}=="Mains", ATTR{online}=="1", RUN+="%s pp-auto ac"\nSUBSYSTEM=="power_supply", ACTION=="change", ATTR{type}=="Mains", ATTR{online}=="0", RUN+="%s pp-auto dc"\n' "$self" "$self" >"$PP_RULE"
+  rm -f "$PP_RULE_OFF"
+  udevadm control --reload-rules 2>/dev/null || true
+  ok "pp udev rule installed (→ $PP_RULE)"
+}
+
+pp_uninstall() {
+  rm -f "$PP_RULE" "$PP_RULE_OFF"
+  udevadm control --reload-rules 2>/dev/null || true
+  ok "pp udev rule removed"
+}
+
+cmd_pp() {
+  local sub="${1:-}" val="${2:-}"
+  case "$sub" in
+  ac | dc)
+    [[ -n "$val" ]] || {
+      echo "Usage: pwr pp $sub <profile>"
+      exit 1
+    }
+    grep -qw "$val" <<<"$(read_safe "$PLATFORM_PROFILE_AVAIL")" || {
+      warn "Invalid profile '$val' — available: $(read_safe "$PLATFORM_PROFILE_AVAIL")"
+      exit 1
+    }
+    mkdir -p "$BAT_STATE_DIR" 2>/dev/null
+    local f
+    [[ "$sub" == ac ]] && f="$PP_AC" || f="$PP_DC"
+    echo "$val" >"$f"
+    pp_install
+    ok "Auto profile on $sub → $val"
+    ;;
+  auto)
+    case "$val" in
+    install) pp_install ;;
+    uninstall) pp_uninstall ;;
+    *) cmd_pp_status ;;
+    esac
+    ;;
+  *)
+    [[ -n "$sub" ]] || {
+      echo "Usage: pwr pp <profile|ac|dc|auto>"
+      exit 1
+    }
+    apply_platform_profile "$sub"
+    ;;
+  esac
+}
+
+cmd_pp_status() {
+  echo -e "  Auto profiles:  ac=${CYAN}$(read_safe "$PP_AC")${NC}  dc=${CYAN}$(read_safe "$PP_DC")${NC}"
+  echo -e "  PP hook:        ${CYAN}$(pp_rule_state)${NC}"
+  echo -e "  EPP mapping:    quiet→power  balanced→balance_power  performance→performance"
+}
+
+cmd_pp_auto() {
+  local state="${1:-}"
+  local f
+  [[ "$state" == ac ]] && f="$PP_AC" || f="$PP_DC"
+  if [[ ! -f "$f" ]]; then
+    warn "No auto profile set for $state — run 'pwr pp $state <profile>'"
+    exit 1
+  fi
+  local prof
+  prof=$(cat "$f")
+  apply_platform_profile "$prof"
+  apply_epp "$(pp_epp_for "$prof")"
+}
+
+cmd_bat() {
+  local arg="${1:-}"
+  case "$arg" in
+  "")
+    echo -e "  Charge limit: ${CYAN}$(read_safe "$BAT_LIMIT")%${NC}"
+    ;;
+  full)
+    [[ $EUID -ne 0 ]] && exec sudo "$0" bat "$arg"
+    mkdir -p "$BAT_STATE_DIR" 2>/dev/null
+    echo 100 >"$BAT_STATE" 2>/dev/null || true
+    apply_bat_limit 100
+    ;;
+  oneshot | o)
+    [[ $EUID -ne 0 ]] && exec sudo "$0" bat "$arg"
+    local cur=$(read_safe "$BAT_LIMIT")
+    if [[ "$cur" != "100" ]]; then
+      mkdir -p "$BAT_STATE_DIR" 2>/dev/null
+      echo "$cur" >"$BAT_STATE" 2>/dev/null || warn "Couldn't save base limit ($cur)"
+    fi
+    apply_bat_limit 100
+    info "Limit reverts to saved value on AC unplug (udev hook) or via 'pwr bat restore'"
+    ;;
+  install)
+    [[ $EUID -ne 0 ]] && exec sudo "$0" bat "$arg"
+    bat_install
+    ;;
+  uninstall)
+    [[ $EUID -ne 0 ]] && exec sudo "$0" bat "$arg"
+    bat_uninstall
+    ;;
+  restore)
+    [[ $EUID -ne 0 ]] && exec sudo "$0" bat "$arg"
+    bat_restore
+    ;;
+  *)
+    [[ "$arg" =~ ^[0-9]+$ ]] && [[ "$arg" -ge 20 ]] && [[ "$arg" -le 100 ]] || {
+      echo "Usage: pwr bat [20-100|full|oneshot|o|restore|install|uninstall]"
+      exit 1
+    }
+    [[ $EUID -ne 0 ]] && exec sudo "$0" bat "$arg"
+    mkdir -p "$BAT_STATE_DIR" 2>/dev/null
+    echo "$arg" >"$BAT_STATE" 2>/dev/null || true
+    apply_bat_limit "$arg"
+    ;;
+  esac
+}
+
+apply_bluetooth() {
+  local state="$1"
+  if [[ "$state" == "off" ]]; then
+    local bt_connected
+    bt_connected=$(bluetoothctl devices Connected 2>/dev/null | head -1)
+    if [[ -n "$bt_connected" ]]; then
+      warn "Bluetooth has connected devices — skipping off"
+      bluetoothctl devices Connected 2>/dev/null | while read -r line; do
+        printf "    %s\n" "$line"
+      done
+      return 0
+    fi
+  fi
+  bluetoothctl power "$state" 2>/dev/null >/dev/null && ok "Bluetooth → $state" || true
+}
+
+# Status
+
+cmd_status() {
+  echo -e "\n${BOLD}GLaDOS Power State${NC}\n"
+
+  hr
+  echo -e "${BOLD}  Battery${NC}"
+  local capacity=$(read_safe /sys/class/power_supply/BAT0/capacity)
+  local bat_status=$(read_safe /sys/class/power_supply/BAT0/status)
+  local power_now=$(read_safe /sys/class/power_supply/BAT0/power_now)
+  local power_w=$(to_watts "$power_now")
+  local voltage=$(read_safe /sys/class/power_supply/BAT0/voltage_now)
+  local voltage_v=$(echo "scale=2; $voltage / 1000000" | bc 2>/dev/null || echo "?")
+  printf "  %-15s ${CYAN}%s%%${NC}\n" "Capacity:" "$capacity"
+  printf "  %-15s ${CYAN}%s${NC}\n" "Status:" "$bat_status"
+  printf "  %-15s ${CYAN}%sW${NC}\n" "Power draw:" "$power_w"
+  printf "  %-15s ${CYAN}%sV${NC}\n" "Voltage:" "$voltage_v"
+  echo ""
+
+  hr
+  echo -e "${BOLD}  CPU${NC}"
+  local gov=$(read_safe "$CPU_GOV")
+  local epp=$(read_safe "$CPU_EPP")
+  local cur=$(to_mhz "$(read_safe "$CPU_FREQ_CUR")")
+  local pl1=$(to_watts "$(read_safe "$RAPL_PL1")")
+  local pl2=$(to_watts "$(read_safe "$RAPL_PL2")")
+  local pl1_max=$(to_watts "$(read_safe "$RAPL_PL1_MAX")")
+  local pl2_max=$(to_watts "$(read_safe "$RAPL_PL2_MAX")")
+  local turbo=$(read_safe "$NO_TURBO")
+  if [[ "$turbo" == "0" ]]; then
+    turbo="on"
+  else
+    turbo="off"
+  fi
+  local pp=$(read_safe "$PLATFORM_PROFILE")
+  local bat_limit=$(read_safe "$BAT_LIMIT")
+  printf "  %-15s ${CYAN}%s${NC}\n" "Governor:" "$gov"
+  printf "  %-15s ${CYAN}%s${NC}\n" "EPP:" "$epp"
+  printf "  %-15s ${CYAN}%s${NC}\n" "Turbo:" "$turbo"
+  printf "  %-15s ${CYAN}%s${NC}\n" "Platform:" "$pp"
+  printf "  %-15s ${CYAN}%s%%${NC}\n" "Charge limit:" "$bat_limit"
+  printf "  %-15s ${CYAN}ac=%s dc=%s${NC} ${DIM}(hook %s)${NC}\n" "PP auto:" "$(read_safe "$PP_AC")" "$(read_safe "$PP_DC")" "$(pp_rule_state)"
+  printf "  %-15s ${CYAN}%s MHz${NC}\n" "Frequency:" "$cur"
+  printf "  %-15s ${CYAN}%sW (%sW max)${NC}\n" "PL1:" "$pl1" "$pl1_max"
+  if [[ "$pl2_max" -gt 0 ]]; then
+    printf "  %-15s ${CYAN}%sW (%sW max)${NC}\n" "PL2:" "$pl2" "$pl2_max"
+  else
+    printf "  %-15s ${CYAN}%sW${NC}\n" "PL2:" "$pl2"
+  fi
+  echo ""
+
+  hr
+  echo -e "${BOLD}  GPU${NC}"
+  local gpu_cur=$(read_safe "$GPU_CUR")
+  local gpu_max=$(read_safe "$GPU_MAX")
+  local gpu_min=$(read_safe "$GPU_MIN")
+  printf "  %-15s ${CYAN}%s MHz${NC}\n" "Current:" "$gpu_cur"
+  printf "  %-15s ${CYAN}%s / %s MHz${NC}\n" "Min/Max:" "$gpu_min" "$gpu_max"
+  echo ""
+
+  hr
+  echo -e "${BOLD}  Peripherals${NC}"
+  local aspm=$(read_safe "$PCIE_ASPM")
+  local sound=$(read_safe "$SOUND_PM")
+  local wifi=$(iw dev wlan0 get power_save 2>/dev/null | grep -oP '(on|off)' || echo "?")
+  local bt=$(bluetoothctl show 2>/dev/null | grep "Powered:" | awk '{print $2}' || echo "?")
+  printf "  %-15s ${CYAN}%s${NC}\n" "PCIe ASPM:" "$aspm"
+  printf "  %-15s ${CYAN}%s${NC}\n" "WiFi PM:" "$wifi"
+  printf "  %-15s ${CYAN}%s${NC}\n" "Sound PM:" "$sound"
+  printf "  %-15s ${CYAN}%s${NC}\n" "Bluetooth:" "$bt"
+  echo ""
+}
+
+# List
+
+cmd_list() {
+  echo -e "\n${BOLD}Options${NC}\n"
+
+  # RAPL
+  local pl1=$(to_watts "$(read_safe "$RAPL_PL1")")
+  local pl2=$(to_watts "$(read_safe "$RAPL_PL2")")
+  local pl1_max=$(to_watts "$(read_safe "$RAPL_PL1_MAX")")
+  local pl2_max=$(to_watts "$(read_safe "$RAPL_PL2_MAX")")
+  if [[ "$pl2_max" -gt 0 ]]; then
+    printf "  ${BOLD}rapl${NC}      ${CYAN}${pl1}W/${pl2}W${NC} (max ${pl1_max}W/${pl2_max}W)\n"
+  else
+    printf "  ${BOLD}rapl${NC}      ${CYAN}${pl1}W/${pl2}W${NC} (max ${pl1_max}W)\n"
+  fi
+
+  # Turbo
+  local turbo=$(read_safe "$NO_TURBO")
+  if [[ "$turbo" == "0" ]]; then
+    printf "  ${BOLD}turbo${NC}     ${GREEN}on${NC} ${DIM}off${NC}\n"
+  else
+    printf "  ${BOLD}turbo${NC}     ${DIM}on${NC} ${GREEN}off${NC}\n"
+  fi
+
+  # Platform profile
+  local pp=$(read_safe "$PLATFORM_PROFILE")
+  local pp_list=""
+  for p in $(cat "$PLATFORM_PROFILE_AVAIL" 2>/dev/null); do
+    if [[ "$p" == "$pp" ]]; then
+      pp_list+="${GREEN}${p}${NC} "
+    else
+      pp_list+="${DIM}${p}${NC} "
+    fi
+  done
+  printf "  ${BOLD}pp${NC}        %b\n" "$pp_list"
+
+  # Governor
+  local gov_current=$(read_safe "$CPU_GOV")
+  local gov_list=""
+  for g in $(cat "$CPU_GOV_AVAIL" 2>/dev/null); do
+    if [[ "$g" == "$gov_current" ]]; then
+      gov_list+="${GREEN}${g}${NC} "
+    else
+      gov_list+="${DIM}${g}${NC} "
+    fi
+  done
+  printf "  ${BOLD}gov${NC}       %b\n" "$gov_list"
+
+  # EPP
+  local epp_current=$(read_safe "$CPU_EPP")
+  local epp_list=""
+  for e in $(cat "$CPU_EPP_AVAIL" 2>/dev/null); do
+    if [[ "$e" == "$epp_current" ]]; then
+      epp_list+="${GREEN}${e}${NC} "
+    else
+      epp_list+="${DIM}${e}${NC} "
+    fi
+  done
+  printf "  ${BOLD}epp${NC}       %b\n" "$epp_list"
+
+  # GPU
+  local gpu_cur=$(read_safe "$GPU_CUR")
+  local gpu_max=$(read_safe "$GPU_MAX")
+  local gpu_min=$(read_safe "$GPU_MIN")
+  printf "  ${BOLD}gpu${NC}       ${CYAN}${gpu_cur}${NC} MHz (${gpu_min}-${gpu_max})\n"
+
+  # ASPM
+  local aspm=$(read_safe "$PCIE_ASPM")
+  local aspm_opts=""
+  for a in performance powersave powersupersave; do
+    if [[ "$a" == "$aspm" ]] || [[ "$aspm" == *"[$a]"* ]]; then
+      aspm_opts+="${GREEN}${a}${NC} "
+    else
+      aspm_opts+="${DIM}${a}${NC} "
+    fi
+  done
+  printf "  ${BOLD}aspm${NC}      %b\n" "$aspm_opts"
+
+  # WiFi
+  local wifi=$(iw dev wlan0 get power_save 2>/dev/null | grep -oP '(on|off)' || echo "?")
+  if [[ "$wifi" == "on" ]]; then
+    printf "  ${BOLD}wifi${NC}      ${GREEN}on${NC} ${DIM}off${NC}\n"
+  else
+    printf "  ${BOLD}wifi${NC}      ${DIM}on${NC} ${GREEN}off${NC}\n"
+  fi
+
+  # Sound
+  local sound=$(read_safe "$SOUND_PM")
+  printf "  ${BOLD}sound${NC}     ${CYAN}${sound}${NC}/10\n"
+  echo ""
+}
+
+# Levels
+
+level_0() {
+  echo -e "\n${BOLD}${GREEN}LEVEL 0: Maximum Battery${NC}\n"
+  apply_platform_profile "quiet"
+  apply_rapl 15 25
+  apply_governor "powersave"
+  apply_epp "power"
+  apply_pcie_aspm "powersupersave"
+  apply_wifi_power "on"
+  apply_sound_pm "10"
+  apply_gpu "1500"
+  apply_bluetooth "off"
+}
+
+level_1() {
+  echo -e "\n${BOLD}${CYAN}LEVEL 1: Light Use${NC}\n"
+  apply_platform_profile "quiet"
+  apply_rapl 15 25
+  apply_governor "powersave"
+  apply_epp "balance_power"
+  apply_pcie_aspm "powersupersave"
+  apply_wifi_power "on"
+  apply_sound_pm "10"
+  apply_gpu "1800"
+}
+
+level_2() {
+  echo -e "\n${BOLD}${YELLOW}LEVEL 2: Balanced${NC}\n"
+  apply_platform_profile "balanced"
+  apply_rapl 25 35
+  apply_governor "powersave"
+  apply_epp "balance_performance"
+  apply_pcie_aspm "powersave"
+  apply_wifi_power "off"
+  apply_sound_pm "10"
+  apply_gpu "2000"
+  apply_bluetooth "on"
+}
+
+level_3() {
+  echo -e "\n${BOLD}${RED}LEVEL 3: Performance${NC}\n"
+  apply_platform_profile "performance"
+  apply_rapl 45 65
+  apply_governor "powersave"
+  apply_epp "performance"
+  apply_pcie_aspm "performance"
+  apply_wifi_power "off"
+  apply_sound_pm "0"
+  apply_gpu "2200"
+  apply_bluetooth "on"
+}
+
+# Usage
+
+cmd_usage() {
+  printf "\n${BOLD}pwr — power mode controller${NC}\n\n"
+  printf "Levels:\n"
+  printf "  ${GREEN}0${NC}  Maximum battery\n"
+  printf "  ${CYAN}1${NC}  Light use\n"
+  printf "  ${YELLOW}2${NC}  Balanced\n"
+  printf "  ${RED}3${NC}  Performance\n"
+  printf "\nIndividual:\n"
+  printf "  rapl <pl1> <pl2>   RAPL power limits (watts)\n"
+  printf "  turbo <on|off>     Intel turbo boost\n"
+  printf "  pp <profile>       ACPI platform profile\n"
+  printf "  pp ac|dc <prof>    Auto profile on AC/battery (installs udev hook)\n"
+  printf "  pp auto [install|uninstall]  Show/manage pp hook\n"
+  printf "  bat [20-100|full|oneshot|o|restore|install|uninstall]  Charge limit + udev hook\n"
+  printf "  gpu <freq>         iGPU max frequency (MHz)\n"
+  printf "  epp <pref>         Energy performance preference\n"
+  printf "  gov <governor>     CPU frequency governor\n"
+  printf "  aspm <mode>        PCIe ASPM mode\n"
+  printf "  wifi <on|off>      WiFi power save\n"
+  printf "  sound <0-10>       Sound power save level\n"
+  printf "  bt <on|off>        Bluetooth power\n"
+  printf "\nInfo:\n"
+  printf "  status, s          Current power state\n"
+  printf "  list, ls           Available options\n"
+}
+
+# Main
+
+case "${1:-}" in
+0 | max | saver) level_0 ;;
+1 | light) level_1 ;;
+2 | balanced | bal) level_2 ;;
+3 | performance | perf | p) level_3 ;;
+
+rapl)
+  [[ -z "${2:-}" || -z "${3:-}" ]] && {
+    echo "Usage: pwr rapl <pl1_watts> <pl2_watts>"
+    exit 1
+  }
+  apply_rapl "$2" "$3"
+  ;;
+gpu)
+  [[ -z "${2:-}" ]] && {
+    echo "Usage: pwr gpu <freq_mhz>"
+    exit 1
+  }
+  apply_gpu "$2"
+  ;;
+epp)
+  [[ -z "${2:-}" ]] && {
+    echo "Usage: pwr epp <preference>"
+    exit 1
+  }
+  apply_epp "$2"
+  ;;
+gov)
+  [[ -z "${2:-}" ]] && {
+    echo "Usage: pwr gov <governor>"
+    exit 1
+  }
+  apply_governor "$2"
+  ;;
+aspm)
+  [[ -z "${2:-}" ]] && {
+    echo "Usage: pwr aspm <mode>"
+    exit 1
+  }
+  apply_pcie_aspm "$2"
+  ;;
+wifi)
+  [[ -z "${2:-}" ]] && {
+    echo "Usage: pwr wifi <on|off>"
+    exit 1
+  }
+  apply_wifi_power "$2"
+  ;;
+sound)
+  [[ -z "${2:-}" ]] && {
+    echo "Usage: pwr sound <0-10>"
+    exit 1
+  }
+  apply_sound_pm "$2"
+  ;;
+bt)
+  [[ -z "${2:-}" ]] && {
+    echo "Usage: pwr bt <on|off>"
+    exit 1
+  }
+  apply_bluetooth "$2"
+  ;;
+bat | battery)
+  cmd_bat "${2:-}"
+  ;;
+pp)
+  cmd_pp "${2:-}" "${3:-}"
+  ;;
+pp-auto)
+  cmd_pp_auto "${2:-}"
+  ;;
+turbo)
+  [[ -z "${2:-}" ]] && {
+    echo "Usage: pwr turbo <on|off>"
+    exit 1
+  }
+  apply_turbo "$2"
+  ;;
+
+status | s) cmd_status ;;
+list | ls | l) cmd_list ;;
+*) cmd_usage ;;
+esac
