@@ -2,6 +2,7 @@
 
 hl.on("hyprland.start", function()
   hl.exec_cmd("swaylock -c 000000 -F")
+  -- hl.exec_cmd("~/scripts/arc rs")
 
   hl.exec_cmd("sudo /usr/local/sbin/mute-led")
   hl.exec_cmd("pkill awww-daemon; awww-daemon & sleep 1 && ~/scripts/changeWall rand")
