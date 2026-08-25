@@ -2,7 +2,6 @@
 
 hl.on("hyprland.start", function()
   hl.exec_cmd("swaylock -c 000000 -F")
-  -- hl.exec_cmd("~/scripts/arc rs")
 
   hl.exec_cmd("sudo /usr/local/sbin/mute-led")
   hl.exec_cmd("pkill awww-daemon; awww-daemon & sleep 1 && ~/scripts/changeWall rand")
@@ -24,7 +23,7 @@ hl.on("hyprland.start", function()
   hl.exec_cmd("dotoold")
   hl.exec_cmd("blueman-applet")
   hl.exec_cmd("LBSync cp")
-  hl.exec_cmd("syncthing --no-browser")
+  -- hl.exec_cmd("syncthing --no-browser")
   hl.exec_cmd("solaar -b symbolic -w hide")
   hl.exec_cmd("powertop --auto-tune")
   hl.exec_cmd("hypridle")

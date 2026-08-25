@@ -10,6 +10,8 @@ import type {
 	ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 
+import { sendQolNotification } from "./qol/notifications";
+
 // ─── Template engine ─────────────────────────────────────────────────────────
 
 function resolveTemplate(
@@ -25,6 +27,34 @@ function resolveTemplate(
 // ─── Prompt templates ────────────────────────────────────────────────────────
 
 const PLAN_SUBMIT_TOOL = "submit_for_review";
+const SUBMIT_STATE_CUSTOM_TYPE = "submit:state";
+
+// The tool is registered but NOT active by default: it's stripped from the
+// active tool set so the LLM never sees it (only active tools are exposed to
+// the model). It gets injected when MD mode is active (mode:changed event from
+// modes.ts) or when the user forces it via /submit on.
+//
+// override: "auto" follows MD mode, "on"/"off" pin the state explicitly.
+type SubmitOverride = "auto" | "on" | "off";
+
+let submitOverride: SubmitOverride = "auto";
+let mdModeActive = false;
+let unsubscribeModeChanged: (() => void) | null = null;
+
+function isSubmitEnabled(): boolean {
+	return submitOverride === "on" || (submitOverride === "auto" && mdModeActive);
+}
+
+function applySubmitToolState(pi: ExtensionAPI): void {
+	const enabled = isSubmitEnabled();
+	const active = pi.getActiveTools();
+	const present = active.includes(PLAN_SUBMIT_TOOL);
+	if (enabled && !present) {
+		pi.setActiveTools([...active, PLAN_SUBMIT_TOOL]);
+	} else if (!enabled && present) {
+		pi.setActiveTools(active.filter((name) => name !== PLAN_SUBMIT_TOOL));
+	}
+}
 
 function buildPlanFileRule(planFilePath?: string): string {
 	if (!planFilePath) return "";
@@ -374,6 +404,13 @@ export default function plannotator(pi: ExtensionAPI): void {
 				};
 			}
 
+			sendQolNotification(
+				ctx,
+				"review",
+				`${inputPath} was submitted for review — open the Marknote Review window to approve or deny.`,
+				"info",
+			);
+
 			let result: Awaited<ReturnType<typeof startMarknoteSession>>;
 			try {
 				result = await startMarknoteSession(ctx, fullPath);
@@ -461,6 +498,85 @@ export default function plannotator(pi: ExtensionAPI): void {
 				],
 				details: { approved: false, feedback: feedbackText },
 			};
+		},
+	});
+
+	// ── Tool activation: disabled by default, injected in MD mode ───────
+	// setActiveTools() replaces the whole active set, so always diff against
+	// getActiveTools() instead of passing a bare list.
+
+	pi.on("session_start", async (_event, ctx) => {
+		submitOverride = "auto";
+		mdModeActive = false;
+		// Restore persisted state from branch entries. Reading mode:state here
+		// (instead of relying on the mode:changed event) keeps this order-
+		// independent of modes.ts's own session_start handler.
+		for (const entry of ctx.sessionManager.getBranch()) {
+			if (entry.type !== "custom" || typeof entry.customType !== "string") {
+				continue;
+			}
+			if (entry.customType === SUBMIT_STATE_CUSTOM_TYPE) {
+				const data = entry.data as { override?: SubmitOverride } | undefined;
+				if (data?.override) submitOverride = data.override;
+			} else if (entry.customType === "mode:state") {
+				const data = entry.data as { mode?: string } | undefined;
+				if (data?.mode === "MD") mdModeActive = true;
+			}
+		}
+		applySubmitToolState(pi);
+	});
+
+	pi.on("session_shutdown", async () => {
+		submitOverride = "auto";
+		mdModeActive = false;
+		// The event bus survives extension reloads, so drop the old listener
+		// (the new module instance registers a fresh one on load).
+		unsubscribeModeChanged?.();
+		unsubscribeModeChanged = null;
+	});
+
+	// modes.ts emits this on every mode change and after restoring mode on
+	// session start, so this covers both runtime toggles and session resumes.
+	unsubscribeModeChanged = pi.events.on("mode:changed", (data) => {
+		const mode = (data as { mode?: string } | undefined)?.mode;
+		mdModeActive = mode === "MD";
+		applySubmitToolState(pi);
+	});
+
+	// Safety net: a mid-turn mode switch can leave the model with a stale tool
+	// list, so block any call that slips through while the tool is disabled.
+	pi.on("tool_call", async (event) => {
+		if (event.toolName === PLAN_SUBMIT_TOOL && !isSubmitEnabled()) {
+			return {
+				block: true,
+				reason:
+					"BLOCKED: submit_for_review is not enabled. It's only injected in MD mode, or run /submit on to force it.",
+			};
+		}
+		return;
+	});
+
+	pi.registerCommand("submit", {
+		description:
+			"Control the submit_for_review tool: /submit on | off | auto (auto = only available in MD mode)",
+		handler: async (args, ctx) => {
+			const trimmed = (args ?? "").trim().toLowerCase();
+			if (trimmed === "on") {
+				submitOverride = "on";
+			} else if (trimmed === "off") {
+				submitOverride = "off";
+			} else if (trimmed === "auto" || trimmed === "") {
+				submitOverride = "auto";
+			} else {
+				ctx.ui.notify("Usage: /submit on | off | auto", "error");
+				return;
+			}
+			pi.appendEntry(SUBMIT_STATE_CUSTOM_TYPE, { override: submitOverride });
+			applySubmitToolState(pi);
+			ctx.ui.notify(
+				`submit_for_review: ${isSubmitEnabled() ? "ENABLED" : "DISABLED"} (${submitOverride}${submitOverride === "auto" ? (mdModeActive ? ", MD mode" : ", no MD mode") : ""})`,
+				"info",
+			);
 		},
 	});
 }

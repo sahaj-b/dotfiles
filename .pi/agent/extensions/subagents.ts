@@ -77,7 +77,7 @@ const AGENTS: Record<string, AgentEntry> = {
 		name: "worker",
 		model: "oc/deepseek-v4-flash-free",
 		commands: [],
-		thinking: "high",
+		thinking: "max",
 	},
 };
 
@@ -750,11 +750,19 @@ function getTermWidth(): number {
 }
 
 /**
- * Number of trailing tool calls to show per subagent in collapsed (non-
- * Ctrl-O) view. Newer calls push older ones out the top — a lazy fixed window
- * instead of dumping the whole history. Expanded view always shows everything.
+ * Trailing tool calls shown per subagent in collapsed (non-Ctrl-O) view, keyed
+ * by nesting depth. The window shrinks the deeper you go: 5 at the top level,
+ * 2 one level down, 0 below — nested chrome is noise; the header and stats
+ * still carry the signal. Expanded view always shows everything.
  */
-const MAX_COLLAPSED_TOOL_ROWS = 5;
+const MAX_COLLAPSED_TOOL_ROWS: Record<number, number> = { 0: 5, 1: 2 };
+
+/**
+ * Tool names that bypass the collapsed-window cap entirely. Subagent calls
+ * (incl. resume) are always rendered at every nesting depth — hiding them
+ * would bury the very thing this tree exists to show.
+ */
+const ALWAYS_VISIBLE_TOOLS = new Set(["subagent", RESUME_TOOL_NAME]);
 
 function renderAgentProgress(
 	r: AgentResult,
@@ -799,8 +807,9 @@ function renderAgentProgress(
 				),
 			)
 		: "";
+	const depthBadge = depth > 0 ? theme.fg("dim", `[${depth}] `) : "";
 	addLine(
-		`${icon} ${theme.fg("toolTitle", theme.bold(r.agent))}${modelStr}${taskPreview}`,
+		`${icon} ${depthBadge}${theme.fg("toolTitle", theme.bold(r.agent))}${modelStr}${taskPreview}`,
 	);
 
 	// Tool rows + recursive children
@@ -823,11 +832,21 @@ function renderAgentProgress(
 		}
 	};
 
-	// Tool rows, clamped to a trailing window when collapsed so the view scrolls
-	// with the newest calls instead of stacking the entire list.
-	const visibleTools = expanded
-		? prog.recentTools
-		: prog.recentTools.slice(-MAX_COLLAPSED_TOOL_ROWS);
+	// Tool rows, clamped to a trailing window that shrinks with nesting depth
+	// when collapsed, so the view scrolls with the newest calls instead of
+	// stacking the entire list. Subagent/resume_subagent calls bypass the cap
+	// entirely — every one shows at any depth.
+	const collapsedLimit = MAX_COLLAPSED_TOOL_ROWS[depth] ?? 0;
+	let visibleTools = prog.recentTools;
+	if (!expanded) {
+		const capped = prog.recentTools.filter(
+			(t) => !ALWAYS_VISIBLE_TOOLS.has(t.tool),
+		);
+		const keep = new Set(capped.slice(capped.length - collapsedLimit));
+		visibleTools = prog.recentTools.filter(
+			(t) => ALWAYS_VISIBLE_TOOLS.has(t.tool) || keep.has(t),
+		);
+	}
 	for (const t of visibleTools) {
 		renderToolRow(t.tool, t.args, t.children, t.status === "running");
 	}

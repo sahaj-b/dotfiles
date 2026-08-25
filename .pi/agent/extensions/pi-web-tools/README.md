@@ -24,8 +24,8 @@ bun install
 
 ## Tools Provided
 
-1. **`web_search`**: Search the public web. Routes through the fallback chain and returns a list of results (titles, URLs, snippets).
-2. **`code_search`**: Search code-specific sources (GitHub, Stack Overflow, docs). Exa-only. Errors directly on failure (with a suggestion to use `web_search` instead) to prevent silent fallback issues.
+1. **`search_web`**: Search the public web. Routes through the fallback chain and returns a list of results (titles, URLs, snippets).
+2. **`code_search`**: Search code-specific sources (GitHub, Stack Overflow, docs). Exa-only. Errors directly on failure (with a suggestion to use `search_web` instead) to prevent silent fallback issues.
 3. **`web_fetch`**: Direct URL fetching and Markdown conversion through a provider fallback chain that ends with a local HTTP fetch (no provider needed). Converts HTML to clean Markdown using Turndown.
 4. **`web_crawl`**: Recursive site crawling using Tavily or Firecrawl.
 5. **`web_extract`**: Structured Markdown extraction for JS-heavy or protected pages using Firecrawl, Tavily, or Browserbase.

@@ -4,6 +4,11 @@ local mod = "SUPER"
 local mod2 = "ALT"
 local terminal = "kitty -1"
 
+
+hl.bind(mod .. " + " .. "SHIFT" .. " + H",
+  hl.dsp.exec_cmd(
+    "notify-send 'lookin for htspt'; for i in {1..60};do nmcli dev wifi rescan; if nmcli dev wifi connect ?; then break; fi; sleep 0.5;done; notify-send 'done'"))
+
 -- OBS
 hl.bind(mod .. " + " .. mod2 .. " + S",
   hl.dsp.exec_cmd(
@@ -242,10 +247,10 @@ hl.bind(mod2 .. " + SHIFT + R", hl.dsp.exec_cmd("~/scripts/recorder"))
 hl.bind(mod .. " + SHIFT + R", hl.dsp.exec_cmd("~/scripts/recorder -s"))
 
 -- App launcher
-hl.bind(mod2 .. " + slash", hl.dsp.exec_cmd("hexecute"))
+-- hl.bind(mod2 .. " + slash", hl.dsp.exec_cmd("hexecute"))
 
 -- Debug
-hl.bind(" + END", hl.dsp.exec_cmd("echo"))
+-- hl.bind(" + END", hl.dsp.exec_cmd("echo"))
 
 -- EasyEffects toggle
 hl.bind(mod .. " + SHIFT + E",

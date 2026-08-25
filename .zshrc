@@ -62,6 +62,8 @@ if [[ -f ~/yeah.sh ]]; then
   source ~/yeah.sh
 fi
 
+alias refr="src/reframe/scripts/reframe"
+alias wtch="src/reframe/scripts/wtch"
 alias ptojpg="wl-paste | magick png:- -quality 80 jpeg:- | wl-copy"
 alias pbeep="~/projects/pbeep/pbeep -port CASIO -vol 0.4 -off ~/media/oreo1.wav -on ~/media/oreo2.wav"
 alias wrp='sudo systemctl start warp-svc.service && sleep 1 && systemctl --user start warp-taskbar; warp-cli connect'

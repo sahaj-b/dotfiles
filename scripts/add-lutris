@@ -1,0 +1,250 @@
+#!/bin/bash
+# Usage: addLutris.sh <name> <exe path> [--no-mango|-n] [--of|-o]
+# Registers a game with Lutris: entry in pga.db, Steam/SGDB artwork, icon
+# extracted from the exe, desktop launcher. MangoHud on by default.
+# --of: launch via ~/scripts/of-run (Proton online-fix wrapper), linux runner.
+
+NAME="$1"
+EXE_PATH="$(readlink -f "$2")"
+OF_WRAPPER="/home/sahaj/scripts/of-run"
+
+if [ -z "$NAME" ] || [ -z "$EXE_PATH" ]; then
+  echo "usage: addLutris.sh <name> <exe path> [--no-mango|-n] [--of|-o]"
+  exit 1
+fi
+
+MANGO=true
+OF_RUN=false
+for arg in "${@:3}"; do
+  case "$arg" in
+  --no-mango | -n) MANGO=false ;;
+  --of | -o) OF_RUN=true ;;
+  esac
+done
+
+GAME_DIR="$(dirname "$EXE_PATH")"
+
+echo "name: $NAME"
+echo "exe: $EXE_PATH"
+
+# --- slug from name ---
+SLUG=$(echo "$NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g;s/^-//;s/-$//')
+echo "slug: $SLUG"
+
+# --- lutris dirs (flatpak aware) ---
+IS_FLATPAK=false
+if command -v flatpak &>/dev/null && flatpak info net.lutris.Lutris &>/dev/null; then
+  IS_FLATPAK=true
+fi
+
+if [ "$IS_FLATPAK" = true ]; then
+  LUT_DATA="$HOME/.var/app/net.lutris.Lutris/data/lutris"
+  GAMES_DIR="$HOME/.var/app/net.lutris.Lutris/config/lutris/games"
+else
+  LUT_DATA="$HOME/.local/share/lutris"
+  [ -d "$HOME/.config/lutris" ] && GAMES_DIR="$HOME/.config/lutris/games" || GAMES_DIR="$LUT_DATA/games"
+fi
+
+BANNERS_DIR="$LUT_DATA/banners"
+COVERART_DIR="$LUT_DATA/coverart"
+mkdir -p "$GAMES_DIR" "$BANNERS_DIR" "$COVERART_DIR"
+
+# --- wine prefix: nearest ancestor of the exe containing drive_c ---
+PREFIX_DIR=""
+CHECK_DIR="$GAME_DIR"
+while [ -n "$CHECK_DIR" ] && [ "$CHECK_DIR" != "/" ]; do
+  if [ -d "$CHECK_DIR/drive_c" ]; then
+    PREFIX_DIR="$CHECK_DIR"
+    break
+  fi
+  CHECK_DIR="$(dirname "$CHECK_DIR")"
+done
+[ -z "$PREFIX_DIR" ] && [ -d "$HOME/wine-games" ] && PREFIX_DIR="$HOME/wine-games"
+[ -z "$PREFIX_DIR" ] && PREFIX_DIR="$GAME_DIR"
+echo "prefix: $PREFIX_DIR"
+echo "lutris data dir: $LUT_DATA"
+
+# --- reuse existing entry if this exe is already registered ---
+unquote_yaml() {
+  local val="$1"
+  if [[ "$val" =~ ^\'(.*)\'$ ]]; then
+    val="${BASH_REMATCH[1]}"
+    val=$(echo "$val" | sed "s/''/'/g")
+  elif [[ "$val" =~ ^\"(.*)\"$ ]]; then
+    val="${BASH_REMATCH[1]}"
+  fi
+  echo "$val"
+}
+
+EXISTING_ID=""
+for yml_file in "$GAMES_DIR"/${SLUG}-*.yml; do
+  [ -f "$yml_file" ] || continue
+  YML_EXE=$(unquote_yaml "$(grep -E "^\s*exe:" "$yml_file" | head -n 1 | sed -E "s/^\s*exe:\s*//")")
+  YML_ARGS=$(unquote_yaml "$(grep -E "^\s*args:" "$yml_file" | head -n 1 | sed -E "s/^\s*args:\s*//")")
+  if [ "$YML_EXE" = "$EXE_PATH" ] || { [ "$YML_EXE" = "$OF_WRAPPER" ] && [ "$YML_ARGS" = "$EXE_PATH" ]; }; then
+    EXISTING_ID=$(basename "$yml_file" | sed -E "s/^${SLUG}-([0-9]+)\.yml$/\1/")
+    break
+  fi
+done
+
+if [ -n "$EXISTING_ID" ]; then
+  GAME_ID=$EXISTING_ID
+  echo "existing entry found, reusing id $GAME_ID"
+else
+  if [ -f "$LUT_DATA/pga.db" ]; then
+    SLUG_COUNT=$(sqlite3 "$LUT_DATA/pga.db" "SELECT COUNT(*) FROM games WHERE slug='$SLUG';" 2>/dev/null)
+    [ "$SLUG_COUNT" -gt 0 ] && SLUG="${SLUG}-$(shuf -i 1000-9999 -n 1)"
+  fi
+  GAME_ID=$(shuf -i 1000000000-9999999999 -n 1)
+  echo "new entry, id $GAME_ID"
+fi
+
+# --- artwork: steam store search, SGDB scrape fallback ---
+COVER_FOUND=0
+BANNER_FOUND=0
+APP_ID=""
+
+search_steam() {
+  curl -s "https://store.steampowered.com/api/storesearch/?term=$(echo "$1" | sed 's/ /%20/g')&l=english&cc=US"
+}
+
+SEARCH_JSON=$(search_steam "$NAME")
+TOTAL=$(echo "$SEARCH_JSON" | jq -r '.total // 0')
+if [ "$TOTAL" -eq 0 ]; then
+  SHORT=$(echo "$NAME" | awk '{print $1 " " $2}')
+  [ -n "$SHORT" ] && SEARCH_JSON=$(search_steam "$SHORT") && TOTAL=$(echo "$SEARCH_JSON" | jq -r '.total // 0')
+fi
+[ "$TOTAL" -gt 0 ] && APP_ID=$(echo "$SEARCH_JSON" | jq -r '.items[0].id')
+
+if [ -n "$APP_ID" ]; then
+  echo "steam search matched app id $APP_ID"
+  DETAILS=$(curl -s "https://store.steampowered.com/api/appdetails?appids=${APP_ID}")
+  HEADER=$(echo "$DETAILS" | jq -r ".[\"${APP_ID}\"].data.header_image // empty")
+
+  if [ -n "$HEADER" ]; then
+    curl -f -s "$HEADER" -o "${BANNERS_DIR}/${SLUG}.jpg"
+    [ -s "${BANNERS_DIR}/${SLUG}.jpg" ] && BANNER_FOUND=1
+  fi
+  if [ $BANNER_FOUND -eq 0 ]; then
+    curl -f -s "https://cdn.akamai.steamstatic.com/steam/apps/${APP_ID}/header.jpg" -o "${BANNERS_DIR}/${SLUG}.jpg"
+    [ -s "${BANNERS_DIR}/${SLUG}.jpg" ] && BANNER_FOUND=1
+  fi
+
+  curl -f -s "https://cdn.akamai.steamstatic.com/steam/apps/${APP_ID}/library_600x900_2x.jpg" -o "${COVERART_DIR}/${SLUG}.jpg"
+  [ -s "${COVERART_DIR}/${SLUG}.jpg" ] && COVER_FOUND=1
+  if [ $COVER_FOUND -eq 0 ]; then
+    curl -f -s "https://cdn.akamai.steamstatic.com/steam/apps/${APP_ID}/library_600x900.jpg" -o "${COVERART_DIR}/${SLUG}.jpg"
+    [ -s "${COVERART_DIR}/${SLUG}.jpg" ] && COVER_FOUND=1
+  fi
+fi
+
+[ -z "$APP_ID" ] && echo "no steam match, trying steamgriddb scrape"
+
+# steamgriddb scrape (no API key needed)
+if [ $COVER_FOUND -eq 0 ]; then
+  ENC=$(echo "$NAME" | sed 's/ /+/g')
+  GAME_URL=$(wget -q -U "Mozilla/5.0" -O - "https://html.duckduckgo.com/html/?q=site%3Asteamgriddb.com%2Fgame%2F+${ENC}" | grep -oP 'https://www.steamgriddb.com/game/[0-9]+' | head -n 1)
+  if [ -n "$GAME_URL" ]; then
+    GAME_HTML=$(wget -q -U "Mozilla/5.0" -O - "$GAME_URL" 2>/dev/null)
+    SGDB_IMG=$(echo "$GAME_HTML" | grep -oP 'https://cdn[0-9]*\.steamgriddb\.com/grid/[a-zA-Z0-9_-]+\.(jpg|jpeg|png|webp)' | head -n 1)
+    [ -z "$SGDB_IMG" ] && SGDB_IMG=$(echo "$GAME_HTML" | grep -oP 'https://cdn[0-9]*\.steamgriddb\.com/thumb/[a-zA-Z0-9_-]+\.(jpg|jpeg|png|webp)' | head -n 1)
+    if [ -n "$SGDB_IMG" ]; then
+      wget -q -U "Mozilla/5.0" "$SGDB_IMG" -O "${COVERART_DIR}/${SLUG}.jpg" 2>/dev/null
+      [ -s "${COVERART_DIR}/${SLUG}.jpg" ] && COVER_FOUND=1
+    fi
+  fi
+fi
+
+[ $COVER_FOUND -eq 1 ] && [ $BANNER_FOUND -eq 0 ] && cp "${COVERART_DIR}/${SLUG}.jpg" "${BANNERS_DIR}/${SLUG}.jpg" && echo "no banner found, reused cover as banner"
+
+[ $BANNER_FOUND -eq 1 ] && echo "banner: ${BANNERS_DIR}/${SLUG}.jpg"
+[ $COVER_FOUND -eq 1 ] && echo "coverart: ${COVERART_DIR}/${SLUG}.jpg"
+[ $BANNER_FOUND -eq 0 ] && echo "banner: not found"
+[ $COVER_FOUND -eq 0 ] && echo "coverart: not found"
+
+# --- icon from the exe -> ~/.local/share/icons ---
+if command -v wrestool &>/dev/null; then
+  echo "extracting icon from exe"
+  T_DIR=$(mktemp -d)
+  wrestool -x -t 14 "$EXE_PATH" >"$T_DIR/temp.ico" 2>/dev/null
+  [ ! -s "$T_DIR/temp.ico" ] && wrestool -x -t 3 "$EXE_PATH" >"$T_DIR/temp.ico" 2>/dev/null
+
+  if [ -s "$T_DIR/temp.ico" ]; then
+    B_ICON=""
+    if command -v icotool &>/dev/null; then
+      icotool -x -o "$T_DIR" "$T_DIR/temp.ico" 2>/dev/null
+      B_ICON=$(find "$T_DIR" -name "*.png" -exec ls -S {} + 2>/dev/null | head -n 1)
+    fi
+    if [ -z "$B_ICON" ] && command -v magick &>/dev/null; then
+      magick "$T_DIR/temp.ico" "$T_DIR/magick_%d.png" 2>/dev/null
+      B_ICON=$(find "$T_DIR" -name "magick_*.png" -exec ls -S {} + 2>/dev/null | head -n 1)
+    fi
+    if [ -n "$B_ICON" ]; then
+      I_DEST="$HOME/.local/share/icons/hicolor/128x128/apps"
+      mkdir -p "$I_DEST"
+      if command -v magick &>/dev/null; then
+        magick "$B_ICON" -resize 128x128 "${I_DEST}/lutris_${SLUG}.png"
+      else
+        cp "$B_ICON" "${I_DEST}/lutris_${SLUG}.png"
+      fi
+      gtk-update-icon-cache -f "$HOME/.local/share/icons/hicolor/" 2>/dev/null
+      echo "icon: ${I_DEST}/lutris_${SLUG}.png"
+    fi
+  else
+    echo "icon: no icon found in exe"
+  fi
+  rm -rf "$T_DIR"
+else
+  echo "icon: skipped (wrestool not installed)"
+fi
+
+# --- yml config + pga.db row (only for new entries) ---
+if [ -z "$EXISTING_ID" ]; then
+  if [ "$MANGO" = true ]; then
+    MANGOHUD_BLOCK=$'system:\n  mangohud: true'
+  else
+    MANGOHUD_BLOCK=""
+  fi
+
+  if [ "$OF_RUN" = true ]; then
+    GAME_BLOCK=$'game:\n  exe: /home/sahaj/scripts/of-run\n  args: '"'$EXE_PATH'"
+  else
+    GAME_BLOCK=$'game:\n  exe: '"'$EXE_PATH'"$'\n  prefix: '"'$PREFIX_DIR'"
+  fi
+
+  echo "writing config: $GAMES_DIR/${SLUG}-${GAME_ID}.yml"
+  cat <<EOF >"$GAMES_DIR/${SLUG}-${GAME_ID}.yml"
+${GAME_BLOCK}
+${MANGOHUD_BLOCK}
+EOF
+
+  if [ -f "$LUT_DATA/pga.db" ]; then
+    RUNNER="wine"
+    [ "$OF_RUN" = true ] && RUNNER="linux"
+    SQL_NAME=$(echo "$NAME" | sed "s/'/''/g")
+    sqlite3 "$LUT_DATA/pga.db" "INSERT INTO games (id, name, slug, runner, installed, installed_at, configpath) VALUES ($GAME_ID, '$SQL_NAME', '$SLUG', '$RUNNER', 1, $(date +%s), '${SLUG}-${GAME_ID}');" 2>&1
+    echo "pga.db: inserted id $GAME_ID (runner: $RUNNER)"
+  fi
+fi
+
+# --- desktop launcher ---
+APPS_DIR="$HOME/.local/share/applications"
+mkdir -p "$APPS_DIR"
+DESK_FILE="$APPS_DIR/${SLUG}.desktop"
+
+cat <<EOF >"$DESK_FILE"
+[Desktop Entry]
+Type=Application
+Name=$NAME
+Icon=lutris_$SLUG
+Exec=env LUTRIS_SKIP_INIT=1 lutris lutris:rungameid/$GAME_ID
+Categories=Game
+EOF
+chmod +x "$DESK_FILE"
+update-desktop-database "$APPS_DIR" 2>/dev/null
+echo "desktop shortcut: $DESK_FILE"
+
+DESKTOP_DIR=$(xdg-user-dir DESKTOP 2>/dev/null)
+[ -n "$DESKTOP_DIR" ] && ln -sf "$DESK_FILE" "$DESKTOP_DIR/${SLUG}.desktop"
+
+notify-send "Lutris" "'$NAME' added" --icon="lutris_$SLUG" 2>/dev/null

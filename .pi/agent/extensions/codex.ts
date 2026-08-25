@@ -112,10 +112,25 @@ function discoverModels(): ProviderModelConfig[] {
 	for (const m of raw) {
 		if (!m.supported_in_api || m.slug === "codex-auto-review") continue;
 		const ctx = m.context_window || m.max_context_window || 128000;
+		const levels = (m.supported_reasoning_levels || [])
+			.map((l: { effort?: string }) => l?.effort)
+			.filter((e: string | undefined): e is string => !!e);
+		const levelSet = new Set(levels);
+		const thinkingLevelMap = levelSet.size
+			? {
+					minimal: levelSet.has("low") ? "low" : null,
+					low: levelSet.has("low") ? "low" : null,
+					medium: levelSet.has("medium") ? "medium" : null,
+					high: levelSet.has("high") ? "high" : null,
+					xhigh: levelSet.has("xhigh") ? "xhigh" : null,
+					max: levelSet.has("max") ? "max" : null,
+				}
+			: undefined;
 		models.push({
 			id: m.slug,
 			name: m.display_name || m.slug,
-			reasoning: (m.supported_reasoning_levels || []).length > 1,
+			reasoning: levels.length > 1,
+			...(thinkingLevelMap ? { thinkingLevelMap } : {}),
 			input: m.input_modalities?.includes("image")
 				? ["text", "image"]
 				: ["text"],

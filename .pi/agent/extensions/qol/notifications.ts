@@ -26,6 +26,7 @@ export type QolNotificationKind =
 	| "question"
 	| "task-complete"
 	| "critical"
+	| "review"
 	| "test";
 export type QolNotificationLevel = "info" | "warning" | "error";
 export type SoundKind =
@@ -43,6 +44,7 @@ const SOUND_KIND_MAP: Partial<Record<QolNotificationKind, SoundKind>> = {
 	question: "question",
 	ready: "complete",
 	direction: "complete",
+	review: "question",
 	test: "complete",
 };
 
@@ -286,6 +288,8 @@ function notificationEnabledFor(
 			return settingBoolean("notification.onTaskComplete", true, cwd);
 		case "critical":
 			return settingBoolean("notification.onCritical", true, cwd);
+		case "review":
+			return settingBoolean("notification.onReview", true, cwd);
 		case "test":
 			return true;
 	}

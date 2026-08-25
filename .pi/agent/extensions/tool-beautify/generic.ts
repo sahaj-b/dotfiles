@@ -24,6 +24,7 @@ export const OPENAI_STYLE_TOOL_NAMES = new Set([
 	"webfetch",
 	"web_fetch",
 	"web_search",
+	"search_web",
 	"fetch_content",
 	"get_search_content",
 	"code_search",
@@ -195,6 +196,7 @@ function summarizeGenericCall(name: string, args: any, theme: any): string {
 			return theme.fg("accent", oneLine(url, 72));
 		}
 		case "web_search":
+		case "search_web":
 		case "code_search":
 			return theme.fg(
 				"accent",

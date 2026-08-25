@@ -39,7 +39,6 @@ hl.window_rule({ match = { class = "^scratch$" }, workspace = "special:term" })
 
 -- Music workspace
 hl.window_rule({ match = { class = "^com.github.th-ch.youtube-music$" }, workspace = "special:music silent" })
-hl.window_rule({ match = { class = "mpv" }, workspace = "special:music silent" })
 
 -- Rhythm Doctor: kill blur+border+dimming on the windows (floating ones have empty class, so match title).
 -- NOTE: NO `opacity 1 override` here on purpose - that would force the main game window opaque and

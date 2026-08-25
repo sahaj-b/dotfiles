@@ -1,0 +1,203 @@
+#!/usr/bin/env bash
+# pwr-probe — read-only capability probe. No writes, no sudo.
+#
+# One question: "what does THIS machine actually expose?" Apply code must
+# validate against the kernel's menu (ABI), never guess. Legend at the end
+# says exactly which lines you can trust.
+#
+# Reliability classes:
+#   ABI  - kernel publishes existence/options explicitly -> detection is exact
+#   VER  - read-back knob exists -> apply then re-read to confirm
+#   HEUR - we infer identity/topology from sysfs -> right ~95%, wrong the
+#          rest; MUST be overridable in config
+#   NONE - no honest read-back (EC/vendor knobs) -> trust the write, fail loudly
+
+set -uo pipefail
+shopt -s nullglob
+
+RED=$'\033[0;31m'; GREEN=$'\033[0;32m'; YELLOW=$'\033[1;33m'
+CYAN=$'\033[0;36m'; BOLD=$'\033[1m'; DIM=$'\033[2m'; NC=$'\033[0m'
+
+collapse() { awk '{$1=$1};1' 2>/dev/null; }
+get() { local f="$1"; [[ -r "$f" ]] && collapse < "$f" || echo "-"; }
+tag() { printf " ${DIM}[%s]${NC}" "$1"; }
+sec() { echo; echo -e "${BOLD}== $1${NC}"; }
+
+# ---------------------------------------------------------------- CPU
+sec "CPU / cpufreq"
+p0=/sys/devices/system/cpu/cpufreq/policy0
+driver=$(get "$p0/scaling_driver")
+printf '  scaling_driver  %s%s\n' "$driver" "$(tag ABI)"
+printf '  pstate status   %s%s\n' "$(get /sys/devices/system/cpu/intel_pstate/status)" "$(tag ABI)"
+
+policies=(/sys/devices/system/cpu/cpufreq/policy*)
+printf '  policies        %s%s\n' "${#policies[@]}" "$(tag ABI)"
+printf '  max/min freq    %s / %s kHz%s\n' "$(get "$p0/scaling_max_freq")" "$(get "$p0/scaling_min_freq")" "$(tag ABI)"
+
+govs=$(for p in "${policies[@]}"; do
+  [[ -r "$p/scaling_available_governors" ]] || continue
+  tr ' ' '\n' < "$p/scaling_available_governors"
+done | sort -u | paste -sd' ')
+printf '  governors       %s%s\n' "$govs" "$(tag ABI)"
+if [[ "$driver" == intel_pstate && "$(get /sys/devices/system/cpu/intel_pstate/status)" == active ]]; then
+  echo -e "  ${YELLOW}note: pstate active — 'powersave'/'performance' are pstate modes, not generic governors${NC}"
+fi
+
+epp_paths=(/sys/devices/system/cpu/cpufreq/policy*/energy_performance_preference)
+if ((${#epp_paths[@]})); then
+  printf '  EPP             %s  avail: %s%s\n' \
+    "$(get "${epp_paths[0]}")" \
+    "$(get "${epp_paths[0]/energy_performance_preference/energy_performance_available_preferences}")" \
+    "$(tag 'ABI + VER')"
+else
+  printf '  EPP             ${DIM}not exposed${NC}%s\n' "$(tag ABI)"
+fi
+
+printf '  no_turbo        %s%s\n' "$(get /sys/devices/system/cpu/intel_pstate/no_turbo)" "$(tag 'ABI + VER')"
+printf '  boost (cpufreq) %s%s\n' "$(get "$p0/boost")" "$(tag ABI)"
+
+# E-core guess: lowest cpuinfo_max_freq wins. The numbers are ABI; the
+# grouping (which cores are "E") is a heuristic.
+min=$(cat /sys/devices/system/cpu/cpu[0-9]*/cpufreq/cpuinfo_max_freq 2>/dev/null | sort -n | head -1)
+ecores=""
+if [[ -n "$min" ]]; then
+  for c in /sys/devices/system/cpu/cpu[0-9]*; do
+    [[ "$(get "$c/cpufreq/cpuinfo_max_freq")" == "$min" ]] && ecores+="${c##*/cpu} "
+  done
+fi
+printf '  e-core guess    %s%s\n' "${ecores% }" "$(tag HEUR)"
+
+# ---------------------------------------------------------------- RAPL
+sec "powercap (RAPL)"
+found=0
+for z in /sys/class/powercap/*/; do
+  n=$(get "$z/name")
+  [[ "$(basename "$z")" == *rapl* || "$n" == *rapl* ]] || continue
+  found=1
+  printf '  zone %-16s %-10s enabled=%s%s\n' "$(basename "$z")" "$n" "$(get "$z/enabled")" "$(tag ABI)"
+  for c in "$z"constraint_*_power_limit_uw; do
+    base=${c%_power_limit_uw}
+    idx=${c##*constraint_}; idx=${idx%%_*}
+    cname=$(get "${base}_name")
+    case "$cname" in
+      long_term) lbl=PL1 ;;
+      short_term) lbl=PL2 ;;
+      *) lbl="C$idx (idx-conv)" ;;
+    esac
+    v=$(get "$c"); max=$(get "${base}_max_power_uw")
+    [[ "$v" =~ ^[0-9]+$ ]] && v_w=$((v / 1000000)) || v_w="-"
+    [[ "$max" =~ ^[0-9]+$ ]] && max_w=$((max / 1000000)) || max_w="-"
+    printf '    %-14s %s W (max %s W)%s\n' "$lbl" "$v_w" "$max_w" "$(tag 'ABI; write VER')"
+  done
+done
+((found)) || echo -e "  ${YELLOW}no rapl zone — AMD or module not loaded${NC}"
+
+# ---------------------------------------------------------------- platform profile
+sec "platform profile"
+if [[ -r /sys/firmware/acpi/platform_profile ]]; then
+  printf '  current         %s%s\n' "$(get /sys/firmware/acpi/platform_profile)" "$(tag 'ABI + VER')"
+  printf '  choices         %s%s\n' "$(get /sys/firmware/acpi/platform_profile_choices)" "$(tag ABI)"
+else
+  ppc=(/sys/class/platform-profile/*/profile)
+  if ((${#ppc[@]})); then
+    printf '  class devices   %s%s\n' "${#ppc[@]}" "$(tag ABI)"
+  else
+    echo -e "  ${YELLOW}not exposed by this firmware${NC}"
+  fi
+fi
+
+# ---------------------------------------------------------------- GPUs
+sec "GPUs"
+cards=(/sys/class/drm/card[0-9]*)
+for c in "${cards[@]}"; do
+  dev=$(readlink -f "$c/device" 2>/dev/null) || continue
+  class=$(get "$c/device/class")
+  drv=$(basename "$(readlink "$c/device/driver" 2>/dev/null)")
+  case "$class" in
+    0x0300*) kind="display (VGA)" ;;
+    0x0302*) kind="3D (dGPU-ish)" ;;
+    *) kind="$class" ;;
+  esac
+  gtf=$(get "$c/gt_max_freq_mhz")
+  printf '  %-6s %s vendor=%s driver=%-8s %s%s\n' \
+    "$(basename "$c")" "$(basename "$dev")" "$(get "$c/device/vendor")" "${drv:-none}" "$kind" "$(tag HEUR)"
+  [[ "$gtf" != "-" ]] && printf '      gt_max_freq_mhz = %s MHz%s\n' "$gtf" "$(tag 'ABI + VER')"
+done
+echo -e "  note: card index ≠ identity. Match BDF/vendor/class; config override."
+
+# ---------------------------------------------------------------- power supplies
+sec "power supplies"
+for s in /sys/class/power_supply/*/; do
+  t=$(get "$s/type")
+  printf '  %-10s type=%-8s cap=%s%% status=%s%s\n' \
+    "$(basename "$s")" "$t" "$(get "$s/capacity")" "$(get "$s/status")" "$(tag ABI)"
+  [[ "$t" == Battery ]] || continue
+  for a in charge_control_end_threshold charge_control_limit charge_stop_threshold charge_start_threshold; do
+    [[ -e "$s/$a" ]] && printf '      %-30s = %s%s\n' "$a" "$(get "$s/$a")" "$(tag 'ABI; effect NONE')"
+  done
+done
+
+# ---------------------------------------------------------------- wifi
+sec "wifi"
+if command -v iw >/dev/null 2>&1; then
+  ifaces=($(iw dev 2>/dev/null | awk '/^[[:space:]]*Interface/{print $2}'))
+  if ((${#ifaces[@]})); then
+    for i in "${ifaces[@]}"; do
+      ps=$(iw dev "$i" get power_save 2>/dev/null | grep -oE 'on|off' | head -1)
+      printf '  %-12s power_save=%s%s\n' "$i" "${ps:-?}" "$(tag 'ABI + VER')"
+    done
+  else
+    echo -e "  ${YELLOW}iw works but no interfaces reported${NC}"
+  fi
+else
+  echo -e "  ${YELLOW}iw missing — wifi power save not manageable${NC}"
+fi
+
+# ---------------------------------------------------------------- sound
+sec "sound"
+found=0
+for m in /sys/module/snd_*/parameters/power_save; do
+  mod=$(basename "$(dirname "$(dirname "$m")")")
+  printf '  %-24s = %s%s\n' "$mod" "$(get "$m")" "$(tag 'ABI + VER')"
+  found=1
+done
+((found)) || echo -e "  ${YELLOW}no snd module with power_save param loaded${NC}"
+
+# ---------------------------------------------------------------- usb / sata
+sec "usb / sata"
+printf '  usbcore autosuspend = %s s%s\n' "$(get /sys/module/usbcore/parameters/autosuspend)" "$(tag ABI)"
+n=0; for u in /sys/bus/usb/devices/*/power/control; do n=$((n+1)); done
+printf '  usb devices with power/control = %s%s\n' "$n" "$(tag ABI)"
+n=0
+for h in /sys/class/scsi_host/host*/link_power_management_policy; do
+  printf '  %-14s ALPM = %s%s\n' "$(basename "$(dirname "$h")")" "$(get "$h")" "$(tag 'ABI + VER')"
+  n=1
+done
+((n)) || echo -e "  ${YELLOW}no SATA ALPM host (NVMe-only?)${NC}"
+
+# ---------------------------------------------------------------- pcie / nvidia
+sec "pcie / nvidia"
+printf '  aspm policy     %s%s\n' "$(get /sys/module/pcie_aspm/parameters/policy)" "$(tag 'ABI + VER')"
+n=0; for d in /sys/bus/pci/devices/*/power/control; do n=$((n+1)); done
+printf '  pci runtime-PM controls = %s%s\n' "$n" "$(tag ABI)"
+if [[ -d /proc/driver/nvidia/gpus ]]; then
+  echo -e "  nvidia RTD3    ${GREEN}driver present${NC}$(tag ABI)"
+else
+  echo -e "  nvidia RTD3    ${DIM}absent${NC}$(tag ABI)"
+fi
+
+# ---------------------------------------------------------------- IRQs
+sec "IRQs (hot devices)"
+for pat in i915 iwlwifi:default_queue iwlwifi:queue_1 nvme0q0; do
+  hit=$(awk -v p="$pat" '$NF ~ p {print $1}' /proc/interrupts 2>/dev/null | head -1)
+  printf '  %-22s %s%s\n' "$pat" "${hit:-not found}" "$(tag HEUR)"
+done
+
+# ---------------------------------------------------------------- legend
+echo
+echo -e "${BOLD}== reliability legend${NC}"
+echo -e "  ${GREEN}ABI${NC}  kernel publishes the menu -> detection is exact (the reliable part)"
+echo -e "  ${CYAN}VER${NC}  read-back exists -> apply, then re-read to confirm"
+echo -e "  ${YELLOW}HEUR${NC} we infer identity/topology -> usually right, can be wrong -> config override"
+echo -e "  ${RED}NONE${NC} no honest read-back (EC/vendor knobs) -> trust the write, fail loudly"
+exit 0

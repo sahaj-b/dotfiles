@@ -14,4 +14,3 @@ hl.monitor({
   scale = 1,
   mirror = "eDP-1",
 })
-

@@ -23,7 +23,7 @@
 - Rule:
   - MouseGesture: Mouse Gesture Button
   - KeyPress:
-    - [Alt_L, slash]
+    - i
     - click
 ...
 ---

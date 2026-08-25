@@ -5,7 +5,7 @@ set -euo pipefail
 # Self-elevate for write operations
 if [[ $EUID -ne 0 ]]; then
   case "${1:-}" in
-  0 | 1 | 2 | 3 | max | saver | light | balanced | bal | b | performance | perf | p | rapl | gpu | epp | gov | aspm | wifi | sound | bt | turbo | pp | pp-auto)
+  g | 0 | 1 | 2 | 3 | max | saver | light | balanced | bal | b | performance | perf | p | rapl | gpu | epp | gov | aspm | wifi | sound | bt | turbo | pp | pp-auto | irq)
     exec sudo "$0" "$@"
     ;;
   esac
@@ -19,18 +19,18 @@ BOLD='\033[1m'
 DIM='\033[2m'
 NC='\033[0m'
 
-# Paths
-RAPL_PL1="/sys/class/powercap/intel-rapl:0/constraint_0_power_limit_uw"
-RAPL_PL2="/sys/class/powercap/intel-rapl:0/constraint_1_power_limit_uw"
-RAPL_PL1_MAX="/sys/class/powercap/intel-rapl:0/constraint_0_max_power_uw"
-RAPL_PL2_MAX="/sys/class/powercap/intel-rapl:0/constraint_1_max_power_uw"
-CPU_EPP="/sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference"
-CPU_EPP_AVAIL="/sys/devices/system/cpu/cpu0/cpufreq/energy_performance_available_preferences"
-CPU_GOV="/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor"
-CPU_GOV_AVAIL="/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors"
-GPU_MAX="/sys/class/drm/card1/gt_max_freq_mhz"
-GPU_CUR="/sys/class/drm/card1/gt_cur_freq_mhz"
-GPU_MIN="/sys/class/drm/card1/gt_min_freq_mhz"
+# Paths — RAPL zones/constraints are DISCOVERED at apply time, not hardcoded:
+# constraint names (long_term/short_term) exist since kernel 3.13, Meteor Lake
+# registers an MSR (intel-rapl:0) AND a TPMI/MMIO (intel-rapl-mmio:0) package
+# zone, and AMD exposes no writable constraints at all. GPU card index is not
+# identity either.
+CPU_EPP="/sys/devices/system/cpu/cpufreq/policy0/energy_performance_preference"
+CPU_EPP_AVAIL="/sys/devices/system/cpu/cpufreq/policy0/energy_performance_available_preferences"
+CPU_GOV="/sys/devices/system/cpu/cpufreq/policy0/scaling_governor"
+CPU_GOV_AVAIL="/sys/devices/system/cpu/cpufreq/policy0/scaling_available_governors"
+GPU_MAX=""
+GPU_CUR=""
+GPU_MIN=""
 PCIE_ASPM="/sys/module/pcie_aspm/parameters/policy"
 SOUND_PM="/sys/module/snd_hda_intel/parameters/power_save"
 CPU_FREQ_CUR="/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq"
@@ -53,76 +53,267 @@ warn() { echo -e "  ${YELLOW}!${NC} $*"; }
 info() { echo -e "  ${CYAN}→${NC} $*"; }
 hr() { echo -e "${DIM}$(printf '%.0s─' {1..50})${NC}"; }
 
-write() { echo "$2" >"$1" 2>/dev/null && return 0 || return 1; }
-write_safe() { write "$1" "$2" || true; }
+write() { echo "$2" >"$1" 2>/dev/null; }
 read_safe() { cat "$1" 2>/dev/null || echo "N/A"; }
-to_watts() { echo $(($1 / 1000000)); }
-to_mhz() { echo $(($1 / 1000)); }
+to_watts() { [[ "$1" =~ ^[0-9]+$ ]] && echo $(($1 / 1000000)) || echo "?"; }
+to_mhz() { [[ "$1" =~ ^[0-9]+$ ]] && echo $(($1 / 1000)) || echo "?"; }
+turbo_state() {
+  local v
+  v=$(read_safe "$NO_TURBO")
+  [[ "$v" == "0" ]] && echo on || { [[ "$v" == "1" ]] && echo off || echo "?"; }
+}
+
+# `list` menu rows — highlight the active option, dim the rest.
+menu_highlight() { # <label> <current> <option...>
+  local label="$1" cur="$2" out="" o
+  shift 2
+  for o in "$@"; do
+    if [[ "$o" == "$cur" ]]; then
+      out+="${GREEN}${o}${NC} "
+    else
+      out+="${DIM}${o}${NC} "
+    fi
+  done
+  printf "  ${BOLD}%s${NC}%*s%b\n" "$label" $((10 - ${#label})) "" "$out"
+}
 
 # Apply functions
 
+# RAPL: package-0 zones only (the "package power limits" this tool manages).
+# MTL has two package zones (MSR + TPMI/MMIO) — we write ALL of them so both
+# interfaces stay consistent. max=0 means "no max exposed", not "max is 0".
+RAPL_CONSTRAINTS=() # "<limit_path> <label>"
+
+find_rapl() {
+  local z c base idx lbl cname
+  RAPL_CONSTRAINTS=()
+  for z in /sys/class/powercap/*/; do
+    [[ "$(basename "$z")" == *rapl* ]] || continue
+    [[ "$(read_safe "$z/name")" == "package-0" ]] || continue
+    for c in "$z"constraint_*_power_limit_uw; do
+      [[ -e "$c" ]] || continue
+      base=${c%_power_limit_uw}
+      idx=${c##*constraint_}
+      idx=${idx%%_*}
+      cname=$(read_safe "${base}_name")
+      case "$cname" in
+      long_term) lbl=PL1 ;;
+      short_term) lbl=PL2 ;;
+      *) lbl="C$idx" ;;
+      esac
+      RAPL_CONSTRAINTS+=("$c $lbl")
+    done
+  done
+}
+
+write_rapl() { # <label> <watts> — every package zone exposing that label
+  local label="$1" watts="$2" e path base max wrote=0 failed=0 pshort w
+  for e in "${RAPL_CONSTRAINTS[@]}"; do
+    [[ "${e##* }" == "$label" ]] || continue
+    path=${e% *}
+    base=${path%_power_limit_uw}
+    max=$(read_safe "${base}_max_power_uw")
+    w=$watts
+    if [[ "$max" =~ ^[0-9]+$ ]] && ((max > 0)) && ((w * 1000000 > max)); then
+      w=$((max / 1000000))
+      warn "$label clamped to ${w}W (hw max)"
+    fi
+    if write "$path" "$((w * 1000000))"; then
+      wrote=$((wrote + 1))
+      pshort=${path#/sys/class/powercap/}
+      pshort=${pshort%%/*}
+      ok "$label → ${w}W ($pshort)"
+    else
+      failed=$((failed + 1))
+      pshort=${path#/sys/class/powercap/}
+      pshort=${pshort%%/*}
+      warn "$label write failed ($pshort)"
+    fi
+  done
+  ((wrote)) || return 1
+  return 0
+}
+
 apply_rapl() {
-  local pl1="$1" pl2="$2"
-  write_safe "$RAPL_PL1" "$((pl1 * 1000000))" && ok "PL1 → ${pl1}W"
-  write_safe "$RAPL_PL2" "$((pl2 * 1000000))" && ok "PL2 → ${pl2}W"
+  find_rapl
+  ((${#RAPL_CONSTRAINTS[@]})) || {
+    warn "RAPL unsupported (no writable package zone)"
+    return 0
+  }
+  write_rapl PL1 "$1" || warn "No PL1 constraint exposed"
+  write_rapl PL2 "$2" || warn "No PL2 constraint exposed"
 }
 
 # IMPORTANT: powersave is actually auto-balance-load type shi, and performance locks CPU to max freq(overrides EPP)
 apply_governor() {
-  local gov="$1"
-  for g in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
-    write_safe "$g" "$gov"
+  local gov="$1" g fail=0 n=0 now
+  if [[ -r "$CPU_GOV_AVAIL" ]]; then
+    grep -qw "$gov" "$CPU_GOV_AVAIL" || {
+      warn "Governor '$gov' not offered — available: $(read_safe "$CPU_GOV_AVAIL")"
+      return 1
+    }
+  else
+    warn "cpufreq not exposed — skipping governor"
+    return 0
+  fi
+  for g in /sys/devices/system/cpu/cpufreq/policy*/scaling_governor; do
+    if write "$g" "$gov"; then n=$((n + 1)); else fail=$((fail + 1)); fi
   done
-  ok "Governor → $gov"
+  now=$(read_safe "$CPU_GOV")
+  if ((fail)); then
+    warn "Governor → $gov: $n ok, $fail failed (reads $now)"
+  else
+    ok "Governor → $gov (${n} policies)"
+    [[ "$now" == "$gov" ]] || warn "Read-back mismatch: $now"
+  fi
 }
 
 apply_epp() {
-  local epp="$1"
+  local epp="$1" p fail=0 n=0 now
+  if [[ -r "$CPU_EPP_AVAIL" ]]; then
+    grep -qw "$epp" "$CPU_EPP_AVAIL" || {
+      warn "EPP '$epp' not offered — available: $(read_safe "$CPU_EPP_AVAIL")"
+      return 1
+    }
+  else
+    warn "EPP not exposed (no HWP) — skipping"
+    return 0
+  fi
   for p in /sys/devices/system/cpu/cpufreq/policy*/energy_performance_preference; do
-    write_safe "$p" "$epp"
+    if write "$p" "$epp"; then n=$((n + 1)); else fail=$((fail + 1)); fi
   done
-  ok "EPP → $epp"
+  now=$(read_safe "$CPU_EPP")
+  if ((fail)); then
+    warn "EPP → $epp: $n ok, $fail failed (reads $now)"
+  else
+    ok "EPP → $epp (${n} policies)"
+    [[ "$now" == "$epp" ]] || warn "Read-back mismatch: $now"
+  fi
 }
 
 apply_pcie_aspm() {
-  local mode="$1"
-  write_safe "$PCIE_ASPM" "$mode" && ok "PCIe ASPM → $mode" || warn "PCIe ASPM write failed"
+  local mode="$1" opts
+  opts=$(tr -d '[]' <"$PCIE_ASPM" 2>/dev/null)
+  grep -qw "$mode" <<<"$opts" || {
+    warn "Invalid ASPM mode '$mode' — available: $opts"
+    return 1
+  }
+  write "$PCIE_ASPM" "$mode" && ok "PCIe ASPM → $mode" || warn "PCIe ASPM write failed"
+}
+
+# i915/xe cards expose gt_*_freq_mhz; card index is not identity — prefer the
+# display card (PCI class 0x0300) over a dGPU (0x0302), fall back to any GT card.
+find_gpu() {
+  local c class
+  GPU_MAX=""
+  GPU_MIN=""
+  GPU_CUR=""
+  for c in /sys/class/drm/card[0-9]*/gt_max_freq_mhz; do
+    class=$(read_safe "${c%/gt_max_freq_mhz}/device/class")
+    if [[ "$class" == 0x0300* ]]; then
+      GPU_MAX="$c"
+      GPU_CUR="${c/gt_max_freq_mhz/gt_cur_freq_mhz}"
+      GPU_MIN="${c/gt_max_freq_mhz/gt_min_freq_mhz}"
+      return 0
+    fi
+  done
+  for c in /sys/class/drm/card[0-9]*/gt_max_freq_mhz; do
+    GPU_MAX="$c"
+    GPU_CUR="${c/gt_max_freq_mhz/gt_cur_freq_mhz}"
+    GPU_MIN="${c/gt_max_freq_mhz/gt_min_freq_mhz}"
+    return 0
+  done
+  return 1
 }
 
 apply_gpu() {
-  local freq="$1"
-  [[ -f "$GPU_MAX" ]] && write_safe "$GPU_MAX" "$freq" && ok "GPU max → ${freq} MHz" || warn "GPU not found"
+  local freq="$1" now
+  find_gpu || {
+    warn "No Intel GT card found"
+    return 1
+  }
+  write "$GPU_MAX" "$freq" && ok "GPU max → ${freq} MHz" || warn "GPU max write failed"
+  now=$(read_safe "$GPU_MAX")
+  [[ "$now" == "$freq" ]] || warn "Read-back mismatch: $now"
+}
+
+wifi_ifaces() { iw dev 2>/dev/null | awk '/^[[:space:]]*Interface/{print $2}'; }
+
+wifi_power_state() { # on/off/? from the first interface that reports
+  local i ps
+  for i in $(wifi_ifaces); do
+    ps=$(iw dev "$i" get power_save 2>/dev/null | grep -oP '(on|off)' | head -1)
+    [[ -n "$ps" ]] && {
+      echo "$ps"
+      return 0
+    }
+  done
+  echo "?"
 }
 
 apply_wifi_power() {
-  local state="$1"
-  iw dev wlan0 set power_save "$state" 2>/dev/null && ok "WiFi power save → $state" || warn "WiFi power save failed"
+  local state="$1" i n=0 fail=0
+  local -a ifs=()
+  read -ra ifs <<<"$(wifi_ifaces)"
+  ((${#ifs[@]})) || {
+    warn "No wifi interface found"
+    return 1
+  }
+  for i in "${ifs[@]}"; do
+    if iw dev "$i" set power_save "$state" 2>/dev/null; then n=$((n + 1)); else fail=$((fail + 1)); fi
+  done
+  if ((fail)); then
+    warn "WiFi power save → $state: $n ok, $fail failed"
+  else
+    ok "WiFi power save → $state (${ifs[*]})"
+  fi
 }
 
 apply_sound_pm() {
   local val="$1"
-  write_safe "$SOUND_PM" "$val" && ok "Sound PM → $val"
+  [[ "$val" =~ ^[0-9]+$ ]] || {
+    warn "Sound PM must be a number (seconds timeout)"
+    return 1
+  }
+  write "$SOUND_PM" "$val" && ok "Sound PM → ${val}s" || warn "Sound PM write failed"
 }
 
 apply_turbo() {
-  local state="$1"
-  if [[ "$state" == "on" ]]; then
-    write_safe "$NO_TURBO" "0" && ok "Turbo → on"
+  local state="$1" want now b fail=0 n=0
+  want=0
+  [[ "$state" == "off" ]] && want=1
+  if [[ -f "$NO_TURBO" ]]; then
+    write "$NO_TURBO" "$want" && ok "Turbo → $state" || warn "Turbo write failed"
+    now=$(read_safe "$NO_TURBO")
+    [[ "$now" == "$want" ]] || warn "Read-back mismatch: $now"
+  elif compgen -G "/sys/devices/system/cpu/cpufreq/policy*/boost" >/dev/null; then
+    for b in /sys/devices/system/cpu/cpufreq/policy*/boost; do
+      if write "$b" "$want"; then n=$((n + 1)); else fail=$((fail + 1)); fi
+    done
+    ((fail)) && warn "Turbo → $state (boost): $n ok, $fail failed" || ok "Turbo → $state (boost, ${n} policies)"
   else
-    write_safe "$NO_TURBO" "1" && ok "Turbo → off"
+    warn "Turbo control not exposed on this system"
   fi
 }
 
 # IMPORTANT: This can change shi like epp/freq/etc, depending on the lappy, on mine it changes the EPP. you can manually check it for urs.
 apply_platform_profile() {
   local prof="$1"
-  [[ -f "$PLATFORM_PROFILE" ]] && write_safe "$PLATFORM_PROFILE" "$prof" && ok "Platform profile → $prof" || warn "Platform profile not supported"
+  if [[ -f "$PLATFORM_PROFILE" ]]; then
+    grep -qw "$prof" <<<"$(read_safe "$PLATFORM_PROFILE_AVAIL")" || {
+      warn "Profile '$prof' not offered — available: $(read_safe "$PLATFORM_PROFILE_AVAIL")"
+      return 1
+    }
+    write "$PLATFORM_PROFILE" "$prof" && ok "Platform profile → $prof" || warn "Platform profile write failed"
+  else
+    warn "Platform profile not supported"
+  fi
 }
 
 apply_bat_limit() {
   local limit="$1"
   mkdir -p "$BAT_STATE_DIR" 2>/dev/null
-  write_safe "$BAT_LIMIT" "$limit" && ok "Charge limit → ${limit}%" || warn "Charge limit not supported"
+  write "$BAT_LIMIT" "$limit" && ok "Charge limit → ${limit}%" || warn "Charge limit write failed"
 }
 
 bat_restore() {
@@ -130,16 +321,6 @@ bat_restore() {
     apply_bat_limit "$(cat "$BAT_STATE")"
   else
     warn "No saved charge limit"
-  fi
-}
-
-bat_rule_state() {
-  if [[ -f "$BAT_RULE" ]]; then
-    echo "active"
-  elif [[ -f "$BAT_RULE_OFF" ]]; then
-    echo "off (.off)"
-  else
-    echo "absent"
   fi
 }
 
@@ -225,9 +406,16 @@ cmd_pp() {
     *) cmd_pp_status ;;
     esac
     ;;
+  status)
+    cmd_pp_status
+    ;;
   *)
     [[ -n "$sub" ]] || {
-      echo "Usage: pwr pp <profile|ac|dc|auto>"
+      echo "Usage: pwr pp <profile|ac|dc|auto|status>"
+      exit 1
+    }
+    grep -qw "$sub" <<<"$(read_safe "$PLATFORM_PROFILE_AVAIL")" || {
+      warn "Invalid profile '$sub' — available: $(read_safe "$PLATFORM_PROFILE_AVAIL")"
       exit 1
     }
     apply_platform_profile "$sub"
@@ -242,14 +430,19 @@ cmd_pp_status() {
 }
 
 cmd_pp_auto() {
-  local state="${1:-}"
-  local f
-  [[ "$state" == ac ]] && f="$PP_AC" || f="$PP_DC"
+  local state="${1:-}" f prof
+  case "$state" in
+  ac) f="$PP_AC" ;;
+  dc) f="$PP_DC" ;;
+  *)
+    echo "Usage: pwr pp-auto <ac|dc>"
+    exit 1
+    ;;
+  esac
   if [[ ! -f "$f" ]]; then
     warn "No auto profile set for $state — run 'pwr pp $state <profile>'"
     exit 1
   fi
-  local prof
   prof=$(cat "$f")
   apply_platform_profile "$prof"
   apply_epp "$(pp_epp_for "$prof")"
@@ -257,18 +450,22 @@ cmd_pp_auto() {
 
 cmd_bat() {
   local arg="${1:-}"
+  # Mutating subcommands self-elevate; bare `pwr bat` just reads the limit.
+  case "$arg" in
+  full | oneshot | o | install | uninstall | restore | [0-9]*)
+    [[ $EUID -ne 0 ]] && exec sudo "$0" bat "$arg"
+    ;;
+  esac
   case "$arg" in
   "")
     echo -e "  Charge limit: ${CYAN}$(read_safe "$BAT_LIMIT")%${NC}"
     ;;
   full)
-    [[ $EUID -ne 0 ]] && exec sudo "$0" bat "$arg"
     mkdir -p "$BAT_STATE_DIR" 2>/dev/null
     echo 100 >"$BAT_STATE" 2>/dev/null || true
     apply_bat_limit 100
     ;;
   oneshot | o)
-    [[ $EUID -ne 0 ]] && exec sudo "$0" bat "$arg"
     local cur=$(read_safe "$BAT_LIMIT")
     if [[ "$cur" != "100" ]]; then
       mkdir -p "$BAT_STATE_DIR" 2>/dev/null
@@ -278,15 +475,12 @@ cmd_bat() {
     info "Limit reverts to saved value on AC unplug (udev hook) or via 'pwr bat restore'"
     ;;
   install)
-    [[ $EUID -ne 0 ]] && exec sudo "$0" bat "$arg"
     bat_install
     ;;
   uninstall)
-    [[ $EUID -ne 0 ]] && exec sudo "$0" bat "$arg"
     bat_uninstall
     ;;
   restore)
-    [[ $EUID -ne 0 ]] && exec sudo "$0" bat "$arg"
     bat_restore
     ;;
   *)
@@ -294,7 +488,6 @@ cmd_bat() {
       echo "Usage: pwr bat [20-100|full|oneshot|o|restore|install|uninstall]"
       exit 1
     }
-    [[ $EUID -ne 0 ]] && exec sudo "$0" bat "$arg"
     mkdir -p "$BAT_STATE_DIR" 2>/dev/null
     echo "$arg" >"$BAT_STATE" 2>/dev/null || true
     apply_bat_limit "$arg"
@@ -315,7 +508,117 @@ apply_bluetooth() {
       return 0
     fi
   fi
-  bluetoothctl power "$state" 2>/dev/null >/dev/null && ok "Bluetooth → $state" || true
+  bluetoothctl power "$state" 2>/dev/null >/dev/null && ok "Bluetooth → $state" || warn "Bluetooth → $state failed"
+}
+
+# IRQ pinning — hot IRQs → E-cores (lowest max-freq CPUs) so P-cores can sleep deep.
+
+IRQ_PINS=(
+  "i915"
+  "iwlwifi:default_queue"
+  "iwlwifi:queue_1"
+)
+IRQ_SERVICE="/usr/lib/systemd/system/pwr-irq-pin.service"
+
+# E-cores = CPUs with the lowest max freq (Gracemont on hybrid Intel)
+e_core_list() {
+  local min_freq="" c f out=""
+  min_freq=$(cat /sys/devices/system/cpu/cpu[0-9]*/cpufreq/cpuinfo_max_freq 2>/dev/null | sort -n | head -1) || true
+  [[ -n "$min_freq" ]] || return 1
+  for c in $(ls -d /sys/devices/system/cpu/cpu[0-9]* 2>/dev/null | grep -oE '[0-9]+$' | sort -n); do
+    f=$(cat "/sys/devices/system/cpu/cpu${c}/cpufreq/cpuinfo_max_freq" 2>/dev/null) || continue
+    [[ "$f" == "$min_freq" ]] && out+="$c "
+  done
+  echo "${out% }"
+}
+
+# Emits "name irq cur target" per pinned IRQ — single lookup for all status formatters.
+irq_pin_state() {
+  local cores=() i=0 name irq cur target
+  read -ra cores <<<"$(e_core_list)" || true
+  for name in "${IRQ_PINS[@]}"; do
+    irq=$(awk -v n="$name" '$NF==n{gsub(":","",$1);print $1}' /proc/interrupts | head -1)
+    cur="?"
+    [[ -n "$irq" ]] && cur=$(read_safe "/proc/irq/$irq/smp_affinity_list")
+    target="${cores[$i]}"
+    printf '%s %s %s %s\n' "$name" "$irq" "$cur" "$target"
+    i=$((i + 1))
+  done
+}
+
+# Affinity writes can transiently EINVAL right after boot while IRQs settle — retry.
+# A missing IRQ name won't fix itself, so fail fast on that.
+irq_pin_one() {
+  local name="$1" target="$2" irq="" attempt
+  for _ in 1 2 3 4 5; do
+    irq=$(awk -v n="$name" '$NF==n{gsub(":","",$1);print $1}' /proc/interrupts | head -1)
+    [[ -n "$irq" ]] || return 1
+    if echo "$target" >"/proc/irq/$irq/smp_affinity_list" 2>/dev/null; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+apply_irq_pins() {
+  local cores=() i=0 name
+  read -ra cores <<<"$(e_core_list)" || true
+  ((${#cores[@]} >= 3)) || {
+    warn "IRQ pinning skipped — need ≥3 E-cores, found ${#cores[@]}"
+    return 0
+  }
+  for name in "${IRQ_PINS[@]}"; do
+    if irq_pin_one "$name" "${cores[$i]}"; then
+      ok "IRQ pin: $name → E-core ${cores[$i]}"
+    else
+      warn "IRQ pin: $name → ${cores[$i]} failed (retry: pwr irq)"
+    fi
+    i=$((i + 1))
+  done
+}
+
+cmd_irq_status() {
+  local cores=() name irq cur target
+  read -ra cores <<<"$(e_core_list)" || true
+  echo -e "\n${BOLD}  IRQ Pins${NC}  (E-cores: ${cores[*]:-none})"
+  while read -r name irq cur target; do
+    target="${target:-none}"
+    if [[ "$cur" == "$target" ]]; then
+      printf "  %-24s ${GREEN}%s ✓${NC} ${DIM}(irq %s)${NC}\n" "$name" "$cur" "$irq"
+    else
+      printf "  %-24s ${YELLOW}%s ✗${NC} → want %s ${DIM}(irq %s)${NC}\n" "$name" "$cur" "$target" "$irq"
+    fi
+  done < <(irq_pin_state)
+}
+
+irq_install() {
+  local self
+  self=$(readlink -f "$0")
+  printf '[Unit]\nDescription=Pin hot IRQs to E-cores (pwr)\nAfter=multi-user.target\n\n[Service]\nType=oneshot\nExecStart=%s irq pin\nRemainAfterExit=yes\n\n[Install]\nWantedBy=multi-user.target\n' "$self" >"$IRQ_SERVICE"
+  systemctl daemon-reload 2>/dev/null
+  systemctl enable --now pwr-irq-pin.service >/dev/null 2>&1 || true
+  ok "IRQ pin boot service installed (→ $IRQ_SERVICE)"
+}
+
+irq_uninstall() {
+  systemctl disable pwr-irq-pin.service >/dev/null 2>&1 || true
+  rm -f "$IRQ_SERVICE"
+  systemctl daemon-reload 2>/dev/null || true
+  ok "IRQ pin boot service removed"
+}
+
+cmd_irq() {
+  case "${1:-}" in
+  "" | pin) apply_irq_pins ;;
+  install) irq_install ;;
+  uninstall) irq_uninstall ;;
+  status | s) cmd_irq_status ;;
+  *)
+    echo "Usage: pwr irq [pin|install|uninstall|status]"
+    exit 1
+    ;;
+  esac
 }
 
 # Status
@@ -342,16 +645,7 @@ cmd_status() {
   local gov=$(read_safe "$CPU_GOV")
   local epp=$(read_safe "$CPU_EPP")
   local cur=$(to_mhz "$(read_safe "$CPU_FREQ_CUR")")
-  local pl1=$(to_watts "$(read_safe "$RAPL_PL1")")
-  local pl2=$(to_watts "$(read_safe "$RAPL_PL2")")
-  local pl1_max=$(to_watts "$(read_safe "$RAPL_PL1_MAX")")
-  local pl2_max=$(to_watts "$(read_safe "$RAPL_PL2_MAX")")
-  local turbo=$(read_safe "$NO_TURBO")
-  if [[ "$turbo" == "0" ]]; then
-    turbo="on"
-  else
-    turbo="off"
-  fi
+  local turbo=$(turbo_state)
   local pp=$(read_safe "$PLATFORM_PROFILE")
   local bat_limit=$(read_safe "$BAT_LIMIT")
   printf "  %-15s ${CYAN}%s${NC}\n" "Governor:" "$gov"
@@ -361,33 +655,58 @@ cmd_status() {
   printf "  %-15s ${CYAN}%s%%${NC}\n" "Charge limit:" "$bat_limit"
   printf "  %-15s ${CYAN}ac=%s dc=%s${NC} ${DIM}(hook %s)${NC}\n" "PP auto:" "$(read_safe "$PP_AC")" "$(read_safe "$PP_DC")" "$(pp_rule_state)"
   printf "  %-15s ${CYAN}%s MHz${NC}\n" "Frequency:" "$cur"
-  printf "  %-15s ${CYAN}%sW (%sW max)${NC}\n" "PL1:" "$pl1" "$pl1_max"
-  if [[ "$pl2_max" -gt 0 ]]; then
-    printf "  %-15s ${CYAN}%sW (%sW max)${NC}\n" "PL2:" "$pl2" "$pl2_max"
+  find_rapl
+  if ((${#RAPL_CONSTRAINTS[@]})); then
+    local e pl path v zone
+    for e in "${RAPL_CONSTRAINTS[@]}"; do
+      read -r path pl <<<"$e"
+      zone=${path#/sys/class/powercap/}
+      zone=${zone%%/*}
+      v=$(to_watts "$(read_safe "$path")")
+      printf "  %-15s ${CYAN}%sW${NC} ${DIM}(%s)${NC}\n" "${pl}:" "$v" "$zone"
+    done
   else
-    printf "  %-15s ${CYAN}%sW${NC}\n" "PL2:" "$pl2"
+    printf "  %-15s ${CYAN}%s${NC}\n" "RAPL:" "unsupported"
   fi
   echo ""
 
   hr
   echo -e "${BOLD}  GPU${NC}"
-  local gpu_cur=$(read_safe "$GPU_CUR")
-  local gpu_max=$(read_safe "$GPU_MAX")
-  local gpu_min=$(read_safe "$GPU_MIN")
-  printf "  %-15s ${CYAN}%s MHz${NC}\n" "Current:" "$gpu_cur"
-  printf "  %-15s ${CYAN}%s / %s MHz${NC}\n" "Min/Max:" "$gpu_min" "$gpu_max"
+  local gpu_cur gpu_max gpu_min
+  if find_gpu; then
+    gpu_cur=$(read_safe "$GPU_CUR")
+    gpu_max=$(read_safe "$GPU_MAX")
+    gpu_min=$(read_safe "$GPU_MIN")
+    printf "  %-15s ${CYAN}%s MHz${NC}\n" "Current:" "$gpu_cur"
+    printf "  %-15s ${CYAN}%s / %s MHz${NC}\n" "Min/Max:" "$gpu_min" "$gpu_max"
+  else
+    echo -e "  ${YELLOW}no Intel GT card found${NC}"
+  fi
   echo ""
 
   hr
   echo -e "${BOLD}  Peripherals${NC}"
   local aspm=$(read_safe "$PCIE_ASPM")
   local sound=$(read_safe "$SOUND_PM")
-  local wifi=$(iw dev wlan0 get power_save 2>/dev/null | grep -oP '(on|off)' || echo "?")
+  local wifi=$(wifi_power_state)
   local bt=$(bluetoothctl show 2>/dev/null | grep "Powered:" | awk '{print $2}' || echo "?")
   printf "  %-15s ${CYAN}%s${NC}\n" "PCIe ASPM:" "$aspm"
   printf "  %-15s ${CYAN}%s${NC}\n" "WiFi PM:" "$wifi"
   printf "  %-15s ${CYAN}%s${NC}\n" "Sound PM:" "$sound"
   printf "  %-15s ${CYAN}%s${NC}\n" "Bluetooth:" "$bt"
+  echo ""
+
+  hr
+  echo -e "${BOLD}  IRQ Pins${NC}"
+  local name irq cur target
+  while read -r name irq cur target; do
+    target="${target:-none}"
+    if [[ "$cur" == "$target" ]]; then
+      printf "  %-22s ${GREEN}%s ✓${NC}\n" "$name" "$cur"
+    else
+      printf "  %-22s ${YELLOW}%s ✗${NC} ${DIM}(want %s)${NC}\n" "$name" "$cur" "$target"
+    fi
+  done < <(irq_pin_state)
   echo ""
 }
 
@@ -397,80 +716,58 @@ cmd_list() {
   echo -e "\n${BOLD}Options${NC}\n"
 
   # RAPL
-  local pl1=$(to_watts "$(read_safe "$RAPL_PL1")")
-  local pl2=$(to_watts "$(read_safe "$RAPL_PL2")")
-  local pl1_max=$(to_watts "$(read_safe "$RAPL_PL1_MAX")")
-  local pl2_max=$(to_watts "$(read_safe "$RAPL_PL2_MAX")")
-  if [[ "$pl2_max" -gt 0 ]]; then
-    printf "  ${BOLD}rapl${NC}      ${CYAN}${pl1}W/${pl2}W${NC} (max ${pl1_max}W/${pl2_max}W)\n"
+  find_rapl
+  if ((${#RAPL_CONSTRAINTS[@]})); then
+    local e pl path v max line=""
+    for e in "${RAPL_CONSTRAINTS[@]}"; do
+      read -r path pl <<<"$e"
+      v=$(to_watts "$(read_safe "$path")")
+      max=$(to_watts "$(read_safe "${path%_power_limit_uw}_max_power_uw")")
+      line+="${pl}=${v}W "
+      [[ "$max" != "?" ]] && line+="[max ${max}W] "
+    done
+    printf "  ${BOLD}rapl${NC}      ${CYAN}%s${NC}\n" "${line% }"
   else
-    printf "  ${BOLD}rapl${NC}      ${CYAN}${pl1}W/${pl2}W${NC} (max ${pl1_max}W)\n"
+    printf "  ${BOLD}rapl${NC}      ${DIM}unsupported${NC}\n"
   fi
 
   # Turbo
-  local turbo=$(read_safe "$NO_TURBO")
-  if [[ "$turbo" == "0" ]]; then
+  local turbo=$(turbo_state)
+  if [[ "$turbo" == "on" ]]; then
     printf "  ${BOLD}turbo${NC}     ${GREEN}on${NC} ${DIM}off${NC}\n"
   else
     printf "  ${BOLD}turbo${NC}     ${DIM}on${NC} ${GREEN}off${NC}\n"
   fi
 
   # Platform profile
-  local pp=$(read_safe "$PLATFORM_PROFILE")
-  local pp_list=""
-  for p in $(cat "$PLATFORM_PROFILE_AVAIL" 2>/dev/null); do
-    if [[ "$p" == "$pp" ]]; then
-      pp_list+="${GREEN}${p}${NC} "
-    else
-      pp_list+="${DIM}${p}${NC} "
-    fi
-  done
-  printf "  ${BOLD}pp${NC}        %b\n" "$pp_list"
+  menu_highlight "pp" "$(read_safe "$PLATFORM_PROFILE")" $(cat "$PLATFORM_PROFILE_AVAIL" 2>/dev/null)
 
   # Governor
-  local gov_current=$(read_safe "$CPU_GOV")
-  local gov_list=""
-  for g in $(cat "$CPU_GOV_AVAIL" 2>/dev/null); do
-    if [[ "$g" == "$gov_current" ]]; then
-      gov_list+="${GREEN}${g}${NC} "
-    else
-      gov_list+="${DIM}${g}${NC} "
-    fi
-  done
-  printf "  ${BOLD}gov${NC}       %b\n" "$gov_list"
+  menu_highlight "gov" "$(read_safe "$CPU_GOV")" $(cat "$CPU_GOV_AVAIL" 2>/dev/null)
 
   # EPP
-  local epp_current=$(read_safe "$CPU_EPP")
-  local epp_list=""
-  for e in $(cat "$CPU_EPP_AVAIL" 2>/dev/null); do
-    if [[ "$e" == "$epp_current" ]]; then
-      epp_list+="${GREEN}${e}${NC} "
-    else
-      epp_list+="${DIM}${e}${NC} "
-    fi
-  done
-  printf "  ${BOLD}epp${NC}       %b\n" "$epp_list"
+  menu_highlight "epp" "$(read_safe "$CPU_EPP")" $(cat "$CPU_EPP_AVAIL" 2>/dev/null)
 
   # GPU
-  local gpu_cur=$(read_safe "$GPU_CUR")
-  local gpu_max=$(read_safe "$GPU_MAX")
-  local gpu_min=$(read_safe "$GPU_MIN")
-  printf "  ${BOLD}gpu${NC}       ${CYAN}${gpu_cur}${NC} MHz (${gpu_min}-${gpu_max})\n"
+  local gpu_cur gpu_max gpu_min
+  if find_gpu; then
+    gpu_cur=$(read_safe "$GPU_CUR")
+    gpu_max=$(read_safe "$GPU_MAX")
+    gpu_min=$(read_safe "$GPU_MIN")
+    printf "  ${BOLD}gpu${NC}       ${CYAN}${gpu_cur}${NC} MHz (${gpu_min}-${gpu_max})\n"
+  else
+    printf "  ${BOLD}gpu${NC}       ${DIM}not found${NC}\n"
+  fi
 
-  # ASPM
+  # ASPM (sysfs marks the active mode as [bracketed])
   local aspm=$(read_safe "$PCIE_ASPM")
-  local aspm_opts=""
-  for a in performance powersave powersupersave; do
-    if [[ "$a" == "$aspm" ]] || [[ "$aspm" == *"[$a]"* ]]; then
-      aspm_opts+="${GREEN}${a}${NC} "
-    else
-      aspm_opts+="${DIM}${a}${NC} "
-    fi
-  done
-  printf "  ${BOLD}aspm${NC}      %b\n" "$aspm_opts"
+  local aspm_active
+  aspm_active=$(sed -n 's/.*\[\([^]]*\)\].*/\1/p' <<<"$aspm")
+  [[ -n "$aspm_active" ]] || aspm_active="$aspm"
+  menu_highlight "aspm" "$aspm_active" performance powersave powersupersave
 
   # WiFi
-  local wifi=$(iw dev wlan0 get power_save 2>/dev/null | grep -oP '(on|off)' || echo "?")
+  local wifi=$(wifi_power_state)
   if [[ "$wifi" == "on" ]]; then
     printf "  ${BOLD}wifi${NC}      ${GREEN}on${NC} ${DIM}off${NC}\n"
   else
@@ -480,6 +777,23 @@ cmd_list() {
   # Sound
   local sound=$(read_safe "$SOUND_PM")
   printf "  ${BOLD}sound${NC}     ${CYAN}${sound}${NC}/10\n"
+
+  # IRQ pins
+  local name irq cur target disp line=""
+  while read -r name irq cur target; do
+    target="${target:-?}"
+    case "$name" in
+    iwlwifi:default_queue) disp="wifi:defq" ;;
+    iwlwifi:queue_1) disp="wifi:q1" ;;
+    *) disp="$name" ;;
+    esac
+    if [[ "$cur" == "$target" ]]; then
+      line+="${DIM}${disp}${NC}→${GREEN}${cur} ✓${NC} "
+    else
+      line+="${DIM}${disp}${NC}→${YELLOW}${cur} ✗${NC} "
+    fi
+  done < <(irq_pin_state)
+  printf "  ${BOLD}irq${NC}       %b${DIM}(pin|install|uninstall|status)${NC}\n" "$line"
   echo ""
 }
 
@@ -491,11 +805,21 @@ level_0() {
   apply_rapl 15 25
   apply_governor "powersave"
   apply_epp "power"
+  apply_turbo "off"
   apply_pcie_aspm "powersupersave"
   apply_wifi_power "on"
   apply_sound_pm "10"
   apply_gpu "1500"
   apply_bluetooth "off"
+  apply_irq_pins
+}
+
+level_g() {
+  echo -e "\n${BOLD}${GREEN}LEVEL G${NC}\n"
+  apply_rapl 25 35
+  apply_governor "powersave"
+  apply_epp "power"
+  apply_turbo "off"
 }
 
 level_1() {
@@ -546,19 +870,20 @@ cmd_usage() {
   printf "  ${YELLOW}2${NC}  Balanced\n"
   printf "  ${RED}3${NC}  Performance\n"
   printf "\nIndividual:\n"
-  printf "  rapl <pl1> <pl2>   RAPL power limits (watts)\n"
-  printf "  turbo <on|off>     Intel turbo boost\n"
+  printf "  rapl <pl1> <pl2>   RAPL power limits (watts, auto-clamped)\n"
+  printf "  turbo <on|off>     Turbo boost (intel no_turbo / amd boost)\n"
   printf "  pp <profile>       ACPI platform profile\n"
   printf "  pp ac|dc <prof>    Auto profile on AC/battery (installs udev hook)\n"
-  printf "  pp auto [install|uninstall]  Show/manage pp hook\n"
+  printf "  pp auto|status [install|uninstall]  Show/manage pp hook\n"
   printf "  bat [20-100|full|oneshot|o|restore|install|uninstall]  Charge limit + udev hook\n"
-  printf "  gpu <freq>         iGPU max frequency (MHz)\n"
+  printf "  gpu <freq>         Intel GT max frequency (MHz, auto-detected card)\n"
   printf "  epp <pref>         Energy performance preference\n"
   printf "  gov <governor>     CPU frequency governor\n"
   printf "  aspm <mode>        PCIe ASPM mode\n"
   printf "  wifi <on|off>      WiFi power save\n"
-  printf "  sound <0-10>       Sound power save level\n"
+  printf "  sound <seconds>    HDA sound power save timeout (0=off)\n"
   printf "  bt <on|off>        Bluetooth power\n"
+  printf "  irq [pin|install|uninstall|status]  Pin hot IRQs to E-cores (+boot service)\n"
   printf "\nInfo:\n"
   printf "  status, s          Current power state\n"
   printf "  list, ls           Available options\n"
@@ -567,21 +892,22 @@ cmd_usage() {
 # Main
 
 case "${1:-}" in
+g) level_g ;;
 0 | max | saver) level_0 ;;
 1 | light) level_1 ;;
-2 | balanced | bal) level_2 ;;
+2 | balanced | bal | b) level_2 ;;
 3 | performance | perf | p) level_3 ;;
 
 rapl)
-  [[ -z "${2:-}" || -z "${3:-}" ]] && {
-    echo "Usage: pwr rapl <pl1_watts> <pl2_watts>"
+  [[ "${2:-}" =~ ^[0-9]+$ && "${3:-}" =~ ^[0-9]+$ ]] || {
+    echo "Usage: pwr rapl <pl1_watts> <pl2_watts> (integers)"
     exit 1
   }
   apply_rapl "$2" "$3"
   ;;
 gpu)
-  [[ -z "${2:-}" ]] && {
-    echo "Usage: pwr gpu <freq_mhz>"
+  [[ "${2:-}" =~ ^[0-9]+$ ]] || {
+    echo "Usage: pwr gpu <freq_mhz> (integer)"
     exit 1
   }
   apply_gpu "$2"
@@ -615,8 +941,8 @@ wifi)
   apply_wifi_power "$2"
   ;;
 sound)
-  [[ -z "${2:-}" ]] && {
-    echo "Usage: pwr sound <0-10>"
+  [[ "${2:-}" =~ ^[0-9]+$ ]] || {
+    echo "Usage: pwr sound <seconds>"
     exit 1
   }
   apply_sound_pm "$2"
@@ -645,6 +971,9 @@ turbo)
   apply_turbo "$2"
   ;;
 
+irq)
+  cmd_irq "${2:-}"
+  ;;
 status | s) cmd_status ;;
 list | ls | l) cmd_list ;;
 *) cmd_usage ;;

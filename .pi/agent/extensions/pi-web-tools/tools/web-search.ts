@@ -31,7 +31,7 @@ export function createWebSearchTool(
 		.filter((p): p is Provider => !!p && isSearchCapable(p));
 
 	return {
-		name: "web_search",
+		name: "search_web",
 		label: "󰖟 Search",
 		description:
 			"Search the public web for current information and relevant URLs. do NOT mention year in query",

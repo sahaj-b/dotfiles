@@ -146,15 +146,16 @@ function formatModelName(ctx: ExtensionContext): string {
 	return name;
 }
 
-type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
-const THINKING_TOKEN: Record<ThinkingLevel, string> = {
+type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
+const THINKING_TOKEN = {
 	off: "thinkingOff",
 	minimal: "thinkingMinimal",
 	low: "thinkingLow",
 	medium: "thinkingMedium",
 	high: "thinkingHigh",
 	xhigh: "thinkingXhigh",
-};
+	max: "thinkingMax",
+} as const;
 
 function normalizeThinkingLevel(value: string | undefined): ThinkingLevel {
 	switch ((value ?? "").toLowerCase()) {
@@ -170,6 +171,8 @@ function normalizeThinkingLevel(value: string | undefined): ThinkingLevel {
 			return "high";
 		case "xhigh":
 			return "xhigh";
+		case "max":
+			return "max";
 		default:
 			return "off";
 	}

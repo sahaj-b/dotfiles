@@ -21,6 +21,31 @@
           }
         }
       ]
+    },
+    "b-ai": {
+      "baseUrl": "https://api.b.ai/v1/",
+      "api": "openai-completions",
+      "apiKey": "$B_AI_API_KEY",
+      "models": [
+        {
+          "id": "deepseek-v4-flash",
+          "name": "DeepSeek V4 Flash (Free)",
+          "reasoning": true,
+          "input": ["text"],
+          "contextWindow": 1000000,
+          "maxTokens": 384000,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
+          "compat": {
+            "supportsDeveloperRole": false,
+            "thinkingFormat": "deepseek"
+          }
+        }
+      ]
     }
   }
 }

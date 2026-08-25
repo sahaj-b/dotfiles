@@ -163,6 +163,40 @@ function discoverModels(): RawModel[] {
 	return zen;
 }
 
+function buildThinkingLevelMap(
+	meta: Record<string, unknown>,
+): Record<string, string | null> | undefined {
+	if (meta.reasoning !== true) return undefined;
+	const options = meta.reasoning_options;
+	if (!Array.isArray(options)) return undefined;
+
+	const values = new Set<string>();
+	let hasToggle = false;
+	for (const opt of options) {
+		if (!opt || typeof opt !== "object") continue;
+		const o = opt as Record<string, unknown>;
+		if (o.type === "toggle") hasToggle = true;
+		if (o.type === "effort" && Array.isArray(o.values)) {
+			for (const v of o.values) {
+				if (typeof v === "string") values.add(v);
+			}
+		}
+	}
+	if (values.size === 0) return undefined;
+
+	const map: Record<string, string | null> = {
+		minimal: null,
+		low: values.has("low") ? "low" : null,
+		medium: values.has("medium") ? "medium" : null,
+		high: values.has("high") ? "high" : null,
+		xhigh: values.has("xhigh") ? "xhigh" : null,
+		max: values.has("max") ? "max" : null,
+	};
+	// No toggle => thinking can't be disabled, hide the off level.
+	if (!hasToggle) map.off = null;
+	return map;
+}
+
 function getModelConfig(meta: Record<string, unknown>): {
 	api: string;
 	baseUrl: string;
@@ -183,6 +217,7 @@ function getModelConfig(meta: Record<string, unknown>): {
 function buildPiModels(rawModels: RawModel[], provider: string): any[] {
 	return rawModels.map((m) => {
 		const limit = (m.meta.limit ?? {}) as Record<string, number>;
+		const thinkingLevelMap = buildThinkingLevelMap(m.meta);
 		const cost = (m.meta.cost ?? {}) as Record<string, number>;
 		const mods = (m.meta.modalities ?? {}) as Record<string, string[]>;
 		const family = (m.meta.family as string) || "";
@@ -218,6 +253,7 @@ function buildPiModels(rawModels: RawModel[], provider: string): any[] {
 				cacheWrite: (cost.cacheWrite as number) ?? 0,
 			},
 			input: mods.input ?? ["text"],
+			...(thinkingLevelMap ? { thinkingLevelMap } : {}),
 			...(needsReasoningCompat
 				? {
 						compat: {

@@ -118,7 +118,7 @@
     "on-scroll-up": "playerctl position 5+ -p 'YoutubeMusic, spotify, chrome, %any'",
     "on-scroll-down": "playerctl position 5- -p 'YoutubeMusic, spotify, chrome, %any'",
     "on-click-right": "hyprctl dispatch 'hl.dsp.workspace.toggle_special(\"music\")'",
-    "on-click-middle": "kill $(hyprctl clients -j | jq '.[] | select(.initialClass | contains(\"com.github.th_ch.youtube_music\")) | .pid'); pkill waybar; waybar",
+    "on-click-middle": "kill $(hyprctl clients -j | jq '.[] | select(.initialClass | contains(\"com.github.th-ch.youtube-music\")) | .pid'); pkill waybar; waybar",
     "max-length": 15
   },
   "pulseaudio/slider": {

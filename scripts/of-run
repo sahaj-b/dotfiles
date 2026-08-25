@@ -1,0 +1,33 @@
+#!/bin/bash
+if [ -z "$1" ]; then
+  echo "Usage: of-run /path/to/game.exe"
+  exit 1
+fi
+
+GAME_EXE="$(readlink -f "$1")"
+GAME_DIR="$(dirname "$GAME_EXE")"
+
+RUNTIME="$HOME/.steam/steam/steamapps/common/SteamLinuxRuntime_sniper/run"
+PROTON="$HOME/.local/share/lutris/runners/wine/ge-proton/proton"
+PREFIX="$HOME/wine-games"
+
+# ensure the steam client is up, the overlay renderer needs it
+if ! pgrep -x steam >/dev/null 2>&1; then
+  echo "steam not running, starting it"
+  nohup steam >/dev/null 2>&1 &
+  for _ in $(seq 1 30); do
+    pgrep -x steam >/dev/null 2>&1 && break
+    sleep 1
+  done
+  pgrep -x steam >/dev/null 2>&1 || echo "warning: steam did not come up, overlay will be dead"
+fi
+
+export STEAM_COMPAT_DATA_PATH="$PREFIX"
+export STEAM_COMPAT_CLIENT_INSTALL_PATH="$HOME/.steam/steam"
+export SteamOverlayGameId=480
+export ENABLE_VK_LAYER_VALVE_steam_overlay_1=1
+export LD_PRELOAD="$HOME/.local/share/Steam/ubuntu12_32/gameoverlayrenderer.so:$HOME/.local/share/Steam/ubuntu12_64/gameoverlayrenderer.so"
+export WINEDLLOVERRIDES="OnlineFix64=n,b;SteamOverlay64=n,b;steam_api64=n,b;winhttp=n,b;winmm=n,b;dnet=n;"
+
+cd "$GAME_DIR"
+exec "$RUNTIME" -- "$PROTON" run "$GAME_EXE"
