@@ -12,6 +12,8 @@
 | `fm`                                      | Fzf-based file browser for quick navigation                                                      |
 | `nfm`                                     | Fzf-based wifi monitor                                                                           |
 | `yts`                                     | yt-dlp wrapper for agents: search, subtitles, comments, images, etc                              |
+| `pvm`                                     | Proton Version Manager across steam + lutris: install/list/use/run/search/update/prune |
+| `lutman`                                  | Lutris game manager: add/list/delete games with artwork, exe icon, and desktop file                |
 | `paddleocr`                               | select area -> OCR using paddleocr, grim & slurp                                                 |
 | `bat-notif`                               | Daemon for battery notifications                                                                 |
 | `blu-notif`                               | Sends notifications for Bluetooth events                                                         |

@@ -8,6 +8,7 @@ import { ExaFreeProvider } from "./providers/exa-free.ts";
 import { FirecrawlProvider } from "./providers/firecrawl.ts";
 import { TavilyProvider } from "./providers/tavily.ts";
 import { BrowserbaseProvider } from "./providers/browserbase.ts";
+import { JinaProvider } from "./providers/jina.ts";
 import { LocalFetchProvider } from "./providers/local.ts";
 import { createWebSearchTool } from "./tools/web-search.ts";
 import { createCodeSearchTool } from "./tools/code-search.ts";
@@ -48,6 +49,10 @@ export default function (pi: ExtensionAPI) {
 	if (browserbaseApiKey) {
 		providers.push(new BrowserbaseProvider(browserbaseApiKey));
 	}
+
+	// Jina Reader — always available (keyless 20 RPM per IP), 500 RPM with JINA_API_KEY
+	const jinaApiKey = resolveApiKey("jina", config);
+	providers.push(new JinaProvider(jinaApiKey));
 
 	// Local fetch — always available, final fallback for web_fetch
 	providers.push(new LocalFetchProvider());

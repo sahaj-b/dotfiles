@@ -4,9 +4,7 @@
 [mgr]
 
 keymap = [
-  { on = [ "<C-n>" ], run = '''
-      shell 'dragon-drop -x --all-compact -T "$@"' --confirm
-  ''' },
+  { on = "<C-n>", run = "shell -- dragon-drop -x --all-compact -T %s" },
   { on   = "!", run  = 'shell "$SHELL" --block', desc = "Open $SHELL here" },
 	{ on = "<Esc>", run = "escape",             desc = "Exit visual mode, clear selected, or cancel search" },
 	{ on = "<C-[>", run = "escape",             desc = "Exit visual mode, clear selected, or cancel search" },

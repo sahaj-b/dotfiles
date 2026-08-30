@@ -1,6 +1,6 @@
 // ── Shared types for pi-web-tools ──
 
-export type ProviderId = "exa" | "exa-free" | "firecrawl" | "tavily" | "browserbase" | "local";
+export type ProviderId = "exa" | "exa-free" | "firecrawl" | "tavily" | "browserbase" | "jina" | "local";
 export type ToolId = "web_search" | "code_search" | "web_fetch" | "web_crawl" | "web_extract";
 export type FetchFormat = "markdown" | "text" | "html";
 export type ContentKind = "html" | "text" | "raster-image" | "svg" | "binary";

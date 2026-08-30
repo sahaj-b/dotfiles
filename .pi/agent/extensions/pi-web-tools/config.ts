@@ -17,7 +17,7 @@ const DEFAULT_TOOL_PROVIDERS: Record<string, ProviderId[]> = {
 	code_search: ["exa"],
 	web_crawl: ["firecrawl", "tavily"],
 	web_extract: ["firecrawl", "tavily", "browserbase"],
-	web_fetch: ["browserbase", "firecrawl", "tavily", "local"],
+	web_fetch: ["jina", "browserbase", "firecrawl", "tavily", "local"],
 };
 
 const DEFAULT_TOOL_CONFIG: Record<string, Partial<ToolConfig>> = {
@@ -82,6 +82,7 @@ export function resolveApiKey(providerId: ProviderId, config: WebToolsConfig): s
 		firecrawl: "FIRECRAWL_API_KEY",
 		tavily: "TAVILY_API_KEY",
 		browserbase: "BROWSERBASE_API_KEY",
+		jina: "JINA_API_KEY",
 	};
 
 	// Config override
@@ -141,10 +142,16 @@ export function loadConfig(): WebToolsConfig {
 export function getProviderStatus(config: WebToolsConfig): string {
 	const lines: string[] = ["Web Tools — Provider Status", ""];
 
-	const providerIds: ProviderId[] = ["exa", "exa-free", "firecrawl", "tavily", "browserbase", "local"];
+	const providerIds: ProviderId[] = ["exa", "exa-free", "firecrawl", "tavily", "browserbase", "jina", "local"];
 	for (const id of providerIds) {
 		if (id === "exa-free" || id === "local") {
 			lines.push(`  ${id}: ✓ available (no key needed)`);
+			continue;
+		}
+		if (id === "jina") {
+			const key = resolveApiKey(id, config);
+			const status = key ? "✓ configured (500 RPM)" : "✓ keyless (20 RPM per IP)";
+			lines.push(`  ${id}: ${status}`);
 			continue;
 		}
 		const key = resolveApiKey(id, config);

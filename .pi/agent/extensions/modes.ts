@@ -58,10 +58,19 @@ const ALLOWED_MARKDOWN_EXT = new Set([".md", ".mdx"]);
 //  BASH WRITE PATTERNS
 // ═══════════════════════════════════════════════════════════
 
-const WRITE_PATTERNS = [
-	// ── Output redirection ──
+// Redirections can appear mid-command (`echo hi > file`), so match anywhere.
+const INLINE_WRITE_PATTERNS = [
 	{ re: /(?<![=<>|&])>>?\s+\S/, label: "output redirect (> or >>)" },
 	{ re: /cat\s*>\s*\S/, label: "cat redirect" },
+];
+
+// Anchors a pattern to a command start: beginning of the string, after a shell
+// separator (`; | & && ||`), or after a wrapper command (sudo, env, nohup, ...).
+const CMD_BOUNDARY = String.raw`(?:^|[\n;|&]\s*|\b(?:sudo|env|nohup|time|command)\s+)`;
+
+// Command-name patterns. Anchored to a command start so tokens in paths/args
+// (e.g. `sync-contracts.mjs`) don't trip the blocklist.
+const WRITE_PATTERNS = [
 	{ re: /\btee\b/, label: "tee" },
 
 	// ── File manipulation ──
@@ -78,7 +87,6 @@ const WRITE_PATTERNS = [
 	{ re: /\bchgrp\b/, label: "chgrp" },
 	{ re: /\btruncate\b/, label: "truncate" },
 	{ re: /\bshred\b/, label: "shred" },
-	{ re: /\bsync\b/, label: "sync" },
 
 	// ── Text processing (in-place) ──
 	{ re: /\bsed\s+-i\b/, label: "sed -i" },
@@ -178,7 +186,10 @@ const WRITE_PATTERNS = [
 	{ re: /\bhistory\s+-c\b/, label: "history -c" },
 	{ re: /\bsetenforce\s+0\b/, label: "setenforce 0" },
 	{ re: /\bufw\s+disable\b/, label: "ufw disable" },
-];
+].map(({ re, label }) => ({
+	re: new RegExp(CMD_BOUNDARY + re.source, re.flags),
+	label,
+}));
 
 let activeMode: string | null = null; // null = off, "RO", or "MD"
 const createdFiles = new Set<string>();
@@ -189,6 +200,10 @@ function isMarkdownPath(p: string): boolean {
 }
 
 function isWriteLikeCommand(cmd: string): string | null {
+	for (const { re, label } of INLINE_WRITE_PATTERNS) {
+		re.lastIndex = 0;
+		if (re.test(cmd)) return label;
+	}
 	for (const { re, label } of WRITE_PATTERNS) {
 		re.lastIndex = 0;
 		if (re.test(cmd)) return label;

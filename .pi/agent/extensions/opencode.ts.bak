@@ -35,8 +35,9 @@ const OC_SESSION_ID = `ses_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}
 
 function ocHeaders(): Record<string, string> {
 	return {
-		"User-Agent": "opencode/1.14.50 ai-sdk/provider-utils/4.0.23 runtime/bun/1.3.13",
-		"Accept": "*/*",
+		"User-Agent":
+			"opencode/1.14.50 ai-sdk/provider-utils/4.0.23 runtime/bun/1.3.13",
+		Accept: "*/*",
 		"x-opencode-session": OC_SESSION_ID,
 		"x-opencode-request": `msg_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`,
 		"x-opencode-project": "global",

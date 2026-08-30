@@ -1,0 +1,1116 @@
+#!/usr/bin/env bash
+# pvm - Proton Version Manager (formerly geman)
+# manage GE-Proton versions across steam and lutris roots
+# https://github.com/GloriousEggroll/proton-ge-custom
+
+set -euo pipefail
+
+# --- paths ---
+STEAM_HOME="$HOME/.local/share/Steam/compatibilitytools.d"
+LUTRIS_HOME="$HOME/.local/share/lutris/runners/wine"
+ACTIVE_PATH="$LUTRIS_HOME/ge-proton"
+
+for d in "$STEAM_HOME" "$HOME/.steam/steam/compatibilitytools.d"; do
+  [[ -d "$d" ]] && STEAM_ROOT=$(readlink -f "$d") && break
+done
+: "${STEAM_ROOT:?steam compat dir not found}"
+LUTRIS_ROOT=$(readlink -f "$LUTRIS_HOME" 2>/dev/null || echo "$LUTRIS_HOME")
+REPO="GloriousEggroll/proton-ge-custom"
+API_BASE="https://api.github.com/repos/$REPO"
+
+# --- colors ---
+NO_COLOR="${NO_COLOR:-}"
+if [[ -t 1 && -z "$NO_COLOR" ]]; then
+  D=$'\033[2m'
+  B=$'\033[1m'
+  R=$'\033[31m'
+  G=$'\033[32m'
+  Y=$'\033[33m'
+  C=$'\033[36m'
+  N=$'\033[0m'
+else
+  D=''
+  B=''
+  R=''
+  G=''
+  Y=''
+  C=''
+  N=''
+fi
+
+# --- helpers ---
+die() {
+  echo -e "${R}error${N}: $*" >&2
+  exit 1
+}
+warn() { echo -e "${Y}warning${N}: $*" >&2; }
+
+has_jq() { command -v jq &>/dev/null; }
+has_gh() { command -v gh &>/dev/null && gh auth status &>/dev/null; }
+
+# curl wrapper that injects token if available
+gh_curl() {
+  local url="$1" extra=()
+  if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    extra=(-H "Authorization: Bearer $GITHUB_TOKEN")
+  elif [[ -n "${GH_TOKEN:-}" ]]; then
+    extra=(-H "Authorization: Bearer $GH_TOKEN")
+  fi
+  curl -s --fail "${extra[@]}" "$url" 2>/dev/null
+}
+
+# try gh cli first (authed, higher rate limit), then curl with token, then plain curl
+github_api() {
+  local path="$1"
+  local url="$API_BASE/$path"
+  # prefer gh if authed
+  if has_gh; then
+    gh api "repos/$REPO/$path" 2>/dev/null && return
+  fi
+  if gh_curl "$url"; then return; fi
+  # last resort plain curl (unauthenticated, 60/hr)
+  curl -s --fail "$url" 2>/dev/null || return 1
+}
+
+# collect GE dirs in a root: "basename|realpath|issymlink"
+ge_dirs() {
+  local root="$1" p
+  shopt -s nullglob
+  for p in "$root"/GE-Proton*; do
+    [[ -d "$p" || -L "$p" ]] || continue
+    local bn rp sym
+    bn=$(basename "$p")
+    rp=$(readlink -f "$p")
+    sym=0
+    [[ -L "$p" ]] && sym=1
+    printf '%s|%s|%s\n' "$bn" "$rp" "$sym"
+  done
+}
+
+version_tag() {
+  local dir="$1"
+  local vf="$dir/version"
+  if [[ -r "$vf" ]]; then
+    local tag
+    tag=$(awk '{print $2}' "$vf" 2>/dev/null | sed 's/-x86_64$//;s/-aarch64$//')
+    [[ -n "$tag" ]] && {
+      echo "$tag"
+      return
+    }
+  fi
+  basename "$dir" 2>/dev/null | sed 's/-x86_64$//;s/-aarch64$//'
+}
+
+normalize_ver() {
+  local arg="$1"
+  if [[ "$arg" == GE-Proton* ]]; then
+    echo "$arg"
+  else
+    echo "GE-Proton$arg"
+  fi
+}
+
+find_ge_dirs() {
+  local name="$1" root p bn rp sym
+  for root in "$STEAM_ROOT" "$LUTRIS_ROOT"; do
+    shopt -s nullglob
+    for p in "$root"/"$name" "$root"/"$name"-x86_64 "$root"/"$name"-aarch64; do
+      [[ -d "$p" || -L "$p" ]] || continue
+      bn=$(basename "$p")
+      rp=$(readlink -f "$p")
+      sym=0
+      [[ -L "$p" ]] && sym=1
+      printf '%s|%s|%s|%s\n' "$root" "$bn" "$rp" "$sym"
+    done
+  done | sort -u
+}
+
+active_name() {
+  local target
+  target=$(readlink -f "$ACTIVE_PATH" 2>/dev/null || echo "")
+  [[ -n "$target" ]] && basename "$target"
+}
+
+size_human() { du -sh "$1" 2>/dev/null | cut -f1; }
+size_kb() { du -sk "$1" 2>/dev/null | cut -f1; }
+
+cell() { # $1 color, $2 text, $3 width — centered
+  local c="$1" t="$2" w="$3" l pad left right
+  l=${#t}
+  pad=$((w - l))
+  ((pad < 0)) && pad=0
+  left=$((pad / 2))
+  right=$((pad - left))
+  printf "%*s%s%s%s%*s" "$left" "" "$c" "$t" "$N" "$right" ""
+}
+header_cell() { # $1 text, $2 width — centered dim header
+  local t="$1" w="$2" l pad left right
+  l=${#t}
+  pad=$((w - l))
+  ((pad < 0)) && pad=0
+  left=$((pad / 2))
+  right=$((pad - left))
+  printf "${D}%*s%s%*s${N}" "$left" "" "$t" "$right" ""
+}
+
+is_active() {
+  local rp="$1" act
+  act=$(readlink -f "$ACTIVE_PATH" 2>/dev/null || echo "")
+  [[ -n "$act" && "$rp" == "$act" ]]
+}
+
+# pretty path with ~
+tilde() { echo "${1/#$HOME/\~}"; }
+
+installed_set() {
+  declare -gA INSTALLED=()
+  local bn rp sym
+  while IFS='|' read -r bn rp sym; do INSTALLED["$bn"]=1; done < <(ge_dirs "$STEAM_ROOT")
+  while IFS='|' read -r bn rp sym; do INSTALLED["$bn"]=1; done < <(ge_dirs "$LUTRIS_ROOT")
+  # also by version tag
+  while IFS='|' read -r bn rp sym; do INSTALLED["$(version_tag "$rp")"]=1; done < <(ge_dirs "$STEAM_ROOT")
+}
+
+# resolve tag to canonical form; strip arch suffix, ensure GE-Proton prefix
+canonical_tag() {
+  local v="$1"
+  v=$(normalize_ver "$v")
+  v=${v%-x86_64}
+  v=${v%-aarch64}
+  echo "$v"
+}
+
+# ================= commands =================
+
+cmd_update() {
+  echo -e "${C}checking${N} latest GE-Proton..."
+  local data tag url fn tmp dirname cur
+  data=$(github_api "releases/latest") || die "failed to fetch latest release (rate limited? try GITHUB_TOKEN or 'gh auth login')"
+  if has_jq; then
+    tag=$(echo "$data" | jq -r '.tag_name // empty')
+    url=$(echo "$data" | jq -r '.assets[] | select(.name | test("x86_64\\.tar\\.gz$")) | .browser_download_url' | head -1)
+  else
+    tag=$(echo "$data" | grep '"tag_name"' | cut -d'"' -f4)
+    url=$(echo "$data" | grep browser_download_url | grep 'x86_64.tar.gz"' | cut -d'"' -f4 | head -1)
+  fi
+  [[ -z "$tag" ]] && die "failed to parse latest release (rate limit?)"
+  [[ -z "$url" ]] && die "no x86_64 asset found for $tag"
+
+  cur=$(version_tag "$(readlink -f "$ACTIVE_PATH" 2>/dev/null || echo ".")" 2>/dev/null || echo "")
+  if [[ "$tag" == "$cur" ]]; then
+    echo -e "${G}already${N} on $tag"
+    return
+  fi
+  echo -e "updating ${D}${cur:-none}${N} ${C}->${N} ${G}$tag${N}"
+  _download_and_extract "$url" "$tag" >/dev/null
+}
+
+_download_and_extract() {
+  local url="$1" tag="$2" set_active="${3:-1}"
+  local fn tmp dirname
+  fn=$(basename "$url")
+  tmp="/tmp/$fn"
+  echo -e "downloading ${D}$fn${N}" >&2
+  echo -e "${D}  $url${N}" >&2
+  curl -L --fail --progress-bar "$url" -o "$tmp" || {
+    rm -f "$tmp"
+    die "download failed"
+  }
+  file "$tmp" | grep -q gzip || {
+    head -c 400 "$tmp" >&2
+    echo >&2
+    rm -f "$tmp"
+    die "not a gzip archive (rate limited or bad url?)"
+  }
+
+  mkdir -p "$STEAM_ROOT"
+  echo -e "extracting ${D}$fn${N} ${D}-> $(tilde "$STEAM_ROOT")${N}" >&2
+  tar -xzf "$tmp" -C "$STEAM_ROOT"
+  rm -f "$tmp"
+
+  dirname="${fn%.tar.gz}"
+  # some old releases extract without arch suffix
+  if [[ ! -d "$STEAM_ROOT/$dirname" ]]; then
+    # try without arch suffix or plain tag
+    if [[ -d "$STEAM_ROOT/$tag" ]]; then
+      dirname="$tag"
+    elif [[ -d "$STEAM_ROOT/${tag}-x86_64" ]]; then
+      dirname="${tag}-x86_64"
+    else
+      # find newest GE-Proton dir by mtime as fallback
+      dirname=$(ls -t "$STEAM_ROOT"/GE-Proton* 2>/dev/null | head -1 | xargs -r basename)
+      [[ -z "$dirname" ]] && die "extract failed: no GE-Proton dir found"
+    fi
+  fi
+
+  if ((set_active)); then
+    ln -sfn "$STEAM_ROOT/$dirname" "$ACTIVE_PATH"
+    echo -e "${G}done${N} $tag ${D}($dirname)${N} ${D}active -> $(tilde "$ACTIVE_PATH")${N}" >&2
+  else
+    echo -e "${G}done${N} $tag ${D}($dirname)${N} ${D}(active unchanged)${N}" >&2
+  fi
+  echo "$dirname"
+}
+
+cmd_list() {
+  declare -A S_DIR S_SZ L_DIR L_SYM L_SZ
+  local bn rp sym
+  while IFS='|' read -r bn rp sym; do
+    S_DIR["$bn"]="$rp"
+    S_SZ["$bn"]=$(size_human "$rp")
+  done < <(ge_dirs "$STEAM_ROOT")
+  while IFS='|' read -r bn rp sym; do
+    L_DIR["$bn"]="$rp"
+    L_SYM["$bn"]="$sym"
+    L_SZ["$bn"]=$(size_human "$rp")
+  done < <(ge_dirs "$LUTRIS_ROOT")
+
+  local active_rp
+  active_rp=$(readlink -f "$ACTIVE_PATH" 2>/dev/null || echo "")
+
+  local names
+  names=$({
+    for bn in "${!S_DIR[@]}"; do echo "$bn"; done
+    for bn in "${!L_DIR[@]}"; do echo "$bn"; done
+  } | sort -t- -k2,2V -k3,3V -u)
+
+  local active
+  active=$(active_name || echo "")
+
+  declare -A SEEN
+  local total_kb=0 kb
+  while IFS='|' read -r bn rp sym; do
+    [[ -n "${SEEN[$rp]:-}" ]] && continue
+    SEEN["$rp"]=1
+    kb=$(size_kb "$rp")
+    total_kb=$((total_kb + ${kb:-0}))
+  done < <(ge_dirs "$STEAM_ROOT")
+  while IFS='|' read -r bn rp sym; do
+    [[ -n "${SEEN[$rp]:-}" ]] && continue
+    SEEN["$rp"]=1
+    kb=$(size_kb "$rp")
+    total_kb=$((total_kb + ${kb:-0}))
+  done < <(ge_dirs "$LUTRIS_ROOT")
+
+  local total_human
+  total_human=$(numfmt --to=iec --suffix=B --format='%.1f' $((total_kb * 1024)) 2>/dev/null || echo "${total_kb}K")
+
+  local s_count=0 l_count=0
+  # shellcheck disable=SC2066
+  for name in $names; do
+    [[ -n "${S_DIR[$name]:-}" ]] && s_count=$((s_count + 1))
+    [[ -n "${L_DIR[$name]:-}" ]] && l_count=$((l_count + 1))
+  done
+
+  local ver_w=7
+  for name in $names; do ((${#name} > ver_w)) && ver_w=${#name}; done
+
+  local s_char l_char a_char s_col l_col a_col size
+  printf "${D}%-${ver_w}s  %7s  " "VERSION" "SIZE"
+  header_cell "STEAM" 6
+  printf "  "
+  header_cell "LUTRIS" 6
+  printf "  "
+  header_cell "ACTIVE" 6
+  printf "${N}\n"
+  for name in $names; do
+    size="${S_SZ[$name]:-${L_SZ[$name]:-?}}"
+    if [[ -n "${S_DIR[$name]:-}" ]]; then
+      s_char="●"
+      s_col="$G"
+    else
+      s_char="·"
+      s_col="$D"
+    fi
+    if [[ -n "${L_DIR[$name]:-}" ]]; then
+      if [[ "${L_SYM[$name]}" == 1 ]]; then
+        l_char=""
+        l_col="$C"
+      else
+        l_char="●"
+        l_col="$R"
+      fi
+    elif [[ -n "$active_rp" && "${S_DIR[$name]:-}" == "$active_rp" ]]; then
+      l_char=""
+      l_col="$C"
+    else
+      l_char="·"
+      l_col="$D"
+    fi
+    if [[ "$name" == "$active" ]]; then
+      a_char="*"
+      a_col="$Y"
+    else
+      a_char="·"
+      a_col="$D"
+    fi
+    printf "${B}%-${ver_w}s${N}  ${Y}%7s${N}  " "$name" "$size"
+    cell "$s_col" "$s_char" 6
+    printf "  "
+    cell "$l_col" "$l_char" 6
+    printf "  "
+    cell "$a_col" "$a_char" 6
+    printf "\n"
+  done
+  [[ -z "$names" ]] && echo -e "${D}no GE-Proton versions found${N}"
+  echo ""
+  echo -e "${D}steam:${N}  $(tilde "$STEAM_ROOT")   ${D}($s_count)${N}"
+  echo -e "${D}lutris:${N} $(tilde "$LUTRIS_ROOT")  ${D}($l_count)${N}"
+  echo -e "${D}total:${N}  $total_human"
+  local active_target
+  active_target=$(readlink -f "$ACTIVE_PATH" 2>/dev/null || echo "none")
+  if [[ "$active_target" != "none" && -n "$active" ]]; then
+    echo -e "${D}active:${N} $(tilde "$ACTIVE_PATH") ${D}→${N} $(tilde "$active_target")"
+  else
+    echo -e "${D}active:${N} $(tilde "$ACTIVE_PATH") ${D}→${N} ${D}none${N}"
+  fi
+  echo -e "${D}legend:${N} ${G}●${N} present  ${C}${N} symlink  ${R}●${N} real copy (needs prune)  ${Y}*${N} active  ${D}·${N} missing"
+}
+
+# --- link: ensure every steam version has a lutris symlink (old prune phase 1) ---
+cmd_link() {
+  local changed=0 sbn srp ssym lbn lrp lsym
+  local lutris_dirs
+  lutris_dirs=$(ge_dirs "$LUTRIS_ROOT")
+  while IFS='|' read -r sbn srp ssym; do
+    # ensure lutris has it (by name or version tag)
+    local has=0
+    while IFS='|' read -r lbn lrp lsym; do
+      if [[ "$lbn" == "$sbn" ]] || [[ "$(version_tag "$lrp")" == "$(version_tag "$srp")" ]]; then
+        has=1
+        break
+      fi
+    done <<<"$lutris_dirs"
+    ((has)) && continue
+    echo -e "${C}link${N} $sbn ${D}steam -> lutris${N}"
+    mkdir -p "$LUTRIS_ROOT"
+    ln -s "$srp" "$LUTRIS_ROOT/$sbn"
+    changed=$((changed + 1))
+  done < <(ge_dirs "$STEAM_ROOT")
+
+  if ((changed == 0)); then
+    echo -e "${G}all linked${N} ${D}every steam version is already in lutris${N}"
+  else
+    echo -e "${G}$changed linked${N}"
+  fi
+}
+
+# --- prune/dedupe: replace lutris real copies with symlinks to steam (old prune phase 2) ---
+cmd_prune() {
+  local changed=0 bn rp sym sbn srp ssym
+  local steam_dirs
+  steam_dirs=$(ge_dirs "$STEAM_ROOT")
+  while IFS='|' read -r bn rp sym; do
+    ((sym)) && continue
+    local steam_match="" steam_path="$STEAM_ROOT/$bn"
+    if [[ -e "$steam_path" || -L "$steam_path" ]]; then
+      steam_match=$(readlink -f "$steam_path")
+    else
+      local tag
+      tag=$(version_tag "$rp")
+      while IFS='|' read -r sbn srp ssym; do
+        if [[ "$(version_tag "$srp")" == "$tag" ]]; then
+          steam_match="$srp"
+          break
+        fi
+      done <<<"$steam_dirs"
+    fi
+    if [[ -z "$steam_match" ]]; then
+      echo -e "${D}skip${N} $bn ${D}(no steam counterpart)${N}"
+      continue
+    fi
+    echo -e "${C}prune${N} $bn ${D}lutris -> steam${N} ${D}$(size_human "$rp") freed${N}"
+    rm -rf "$LUTRIS_ROOT/${bn:?}"
+    ln -s "$steam_match" "$LUTRIS_ROOT/$bn"
+    changed=$((changed + 1))
+  done < <(ge_dirs "$LUTRIS_ROOT")
+
+  if ((changed == 0)); then
+    echo -e "${G}all deduped${N} ${D}no real copies in lutris${N}"
+  else
+    echo -e "${G}$changed pruned${N}"
+  fi
+}
+
+cmd_remove() {
+  local confirm=1 force=0
+  local targets=()
+  for arg in "$@"; do
+    case "$arg" in
+    -y | --yes) confirm=0 ;;
+    --force) force=1 ;;
+    *) targets+=("$arg") ;;
+    esac
+  done
+  ((${#targets[@]} == 0)) && die "give at least one version (e.g. 11-1, GE-Proton11-3)"
+
+  declare -A SEEN
+  local name found hits=()
+  for arg in "${targets[@]}"; do
+    name=$(normalize_ver "$arg")
+    found=0
+    while IFS='|' read -r root bn rp sym; do
+      found=1
+      [[ -n "${SEEN[$root|$bn]:-}" ]] && continue
+      SEEN[$root|$bn]=1
+      hits+=("$root|$bn|$rp|$sym")
+    done < <(find_ge_dirs "$name")
+    ((found)) || warn "no match for '$arg'"
+  done
+  ((${#hits[@]} == 0)) && die "nothing matched"
+
+  local line root bn rp sym active_hit=""
+  for line in "${hits[@]}"; do
+    IFS='|' read -r root bn rp sym <<<"$line"
+    if is_active "$rp"; then active_hit="$bn"; fi
+  done
+  if [[ -n "$active_hit" ]]; then
+    if ((force)); then
+      warn "removing active version $active_hit (--force)"
+    else die "refusing to remove active $active_hit (switch with 'pvm use <ver>' or --force)"; fi
+  fi
+
+  for line in "${hits[@]}"; do
+    IFS='|' read -r root bn rp sym <<<"$line"
+    local tag
+    tag=$(version_tag "$rp")
+    local games
+    games=$(grep -rls "version:.*$tag" "$HOME/.local/share/lutris/games/" 2>/dev/null | xargs -r -n1 basename | sed 's/\.yml$//' || true)
+    [[ -n "$games" ]] && warn "configs use $tag: $games"
+  done
+
+  echo ""
+  for line in "${hits[@]}"; do
+    IFS='|' read -r root bn rp sym <<<"$line"
+    echo -e "  ${D}$(tilde "$root")${N} ${Y}$bn${N} ${D}$(size_human "$rp")${N}"
+  done
+  echo ""
+  if ((confirm)); then
+    read -r -p "remove these? [y/N] " ans
+    [[ "$ans" == y || "$ans" == Y ]] || {
+      echo "aborted"
+      return
+    }
+  fi
+  local removed=0
+  for line in "${hits[@]}"; do
+    IFS='|' read -r root bn rp sym <<<"$line"
+    echo -e "${R}remove${N} ${D}$(tilde "$root")${N}/$bn"
+    rm -rf "$root/${bn:?}"
+    removed=$((removed + 1))
+  done
+  echo -e "${G}removed $removed${N}"
+}
+
+cmd_use() {
+  (($# == 0)) && die "give a version (e.g. '11-5' or 'GE-Proton11-5')"
+  local name rp bn target=""
+  name=$(normalize_ver "$1")
+  while IFS='|' read -r root bn rp sym; do target="$rp"; done < <(find_ge_dirs "$name")
+  [[ -z "$target" ]] && die "version '$1' not found (try 'pvm list' or 'pvm search $1')"
+  [[ ! -d "$target" ]] && die "target $target is not a valid directory"
+  local target_bn cur
+  target_bn=$(basename "$target")
+  cur=$(active_name || echo "none")
+  if [[ "$cur" == "$target_bn" ]]; then
+    echo -e "${G}already${N} on $target_bn"
+    return
+  fi
+  mkdir -p "$LUTRIS_ROOT"
+  ln -sfn "$target" "$ACTIVE_PATH"
+  echo -e "switched ${D}$cur${N} ${C}->${N} ${G}$target_bn${N}"
+}
+
+# --- search: query GitHub releases ---
+cmd_search() {
+  local query="" limit=20 json=0 verbose=0
+  local args=()
+  while (($#)); do
+    case "$1" in
+    --limit=*)
+      limit="${1#*=}"
+      shift
+      ;;
+    --limit)
+      limit="${2:-}"
+      shift 2
+      ;;
+    --json)
+      json=1
+      shift
+      ;;
+    -v | --verbose)
+      verbose=1
+      shift
+      ;;
+    -l | --all)
+      limit=100
+      shift
+      ;;
+    -h | --help)
+      _help_search
+      return
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*) die "unknown flag '$1' (try: pvm search --help)" ;;
+    *)
+      if [[ -z "$query" ]]; then query="$1"; else args+=("$1"); fi
+      shift
+      ;;
+    esac
+  done
+  # any leftover args are errors
+  if ((${#args[@]})); then die "too many args: ${args[*]}"; fi
+
+  [[ "$limit" =~ ^[0-9]+$ ]] || die "--limit must be a number"
+  ((limit > 100)) && limit=100
+
+  echo -e "${C}searching${N} ${D}$REPO${N} ${D}${query:+query: \"$query\"}${N} ${D}(limit $limit)${N}"
+
+  local data
+  # use per_page to avoid pagination for small limits
+  data=$(github_api "releases?per_page=$limit") || {
+    warn "GitHub API failed (rate limited?)"
+    echo -e "${D}try:${N} GITHUB_TOKEN=ghp_xxx pvm search $query"
+    echo -e "${D} or:${N} gh auth login && pvm search $query"
+    echo -e "${D} or browse:${N} https://github.com/$REPO/releases"
+    return 1
+  }
+
+  installed_set
+
+  local count=0
+  if has_jq; then
+    if ((json)); then
+      if [[ -n "$query" ]]; then
+        echo "$data" | jq --arg q "$query" '[ .[] | select(.tag_name | test($q; "i")) ]'
+      else
+        echo "$data" | jq '.'
+      fi
+      return
+    fi
+    # pretty table via jq
+    # build rows
+    local jq_out
+    jq_out=$(echo "$data" | jq -r --arg q "$query" '
+      map(select(if $q == "" then true else .tag_name | test($q; "i") end))
+      | .[] | "\(.tag_name)|\(.published_at // .created_at)|\(.assets | length)|\(.html_url)"
+    ' 2>/dev/null)
+    if [[ -z "$jq_out" ]]; then
+      echo -e "${D}no releases matched \"$query\"${N}"
+      return
+    fi
+    if ((verbose)); then
+      printf "${D}%-18s  %-12s  %-4s  %-9s  %s${N}\n" "TAG" "DATE" "STAT" "STATUS" "URL"
+    else
+      printf "${D}%-18s  %-12s  %-4s  %-9s${N}\n" "TAG" "DATE" "STAT" "STATUS"
+    fi
+    while IFS='|' read -r tag date assets url; do
+      count=$((count + 1))
+      local short_date inst="" stat_col="$D" stat="·"
+      short_date=$(echo "$date" | cut -dT -f1)
+      if [[ -n "${INSTALLED[$tag]:-}" ]]; then
+        inst="installed"
+        stat="●"
+        stat_col="$G"
+      fi
+      local tag_col="$B"
+      [[ -n "$inst" ]] && tag_col="$G"
+      printf "${tag_col}%-18s${N}  " "$tag"
+      printf "${D}%-12s${N}  " "$short_date"
+      cell "$stat_col" "$stat" 4
+      printf "  "
+      if [[ -n "$inst" ]]; then printf "${G}%-9s${N}" "$inst"; else printf "${D}%-9s${N}" ""; fi
+      if ((verbose)); then printf "  ${D}%s${N}" "$url"; fi
+      printf "\n"
+    done <<<"$jq_out"
+    [[ $count -eq 0 ]] && echo -e "${D}no match for \"$query\"${N}"
+  else
+    # fallback without jq: crude grep
+    local tags
+    tags=$(echo "$data" | grep '"tag_name"' | cut -d'"' -f4)
+    if [[ -n "$query" ]]; then
+      tags=$(echo "$tags" | grep -i "$query" || true)
+    fi
+    tags=$(echo "$tags" | head -n "$limit")
+    if [[ -z "$tags" ]]; then
+      echo -e "${D}no match for \"$query\"${N}"
+      return
+    fi
+    printf "${D}%-18s  %-6s${N}\n" "TAG" "STATUS"
+    while read -r tag; do
+      [[ -z "$tag" ]] && continue
+      local inst="" col="$B"
+      if [[ -n "${INSTALLED[$tag]:-}" ]]; then
+        inst="installed"
+        col="$G"
+      fi
+      printf "${col}%-18s${N}  ${D}%s${N}\n" "$tag" "$inst"
+    done <<<"$tags"
+  fi
+  echo ""
+  echo -e "${D}tip:${N} pvm install <tag>  ${D}to download  •  pvm list  ${D}to see local${N}"
+}
+
+_help_search() {
+  cat <<EOF
+${B}pvm search${N} - search remote GE-Proton releases
+
+  pvm search [query] [--limit N] [--json] [-v]
+
+  query      filter tags (e.g. "11-5", "10-")
+  --limit N  max results (default 20, max 100)
+  --json     raw JSON output
+  -v, --verbose  show URL column
+  --all      alias for --limit 100
+
+  examples:
+    pvm search              # latest 20
+    pvm search --limit 10   # 10 latest
+    pvm search 11-5         # find 11-5
+    pvm search 10 --limit 5 -v
+EOF
+}
+
+# --- install/download: fetch specific version ---
+cmd_install() {
+  local arch="x86_64" reinstall=0 no_link=0 ver=""
+  local args=("$@") i
+  for ((i = 0; i < ${#args[@]}; i++)); do
+    case "${args[i]}" in
+    --arch=*) arch="${args[i]#*=}" ;;
+    --arch)
+      arch="${args[i + 1]:-}"
+      ((i++))
+      ;;
+    --reinstall | -f | --force) reinstall=1 ;;
+    --no-link) no_link=1 ;;
+    -h | --help)
+      _help_install
+      return
+      ;;
+    -*) die "unknown flag '${args[i]}'" ;;
+    *) ver="${args[i]}" ;;
+    esac
+  done
+  [[ -z "$ver" ]] && {
+    _help_install
+    die "give a version (e.g. pvm install 11-5)"
+  }
+  if [[ "$ver" == "latest" ]]; then
+    cmd_update
+    return
+  fi
+
+  local tag
+  tag=$(canonical_tag "$ver")
+  echo -e "${C}resolving${N} $tag ${D}arch=$arch${N}"
+
+  # check if already installed — steam vs lutris matters
+  local already="" already_root="" already_bn=""
+  local steam_has=0 lutris_real=0
+  while IFS='|' read -r root bn rp sym; do
+    [[ -z "$already" ]] && {
+      already="$rp"
+      already_root="$root"
+      already_bn="$bn"
+    }
+    [[ "$root" == "$STEAM_ROOT" ]] && steam_has=1
+    [[ "$root" == "$LUTRIS_ROOT" && "$sym" == 0 ]] && lutris_real=1
+  done < <(find_ge_dirs "$tag")
+
+  if [[ -n "$already" && $reinstall -eq 0 ]]; then
+    if ((steam_has)); then
+      echo -e "${Y}already installed${N} $already_bn ${D}at $(tilde "$already_root")${N}"
+      echo -e "${D}use --reinstall to force re-download${N}"
+      return
+    elif ((lutris_real)); then
+      echo -e "${Y}found lutris-only${N} $already_bn ${D}($(tilde "$already_root"), real copy)${N}"
+      echo -e "${D}no steam counterpart — downloading to steam so prune can dedupe...${N}"
+      # fall through to download
+    else
+      echo -e "${Y}already installed${N} $already_bn ${D}at $(tilde "$already_root")${N}"
+      echo -e "${D}use --reinstall to force re-download${N}"
+      return
+    fi
+  fi
+  if [[ -n "$already" && $reinstall -eq 1 ]]; then
+    echo -e "${D}reinstalling${N} $tag"
+  fi
+
+  # 1) try GitHub API for exact tag to get asset url
+  local url="" data
+  data=$(github_api "releases/tags/$tag" 2>/dev/null || echo "")
+  if [[ -n "$data" ]]; then
+    if has_jq; then
+      # prefer arch-specific, fallback to plain .tar.gz (old releases)
+      url=$(echo "$data" | jq -r --arg arch "$arch" '
+        .assets[]? | select(.name | endswith("\($arch).tar.gz")) | .browser_download_url
+      ' 2>/dev/null | head -1)
+      if [[ -z "$url" || "$url" == "null" ]]; then
+        url=$(echo "$data" | jq -r '.assets[]? | select(.name | endswith(".tar.gz")) | .browser_download_url' 2>/dev/null | head -1)
+        [[ "$url" == "null" ]] && url=""
+      fi
+    else
+      url=$(echo "$data" | grep browser_download_url | grep "$arch.tar.gz\"" | cut -d'"' -f4 | head -1)
+      [[ -z "$url" ]] && url=$(echo "$data" | grep browser_download_url | grep '\.tar\.gz"' | cut -d'"' -f4 | head -1)
+    fi
+  fi
+
+  # 2) fallback: try direct download URLs without API (avoids rate limit)
+  if [[ -z "$url" ]]; then
+    warn "API lookup failed, trying direct URLs"
+    local candidates=(
+      "https://github.com/$REPO/releases/download/$tag/${tag}-${arch}.tar.gz"
+      "https://github.com/$REPO/releases/download/$tag/${tag}.tar.gz"
+    )
+    for c in "${candidates[@]}"; do
+      if curl -sI --fail "$c" &>/dev/null; then
+        url="$c"
+        echo -e "${D}found${N} $c"
+        break
+      fi
+    done
+  fi
+
+  [[ -z "$url" ]] && die "could not resolve asset for $tag (arch $arch). Check tag exists: pvm search $tag"
+
+  echo -e "${C}installing${N} $tag ${D}from${N} ${D}$(basename "$url")${N}"
+  # don't touch the active symlink; only 'pvm use' swaps it
+  local dirnm
+  dirnm=$(_download_and_extract "$url" "$tag" 0)
+
+  if ((!no_link)); then
+    # auto-link to lutris so the runner shows up there
+    mkdir -p "$LUTRIS_ROOT"
+    if [[ ! -e "$LUTRIS_ROOT/$dirnm" ]]; then
+      ln -s "$STEAM_ROOT/$dirnm" "$LUTRIS_ROOT/$dirnm" 2>/dev/null || true
+    fi
+  fi
+}
+
+_help_install() {
+  cat <<EOF
+${B}pvm install${N} - download a specific GE-Proton version
+
+  pvm install <ver> [options]
+  aliases: pvm get, pvm download, pvm fetch
+
+  ver     version tag: "11-5", "GE-Proton11-5", "GE-Proton11-5-x86_64", or "latest"
+  --arch <arch>   x86_64 (default) or aarch64
+  --reinstall     re-download even if already installed
+  --no-link       don't auto-link to lutris
+
+  examples:
+    pvm install 11-5
+    pvm install GE-Proton9-20 --arch aarch64
+    pvm install latest
+    pvm get 11-6 --reinstall
+EOF
+}
+
+# --- probe: report which proton/wine/ge version a prefix was built with ---
+cmd_probe() {
+  (($# == 1)) || die "give exactly one prefix dir (e.g. 'pvm probe ~/wine-tekken')"
+  local prefix="$1"
+  [[ -d "$prefix" ]] || die "prefix not found: $prefix"
+  prefix=$(readlink -f "$prefix" 2>/dev/null || echo "$prefix")
+  [[ -d "$prefix/drive_c" ]] || warn "no drive_c in $(tilde "$prefix"); not clearly a wine prefix"
+
+  local recorded="" info_ver=""
+  if [[ -r "$prefix/version" ]]; then
+    recorded=$(tr -d '[:space:]' < "$prefix/version")
+    # a leading build timestamp can sneak in; keep just the tag
+    if [[ "$recorded" =~ ^[0-9]+(GE-Proton.*)$ ]]; then
+      recorded="${BASH_REMATCH[1]}"
+    fi
+  fi
+  if [[ -r "$prefix/config_info" ]]; then
+    info_ver=$(head -1 "$prefix/config_info" | tr -d '[:space:]')
+  fi
+
+  local arch=""
+  if [[ -r "$prefix/system.reg" ]]; then
+    arch=$(grep -m1 '^#arch=' "$prefix/system.reg" | cut -d= -f2)
+  fi
+
+  echo -e "${B}prefix${N}  $(tilde "$prefix")"
+  echo -e "${B}arch${N}    ${arch:-unknown}"
+
+  if [[ -z "$recorded" && -z "$info_ver" ]]; then
+    die "no wine/proton version recorded in this prefix (missing 'version' and 'config_info')"
+  fi
+
+  local tag=""
+  if [[ -n "$recorded" ]]; then
+    tag=$(canonical_tag "$recorded")
+  else
+    tag=$(canonical_tag "$info_ver")
+  fi
+
+  echo -e "${B}version${N} ${G}$tag${N}"
+
+  if [[ -n "$recorded" && -n "$info_ver" && "$recorded" != "$info_ver" ]]; then
+    warn "version file says '$recorded' but config_info says '$info_ver'"
+  fi
+
+  local matches=() seen="" rp
+  while IFS='|' read -r root bn rp sym; do
+    if [[ ";$seen;" != *";$rp;"* ]]; then
+      seen="$seen;$rp"
+      matches+=("$root|$bn|$rp|$sym")
+    fi
+  done < <(find_ge_dirs "$tag")
+
+  echo -e "${B}installed:${N}"
+  if ((${#matches[@]})); then
+    for line in "${matches[@]}"; do
+      IFS='|' read -r root bn rp sym <<<"$line"
+      local loc="${D}lutris${N}"
+      [[ "$root" == "$STEAM_ROOT" ]] && loc="${D}steam${N}"
+      echo -e "  $loc $(tilde "$root")/${D}$bn${N}"
+      [[ "$sym" == 1 ]] && echo -e "    ${D}-> $(tilde "$rp")${N}"
+    done
+  else
+    echo -e "  ${Y}none${N} ${D}(recorded but not found under steam or lutris)${N}"
+  fi
+}
+
+_help_run() {
+  cat <<EOF
+${B}pvm run${N} - launch an exe in a prefix the way Lutris does (umu + proton)
+
+  pvm run <prefix> <exe> [args...] [options]
+
+  exe      absolute unix path, or windows-style path (C:\\..., Z:\\...)
+  args     anything handed to the game; flags starting with '-' are fine
+
+  options:
+    -p, --proton <ver>        force a specific proton instead of the prefix's
+                              recorded version
+    -h, --help                show this help
+
+  example:
+    pvm run ~/wine-tekken ~/wine-tekken/drive_c/games/foo/foo.exe -fullscreen
+    pvm run ~/wine-games "Z:\\install\\game.exe"
+EOF
+}
+
+# --- run: launch an exe in a prefix exactly like Lutris (umu + proton) ---
+cmd_run() {
+  local proton_ver="" prefix="" exe=""
+  local -a args=()
+  # Known pvm flags are recognized anywhere; anything else (including game
+  # flags like -fullscreen) is positional. Use '--' to force everything after
+  # it to be positional/args, so a game flag can't be mistaken for exe.
+  while (($#)); do
+    case "$1" in
+    -h | --help)
+      _help_run
+      return
+      ;;
+    --)
+      shift
+      # everything after '--' is positional (prefix/exe/args)
+      while (($#)); do
+        if [[ -z "$prefix" ]]; then
+          prefix="$1"
+        elif [[ -z "$exe" ]]; then
+          exe="$1"
+        else
+          args+=("$1")
+        fi
+        shift
+      done
+      break
+      ;;
+    -p | --proton)
+      proton_ver="${2:-}"
+      shift 2
+      ;;
+    --proton=*)
+      proton_ver="${1#*=}"
+      shift
+      ;;
+    -*)
+      # unknown flag: only legal as a game arg once the exe is set
+      if [[ -n "$exe" ]]; then
+        args+=("$1")
+        shift
+      else
+        die "unknown flag '$1'"
+      fi
+      ;;
+    *)
+      if [[ -z "$prefix" ]]; then
+        prefix="$1"
+      elif [[ -z "$exe" ]]; then
+        exe="$1"
+      else
+        args+=("$1")
+      fi
+      shift
+      ;;
+    esac
+  done
+  [[ -z "$prefix" ]] && die "give a prefix dir (pvm run <prefix> <exe>)"
+  [[ -z "$exe" ]] && die "give an exe (pvm run <prefix> <exe>)"
+
+  prefix="${prefix/#\~/$HOME}"
+  [[ -d "$prefix" ]] || die "prefix not found: $prefix"
+  prefix=$(readlink -f "$prefix" 2>/dev/null || echo "$prefix")
+
+  # --- resolve which proton to use ---
+  local ver=""
+  if [[ -n "$proton_ver" ]]; then
+    ver="$proton_ver"
+  elif [[ -r "$prefix/version" ]]; then
+    ver=$(tr -d '[:space:]' < "$prefix/version")
+    [[ "$ver" =~ ^[0-9]+(GE-Proton.*)$ ]] && ver="${BASH_REMATCH[1]}"
+  fi
+  [[ -z "$ver" ]] && die "no proton version recorded in $(tilde "$prefix"); pass --proton <ver>"
+
+  local tag="" dir=""
+  tag=$(canonical_tag "$ver")
+  local -a proton_dirs=()
+  while IFS='|' read -r root bn rp sym; do
+    [[ -x "$rp/proton" ]] || continue
+    proton_dirs+=("$rp")
+  done < <(find_ge_dirs "$tag")
+  ((${#proton_dirs[@]})) || die "proton '$ver' ($tag) is not installed"
+  dir="${proton_dirs[0]}"
+  echo -e "${C}proton${N} ${G}$ver${N} ${D}-> $(tilde "$dir")${N}" >&2
+
+  # --- locate umu-run ---
+  local umu=""
+  umu=$(command -v umu-run 2>/dev/null || true)
+  if [[ -z "$umu" ]]; then
+    local cand
+    for cand in "$HOME/.local/share/lutris/runtime/umu/umu-run" "/usr/local/share/umu/umu-run" "/usr/share/umu/umu-run" "/opt/umu/umu-run"; do
+      [[ -x "$cand" ]] && umu="$cand" && break
+    done
+  fi
+  [[ -z "$umu" ]] && die "umu-run not found; install umu-launcher or let Lutris provision it"
+  echo -e "${C}umu${N}    $(tilde "$umu")" >&2
+
+  # --- resolve the exe (mimic Lutris get_real_executable) ---
+  local windows_like=0
+  if [[ "$exe" =~ ^[A-Za-z]: ]] || [[ "$exe" == *\\* ]]; then
+    windows_like=1
+  fi
+  local -a lexe=()
+  case "$(basename "$exe" | tr '[:upper:]' '[:lower:]')" in
+  *.msi) lexe=(msiexec /i "$exe") ;;
+  *.bat | *.cmd) lexe=(cmd /C "$exe") ;;
+  *.lnk) lexe=(start /unix "$exe") ;;
+  *) lexe=("$exe") ;;
+  esac
+  if ((!windows_like)); then
+    [[ "$exe" == /* ]] || warn "exe is not an absolute path; umu may not find it"
+    [[ -f "$exe" ]] || warn "exe not found: $exe"
+  fi
+
+  # --- env (mirrors Lutris get_env + finish_env + update_proton_env) ---
+  local -a env=()
+  env+=("WINEARCH=win64")
+  env+=("WINEPREFIX=$prefix")
+  env+=("PROTONPATH=$dir")
+  env+=("GAMEID=umu-default")
+  env+=("PROTON_VERB=waitforexitandrun")
+  [[ -z "${WINEDEBUG:-}" ]] && env+=("WINEDEBUG=-all")
+  [[ -z "${DXVK_LOG_LEVEL:-}" ]] && env+=("DXVK_LOG_LEVEL=error")
+  [[ -z "${UMU_LOG:-}" ]] && env+=("UMU_LOG=1")
+  [[ -z "${WINEESYNC:-}" ]] && env+=("WINEESYNC=1")
+  [[ -z "${WINEFSYNC:-}" ]] && env+=("WINEFSYNC=1")
+  [[ -z "${WINE_LARGE_ADDRESS_AWARE:-}" ]] && env+=("WINE_LARGE_ADDRESS_AWARE=1")
+  if [[ -d "$dir/files/mono" ]]; then env+=("WINE_MONO_CACHE_DIR=$dir/files/mono"); fi
+  if [[ -d "$dir/files/gecko" ]]; then env+=("WINE_GECKO_CACHE_DIR=$dir/files/gecko"); fi
+  [[ -z "${WINEDLLOVERRIDES:-}" ]] && env+=("WINEDLLOVERRIDES=winemenubuilder=")
+  [[ -n "${LC_ALL:-}" && -z "${HOST_LC_ALL:-}" ]] && env+=("HOST_LC_ALL=$LC_ALL")
+
+  local cwd=""
+  if ((!windows_like)) && [[ "$exe" == /* ]]; then cwd=$(dirname "$exe"); fi
+
+  echo -e "${C}run${N}     ${G}$exe${N} ${D}in $(tilde "$prefix")${N}" >&2
+  [[ -n "$cwd" ]] && cd "$cwd" 2>/dev/null || true
+  exec env "${env[@]}" "$umu" "${lexe[@]}" "${args[@]}"
+}
+
+cmd_help() {
+  cat <<EOF
+${B}pvm${N} - Proton Version Manager ${D}${N}
+
+  ${C}play${N}
+    run <prefix> <exe>   launch an exe in a prefix like Lutris (umu + proton)
+
+  ${C}local${N}
+    l, ls, list      list installed versions across steam + lutris
+    use <ver>     switch active version (lutris ge-proton symlink)
+    probe <prefix>    report which proton/wine/ge version a prefix was built with
+    r, rm, remove    remove version(s)          ${D}[-y --force]${N}
+    prune            dedupe lutris (real copies -> symlinks)
+    link, sync       ensure steam versions are symlinked in lutris
+
+  ${C}remote${N}
+    s, search [query]   search GitHub releases     ${D}[--limit N --json]${N}
+    i, install <ver>    download specific version  ${D}[--arch --reinstall]${N}
+    u, update        update to latest release
+
+  ${D}version args:${N} '11-5' or 'GE-Proton11-5' or 'GE-Proton11-5-x86_64' or 'latest'
+  ${D}paths:${N}
+    steam:  $(tilde "$STEAM_ROOT")
+    lutris: $(tilde "$LUTRIS_ROOT")
+    active: $(tilde "$ACTIVE_PATH") -> $(tilde "$(readlink -f "$ACTIVE_PATH" 2>/dev/null || echo "none")")
+EOF
+}
+
+# ================= main =================
+[[ -d "$STEAM_ROOT" ]] || die "steam compat dir not found: $STEAM_ROOT (tried $STEAM_HOME and ~/.steam/steam/compatibilitytools.d)"
+
+case "${1:-help}" in
+u | update)
+  shift
+  cmd_update "$@"
+  ;;
+l | ls | list)
+  shift
+  cmd_list "$@"
+  ;;
+p | prune | dedupe)
+  shift
+  cmd_prune "$@"
+  ;;
+link | sync)
+  shift
+  cmd_link "$@"
+  ;;
+r | rm | remove)
+  shift
+  cmd_remove "$@"
+  ;;
+probe | which | info)
+  shift
+  cmd_probe "$@"
+  ;;
+use | activate)
+  shift
+  cmd_use "$@"
+  ;;
+run)
+  shift
+  cmd_run "$@"
+  ;;
+s | search | find | query)
+  shift
+  cmd_search "$@"
+  ;;
+i | install | get | download | fetch | add)
+  shift
+  cmd_install "$@"
+  ;;
+version | --version | -v) echo "pvm 2.0.0 (geman successor)" ;;
+*) cmd_help ;;
+esac

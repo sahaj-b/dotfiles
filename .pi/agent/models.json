@@ -6,10 +6,11 @@
       "apiKey": "$NVIDIA_API_KEY",
       "models": [
         {
-          "id": "minimaxai/minimax-m2.7",
-          "name": "MiniMax M2.7",
-          "contextWindow": 128000,
-          "maxTokens": 8192,
+          "id": "deepseek-ai/deepseek-v4-pro-0813",
+          "name": "Deepseek V4 Pro",
+          "reasoning": true,
+          "contextWindow": 1000000,
+          "maxTokens": 384000,
           "input": [
             "text"
           ],
@@ -18,6 +19,14 @@
             "output": 0,
             "cacheRead": 0,
             "cacheWrite": 0
+          },
+          "compat": {
+            "thinkingFormat": "chat-template",
+            "chatTemplateKwargs": {
+              "enable_thinking": true,
+              "thinking": true
+            },
+            "requiresReasoningContentOnAssistantMessages": true
           }
         }
       ]
@@ -29,9 +38,15 @@
       "models": [
         {
           "id": "deepseek-v4-flash",
-          "name": "DeepSeek V4 Flash (Free)",
+          "name": "DeepSeek V4 Flash",
           "reasoning": true,
-          "input": ["text"],
+          "thinkingLevelMap": {
+            "xhigh": "xhigh",
+            "max": "max"
+          },
+          "input": [
+            "text"
+          ],
           "contextWindow": 1000000,
           "maxTokens": 384000,
           "cost": {
@@ -42,7 +57,99 @@
           },
           "compat": {
             "supportsDeveloperRole": false,
-            "thinkingFormat": "deepseek"
+            "thinkingFormat": "deepseek",
+            "requiresReasoningContentOnAssistantMessages": true,
+            "maxTokensField": "max_tokens"
+          }
+        },
+        {
+          "id": "glm-5.3-flash",
+          "name": "GLM 5.3 Flash",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": "low",
+            "low": "low",
+            "medium": "high",
+            "high": "high",
+            "xhigh": null,
+            "max": "max"
+          },
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1000000,
+          "maxTokens": 131072,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
+          "compat": {
+            "supportsDeveloperRole": false,
+            "thinkingFormat": "deepseek",
+            "requiresReasoningContentOnAssistantMessages": true,
+            "maxTokensField": "max_tokens"
+          }
+        },
+        {
+          "id": "deepseek-v4-flash-vision-exp",
+          "name": "DeepSeek V4 Flash (Vis)",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "xhigh": "xhigh",
+            "max": "max"
+          },
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1000000,
+          "maxTokens": 384000,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
+          "compat": {
+            "supportsDeveloperRole": false,
+            "thinkingFormat": "deepseek",
+            "requiresReasoningContentOnAssistantMessages": true,
+            "maxTokensField": "max_tokens"
+          }
+        },
+        {
+          "id": "qwen3.8-flash",
+          "name": "Qwen 3.8 Flash",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "minimal": "low",
+            "low": "low",
+            "medium": "medium",
+            "high": "xhigh",
+            "xhigh": "xhigh",
+            "max": "xhigh"
+          },
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1000000,
+          "maxTokens": 131072,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
+          "compat": {
+            "supportsDeveloperRole": false,
+            "thinkingFormat": "qwen",
+            "requiresReasoningContentOnAssistantMessages": true,
+            "maxTokensField": "max_tokens"
           }
         }
       ]

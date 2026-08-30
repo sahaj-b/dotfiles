@@ -1,9 +1,9 @@
 {
-  "lastChangelogVersion": "0.84.3",
+  "lastChangelogVersion": "0.84.4",
   "packages": [],
-  "defaultProvider": "b-ai",
-  "defaultModel": "deepseek-v4-flash",
-  "defaultThinkingLevel": "high",
+  "defaultProvider": "opencode",
+  "defaultModel": "muse-spark-1.2-contributor-free",
+  "defaultThinkingLevel": "xhigh",
   "theme": "catppuccin-mocha",
   "hideThinkingBlock": true,
   "workspaceHistory": {

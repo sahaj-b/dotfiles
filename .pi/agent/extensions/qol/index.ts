@@ -5,6 +5,7 @@ import type {
 import { settingBoolean, settingNumber } from "./_config";
 import {
 	CONTEXT_USAGE_MESSAGE_TYPE,
+	DEFAULT_SUPPRESS_SUBAGENT_COMPLETION,
 	INSTALL_SYMBOL,
 	THINKING_TIMER_STORE_SYMBOL,
 } from "./constants";
@@ -452,6 +453,29 @@ export default function (pi: ExtensionAPI) {
 	pi.on("agent_settled", async (_event: any, ctx: any) => {
 		if (!ctx.isIdle()) return;
 
+		// Skip completion notifications when the last turn was pure subagent delegation.
+		// Subagents handle their own output, so the "Agent ready" ping is just noise.
+		if (settingBoolean(
+			"notification.suppressSubagentCompletion",
+			DEFAULT_SUPPRESS_SUBAGENT_COMPLETION,
+			ctx.cwd,
+		)) {
+			const branch = ctx.sessionManager.getBranch();
+			for (let i = branch.length - 1; i >= 0; i--) {
+				const m = branch[i];
+				if (m?.type === "message" && m.message?.role === "assistant") {
+					const content = Array.isArray(m.message.content) ? m.message.content : [];
+					const toolCalls = content.filter((c: any) => c?.type === "toolCall");
+					// Only subagent calls — no other tool calls — means the agent
+					// just delegated; skip the "Agent ready" ping.
+					if (toolCalls.length > 0 && toolCalls.every((tc: any) => tc.name === "subagent")) {
+						return;
+					}
+					break;
+				}
+			}
+		}
+
 		const branch = ctx.sessionManager.getBranch();
 		let lastText = "";
 		for (let i = branch.length - 1; i >= 0; i--) {
@@ -490,7 +514,7 @@ export default function (pi: ExtensionAPI) {
 			}
 
 			const criticalMatch = lastText.match(
-				/\b(rate[_ ]limit(_error|_exceeded)?|(rate limit)\s+(exceeded|reached)|context[_ ]length[_ ]exceeded|context window (overflow|exceeded|full)|overloaded|quota (exceeded|will reset)|API key (not valid|invalid|expired)|manual action required)\b/i,
+				/\b(context[_ ]length[_ ]exceeded|context window (overflow|exceeded|full)|overloaded|quota (exceeded|will reset)|API key (not valid|invalid|expired)|manual action required)\b/i,
 			);
 			if (criticalMatch) {
 				sendQolNotification(

@@ -9,7 +9,9 @@ hl.monitor({
 
 hl.monitor({
   output = "HDMI-A-1",
-  mode = "preferred",
+  mode = "1920x1080@60",
+  position = "1920x0",
+  -- mode = "3840x2160@60@60",
   position = "0x0",
   scale = 1,
   mirror = "eDP-1",

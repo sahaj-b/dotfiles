@@ -147,7 +147,7 @@ alias duration="ffprobe -show_entries format=duration -v quiet -of csv='p=0' -i"
 alias ga="git add -A"
 alias ga.="git add ."
 alias gd="git dt --staged"
-alias gdg="git diff --staged | l l write a short commit message, single line response"
+alias gdg="git diff --staged | l mi write a short commit message, single line response"
 alias gr="git restore --staged"
 alias gc="git commit -m"
 alias gca="git commit --amend"
@@ -165,13 +165,13 @@ l() {
   local model=""
   local thinking=""
   case "$1" in
-    o) model="groq/openai/gpt-oss-120b" ; shift ;;
-    m) model="oc/minimax-m2.5-free" ; shift ;;
-    q) model="oc/qwen3.6-plus-free" ; shift ;;
-    d) model="oc/deepseek-v4-flash-free" ; shift ;;
+    m) model="oc/muse-spark-1.2-contributor-free" ; shift ;;
+    mi) model="oc/mimo-v2.5-free" ; shift ;;
+    h) model="oc/hy3-free" ; shift ;;
     g) model="github-copilot/gpt-4.1" ; shift ;;
     l) model="google/gemini-3.1-flash-lite" ; shift ;;
     f) model="google/gemini-3-flash-preview" ; shift ;;
+    h) echo "m: muse-spark1.2, mi: mimov2.5, h: hy3, g: gpt4.1, l: gemini3.1fl, f: gemini3f" ; return ;;
   esac
 
   local args=()

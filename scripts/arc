@@ -47,7 +47,7 @@ if [ "$(id -u)" -ne 0 ]; then
   exec sudo "$0" "$@"
 fi
 
-card_present() { [ -e "$DPATH" ]; }
+card_present() { [ -n "$DEV" ] && [ -e "$DPATH" ]; }
 
 rule_state() {
   if [ -f "$RULE" ]; then
@@ -65,7 +65,7 @@ case "${1:-status}" in
 
 status | s)
   echo "card:   $(card_present && echo PRESENT || echo GONE)"
-  echo "driver: $(card_present && basename "$(readlink "$DPATH/driver" 2>/dev/null)" 2>/dev/null || echo none)"
+  driver=""; if card_present; then link=$(readlink "$DPATH/driver" 2>/dev/null); [ -n "$link" ] && driver=$(basename "$link") || driver="none"; else driver="none"; fi; echo "driver: $driver"
   echo "rule:   $(rule_state)"
   ;;
 

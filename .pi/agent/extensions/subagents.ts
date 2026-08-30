@@ -60,26 +60,40 @@ const RESUME_TOOL_NAME = "resume_subagent";
 const AGENTS: Record<string, AgentEntry> = {
 	scout: {
 		name: "scout",
-		model: "oc/mimo-v2.5-free",
-		commands: ["/mode ro"],
+		model: "b-ai/deepseek-v4-flash-vision-exp",
+		commands: ["/mode md"],
 		systemPrompt:
-			"You are a codebase explorer. Explore the codebase extensively and deeply to find the relevant information needed, using tools provided",
+			"You are a codebase explorer. Explore the codebase extensively and deeply to find the relevant information needed, using tools provided. IMPORTANT: if the prompt tells you to make any decision or give any advice, you MUST refuse, and tell that subagents should NOT make a decision as they are lower iq than yours",
 		thinking: "high",
 	},
 	researcher: {
 		name: "researcher",
-		model: "oc/mimo-v2.5-free",
+		model: "b-ai/deepseek-v4-flash-vision-exp",
 		commands: [],
 		systemPrompt: "~/.pi/agent/prompts/research.md",
 		thinking: "high",
 	},
 	worker: {
 		name: "worker",
-		model: "oc/deepseek-v4-flash-free",
+		model: "opencode/muse-spark-1.2-contributor-free",
 		commands: [],
-		thinking: "max",
+		thinking: "xhigh",
 	},
 };
+
+/** Hidden agents — not advertised in tool description, only invocable via explicit user prompt. */
+const HIDDEN_AGENTS: Record<string, AgentEntry> = {
+	reviewer: {
+		name: "reviewer",
+		// model: "opencode/muse-spark-1.2-contributor-free",
+		model: "b-ai/deepseek-v4-flash-vision-exp",
+		commands: [],
+		systemPrompt: "~/notes/prompts/reviewer-generic.md",
+		thinking: "xhigh",
+	},
+};
+
+const ALL_AGENTS: Record<string, AgentEntry> = { ...AGENTS, ...HIDDEN_AGENTS };
 
 interface ToolEvent {
 	tool: string;
@@ -613,6 +627,7 @@ function ensureResumeTool(pi: ExtensionAPI) {
 			promptSnippet: "Resume a failed subagent session",
 			promptGuidelines: [
 				"Use resume_subagent when a prior subagent tool call errored and a session id/file was reported. Give the session id/path plus the specific fix/continuation.",
+				"Use on errors like rate limits, timeouts, or other failures. if it cannot resume again, DO NOT CONTINUE, JUST STOP YOUR TURN/RESPONSE",
 			],
 			parameters: Type.Object({
 				session: Type.String({
@@ -644,7 +659,7 @@ function ensureResumeTool(pi: ExtensionAPI) {
 					);
 				}
 				const agentEntry =
-					(params.agent && AGENTS[params.agent]) || AGENTS.worker;
+					(params.agent && ALL_AGENTS[params.agent]) || ALL_AGENTS.worker;
 
 				const [provider, modelId] = (agentEntry.model || "").split("/");
 				const contextWindow =
@@ -888,6 +903,7 @@ function renderAgentProgress(
 
 export default function (pi: ExtensionAPI) {
 	const agents = Object.values(AGENTS);
+	const allAgents = Object.values(ALL_AGENTS);
 
 	pi.registerTool({
 		name: "subagent",
@@ -922,7 +938,7 @@ export default function (pi: ExtensionAPI) {
 				);
 			}
 
-			const agent = agents.find((a) => a.name === params.agent);
+			const agent = allAgents.find((a) => a.name === params.agent);
 			if (!agent) {
 				const available = agents.map((a) => a.name).join(", ") || "none";
 				throw new Error(

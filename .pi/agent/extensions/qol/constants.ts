@@ -36,6 +36,7 @@ export const THINKING_LABEL_DEFAULT = "\ue28c ";
 
 export const DEFAULT_SOUND_ENABLED = true;
 export const DEFAULT_SUPPRESS_WHEN_FOCUSED = true;
+export const DEFAULT_SUPPRESS_SUBAGENT_COMPLETION = false;
 export const DEFAULT_FOCUS_DETECTION_SCRIPT =
 	"/home/sahaj/scripts/detect-pi-hyprland";
 export const DEFAULT_TERM_INITIAL_TITLE = "";

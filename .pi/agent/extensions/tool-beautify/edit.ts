@@ -13,6 +13,7 @@ import {
 	clearSpinner,
 	clipLine,
 	displayPath,
+	makeEmpty,
 	makeTruncatedLines,
 	renderPendingCall,
 	renderPendingDetail,
@@ -40,6 +41,13 @@ export function registerEdit(pi: ExtensionAPI, agent: any, cwd: string): void {
 		renderCall(args: any, theme: any, context: any) {
 			const targetPath = args?.path ?? args?.file_path ?? "";
 			const displayTarget = displayPath(targetPath, context?.cwd ?? cwd);
+			if (!context?.executionStarted) {
+				if (context?.isError) return makeEmpty();
+				const preparing = targetPath
+					? `${theme.fg("muted", "preparing edit")}${theme.fg("dim", " · ")}${theme.fg("accent", clipLine(displayTarget, context?.cwd ?? cwd))}`
+					: `${theme.fg("muted", "preparing edit…")}`;
+				return makeTruncatedLines(preparing);
+			}
 			return renderPendingCall(`${toolLabel(theme, "Edit ")}${theme.fg("accent", clipLine(displayTarget, context?.cwd ?? cwd))}`, theme, context);
 		},
 		renderResult(result: any, { expanded, isPartial }: any, theme: any, context: any) {

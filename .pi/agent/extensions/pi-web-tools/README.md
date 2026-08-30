@@ -5,9 +5,9 @@ A lightweight, robust web search and extraction extension for the Pi coding agen
 ## Features
 
 - **No Browser Popups & No Intrusive UI**: Returns raw results straight to the agent context.
-- **Provider Fallback Engine**: Automatically routes around rate limits and network errors (e.g., `Exa (Paid)` → `Firecrawl` → `Tavily` → `Browserbase` → `Exa (Free)`).
+- **Provider Fallback Engine**: Automatically routes around rate limits and network errors (e.g., `Jina Reader` → `Browserbase` → `Firecrawl` → `Tavily` → `local`).
 - **`web_fetch` Fallback Chain**: Fetching a URL is itself provider-backed (`Browserbase` → `Firecrawl` → `Tavily` → `local`), ending in a direct local fetch that needs no key and never goes on cooldown.
-- **Free Exa MCP Built-In**: Works out-of-the-box with zero configuration by automatically utilizing Exa's free hosted MCP endpoint.
+- **Free Jina Reader Built-In**: Keyless URL-to-Markdown conversion (20 RPM per IP, no token cost), with JS rendering, PDF and MS Office parsing. Adding a `JINA_API_KEY` raises this to 500 RPM against the key's token pool.
 - **Zero SDK Dependencies**: Uses standard `fetch()` for all providers, keeping the extension incredibly lightweight and fast.
 - **Robust Network Primitives**: Follows redirects manually, enforces strict SSRF protections (blocking local/private IPs), and retries on Cloudflare challenges.
 - **Dynamic Credentials**: Supports standard environment variables, raw strings, and secure command execution (e.g., `!pass show api/exa`).
@@ -55,7 +55,7 @@ You can customize the fallback chains and provide keys securely by creating `~/.
       "maxTokens": 5000
     },
     "web_fetch": {
-      "providers": ["browserbase", "firecrawl", "tavily", "local"],
+      "providers": ["jina", "browserbase", "firecrawl", "tavily", "local"],
       "maxResponseMB": 5,
       "defaultFormat": "markdown"
     },
