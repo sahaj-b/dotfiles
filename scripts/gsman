@@ -1,0 +1,333 @@
+#!/usr/bin/env bash
+# gsman - gamescope session manager: resolution, FSR, FPS limit, live
+
+set -euo pipefail
+
+NO_COLOR="${NO_COLOR:-}"
+if [[ -t 1 && -z "$NO_COLOR" ]]; then
+  D=$'\033[2m'; B=$'\033[1m'; R=$'\033[31m'; G=$'\033[32m'; Y=$'\033[33m'; C=$'\033[36m'; N=$'\033[0m'
+else
+  D=''; B=''; R=''; G=''; Y=''; C=''; N=''
+fi
+die() { echo -e "${R}error${N}: $*" >&2; exit 1; }
+
+# --- config ---
+STATE_FILE="${XDG_CACHE_HOME:-$HOME/.cache}/gsman-fsr"
+
+usage() {
+  cat <<EOF
+${B}gsman${N} - gamescope session manager
+
+  ${C}status${N}
+    gsman                 everything: display, res, launch flags, FSR, fps, VRR, HDR
+
+  ${C}resolution${N}
+    <WxH|720p|1080p|...>   live nested res change  ${D}[-s --super] [-i SERVER] [-d :N]${N}
+
+  ${C}fsr${N}
+    ${D}status, on, off, nis, nearest, integer${N}
+    sharp <0-20>    ${D}higher = sharper for FSR, inverted for NIS${N}
+
+  ${C}fps${N}
+    ${D}show current limit, or <N> to cap at N fps (0 = native)${N}
+
+  ${C}list${N}       ${D}modes the game sees via RandR${N}
+
+  ${D}flags go before the subcommand: -d :1 -i 0 -s${N}
+EOF
+}
+
+# ===== core (display detection, atom helpers) =====
+
+gamescope_pid() {
+  DISPLAY="$1" xprop -root GAMESCOPE_PID 2>/dev/null |
+    sed -n 's/^GAMESCOPE_PID(CARDINAL) = //p'
+}
+
+find_gamescope() {
+  local sock d hits=()
+  for sock in /tmp/.X11-unix/X*; do
+    [[ -e "$sock" ]] || continue
+    d=":${sock##*/X}"
+    if [[ -n "$(gamescope_pid "$d")" ]]; then hits+=("$d"); fi
+  done
+  [[ ${#hits[@]} -gt 0 ]] || die "no running gamescope found"
+  if [[ ${#hits[@]} -gt 1 ]]; then
+    echo -e "${Y}${B}multiple gamescope xwayland displays${N}" >&2
+    printf "  %s\n" "${hits[@]}" >&2
+    echo -e "${D}pass -d <display> to pick one${N}" >&2
+    exit 1
+  fi
+  echo "${hits[0]}"
+}
+
+cur_res() {
+  DISPLAY="$1" xrandr -q 2>/dev/null |
+    sed -n 's/^Screen 0:.*current \([0-9]\+\) x \([0-9]\+\).*/\1x\2/p'
+}
+
+set_atom() { DISPLAY="$1" xprop -root -f "$2" 32c -set "$2" "$3"; }
+
+read_atom() {
+  DISPLAY="$1" xprop -root "$2" 2>/dev/null |
+    sed -n "s/^$2(CARDINAL) = //p"
+}
+
+# <N>p → 16:9 at height N, width rounded to nearest even
+resolve_shorthand() {
+  local t=${1,,} w h
+  case "$t" in
+  hd) t=720p ;;
+  fhd | fullhd) t=1080p ;;
+  qhd | 2k) t=1440p ;;
+  uhd | 4k) t=2160p ;;
+  8k) t=4320p ;;
+  esac
+  [[ "$t" =~ ^([1-9][0-9]{1,3})p$ ]] || return 1
+  h=${BASH_REMATCH[1]}
+  w=$(((h * 16 + 8) / 9))
+  ((w % 2)) && w=$((w - 1))
+  printf '%dx%d' "$w" "$h"
+}
+
+# ===== FSR state helpers (persistent cache) =====
+
+fsr_state() {
+  [[ -f "$STATE_FILE" ]] || return 0
+  local k v
+  while IFS== read -r k v; do [[ -n "$k" ]] && echo "$k=$v"; done < "$STATE_FILE"
+}
+
+# ===== subcommands =====
+
+# gsman [WxH|720p] [-s] [-i N] [-d :N]
+cmd_res() {
+  local super=0 server=0 disp="" target=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+    -s | --super) super=1 ;;
+    -i) server="${2:?}"; shift ;;
+    -d) disp="${2:?}"; shift ;;
+    -*) die "unknown flag '$1'" ;;
+    *) target="$1" ;;
+    esac
+    shift
+  done
+
+  [[ -n "$target" ]] || die "give a resolution, e.g. gsman 720p (bare 'gsman' shows status)"
+
+  [[ -n "$disp" ]] || disp="$(find_gamescope)"
+
+  # resolve shorthand or WxH
+  local orig="$target" resolved
+  if [[ ! "$target" =~ ^([1-9][0-9]*)x([1-9][0-9]*)$ ]]; then
+    if resolved="$(resolve_shorthand "$target")"; then
+      target="$resolved"
+    else
+      die "bad resolution '$target', want WxH like 1280x720 or a shorthand like 720p"
+    fi
+  fi
+  local w="${target%%x*}" h="${target##*x}"
+
+  [[ "$orig" == "$target" ]] ||
+    echo -e "${D}${orig} -> ${target} (16:9)${N}"
+
+  local before="$(cur_res "$disp")"
+  set_atom "$disp" GAMESCOPE_XWAYLAND_MODE_CONTROL "$server, $w, $h, $super"
+
+  # wait up to 2 s for the mode to land
+  for _ in {1..20}; do
+    [[ "$(cur_res "$disp")" == "${w}x${h}" ]] && break
+    sleep 0.1
+  done
+  local after="$(cur_res "$disp")"
+
+  if [[ "$after" == "${w}x${h}" ]]; then
+    echo -e "${G}ok${N} ${D}${before} -> ${after} on ${disp}${N}"
+  else
+    echo -e "${Y}warn${N}: asked for ${w}x${h}, screen is now ${after}" >&2
+    [[ "$super" == 0 ]] && echo -e "  ${D}likely clamped to the output size; retry with${N} ${C}-s${N}" >&2
+    echo -e "  ${D}if it never moves, the game cached its resolution at startup${N}" >&2
+    return 1
+  fi
+}
+
+# gsman fsr [status|on|off|nis|nearest|integer|sharp <N>]
+cmd_fsr() {
+  local disp action="${1:-status}"
+  disp="$(find_gamescope)"
+
+  case "$action" in
+  status)
+    local fb="$(read_atom "$disp" GAMESCOPE_FSR_FEEDBACK)"
+    if [[ "$fb" == 1 ]]; then
+      echo -e "${G}FSR active${N}  yes (live)"
+    else
+      echo -e "FSR active  ${D}no (live)${N}"
+    fi
+    echo -e "${D}--- last set via gsman ---${N}"
+    local state="$(fsr_state)"
+    if [[ -n "$state" ]]; then
+      echo "$state"
+    else
+      echo -e "  ${D}nothing yet (try: gsman fsr on)${N}"
+    fi
+    ;;
+  on)
+    set_atom "$disp" GAMESCOPE_SCALING_FILTER 3
+    cat > "$STATE_FILE" <<< "filter=fsr
+scaler=auto"
+    echo -e "scaling filter: ${G}FSR${N} (auto scaler)"
+    echo -e "  ${D}FSR only engages when gamescope actually has to upscale${N}"
+    ;;
+  off)
+    set_atom "$disp" GAMESCOPE_SCALING_FILTER 0
+    cat > "$STATE_FILE" <<< "filter=linear
+scaler=auto"
+    echo -e "scaling filter: ${D}linear${N} (auto scaler)"
+    ;;
+  nis)
+    set_atom "$disp" GAMESCOPE_SCALING_FILTER 4
+    cat > "$STATE_FILE" <<< "filter=nis
+scaler=auto"
+    echo -e "scaling filter: ${C}NIS${N} (auto scaler)"
+    ;;
+  nearest)
+    set_atom "$disp" GAMESCOPE_SCALING_FILTER 1
+    cat > "$STATE_FILE" <<< "filter=nearest
+scaler=auto"
+    echo -e "scaling filter: ${D}nearest${N} (auto scaler)"
+    ;;
+  integer)
+    set_atom "$disp" GAMESCOPE_SCALING_FILTER 2
+    cat > "$STATE_FILE" <<< "filter=nearest
+scaler=integer"
+    echo -e "scaling filter: ${D}nearest${N} (${B}integer${N} scaler)"
+    ;;
+  sharp)
+    local n="${2:-}"
+    [[ "$n" =~ ^[0-9]+$ ]] || die "sharpness wants a number 0-20"
+    ((n >= 0 && n <= 20)) || die "sharpness wants 0-20"
+    set_atom "$disp" GAMESCOPE_FSR_SHARPNESS "$n"
+    sed -i "/^sharpness=/d" "$STATE_FILE" 2>/dev/null || true
+    echo "sharpness=$n" >> "$STATE_FILE"
+    echo -e "sharpness: ${B}${n}${N}"
+    echo -e "  ${D}FSR: n/10 → RCAS (higher = sharper)${N}"
+    echo -e "  ${D}NIS: (20-n)/20 → NIS (lower = sharper)${N}  ${D}default is 2${N}"
+    ;;
+  *)
+    die "unknown fsr action '$action' (on, off, nis, nearest, integer, sharp N, status)"
+    ;;
+  esac
+}
+
+# gsman fps [N]
+cmd_fps() {
+  local disp
+  disp="$(find_gamescope)"
+  if [[ -z "${1:-}" ]]; then
+    local cur="$(read_atom "$disp" GAMESCOPE_FPS_LIMIT)"
+    local fb="$(read_atom "$disp" GAMESCOPE_LIMITER_FEEDBACK)"
+    if [[ -n "$cur" ]]; then
+      echo -e "FPS limit: ${B}${cur}${N} ${D}(0 = native)${N}"
+    else
+      echo -e "FPS limit: ${D}not set (native)${N}"
+    fi
+    if [[ -n "$fb" ]]; then
+      echo -e "limiter feedback: ${D}${fb}${N}"
+    fi
+    return
+  fi
+
+  [[ "$1" =~ ^[0-9]+$ ]] || die "fps wants a number"
+  set_atom "$disp" GAMESCOPE_FPS_LIMIT "$1"
+  if [[ "$1" == 0 ]]; then
+    echo -e "FPS limit: ${D}disabled (native)${N}"
+  else
+    echo -e "FPS limit: ${B}${1}${N}"
+  fi
+}
+
+# gsman list
+cmd_list() {
+  local disp
+  disp="$(find_gamescope)"
+  echo -e "${D}modes visible on gamescope xwayland ${disp}${N}"
+  DISPLAY="$disp" xrandr -q 2>/dev/null | sed 1,2d
+}
+
+# gsman status
+cmd_status() {
+  local disp pid
+  disp="$(find_gamescope)"
+  pid="$(gamescope_pid "$disp")"
+
+  echo -e "${B}display${N}   ${disp}"
+  echo -e "${B}pid${N}       ${pid}"
+  echo -e "${B}nested${N}    $(cur_res "$disp")"
+
+  # launch flags that matter, from /proc. pairs: flag + next arg
+  local args=() i a
+  if [[ -r "/proc/$pid/cmdline" ]]; then
+    local -a parts
+    mapfile -d $'\0' parts < "/proc/$pid/cmdline"
+    for ((i = 0; i < ${#parts[@]}; i++)); do
+      a="${parts[i]}"
+      case "$a" in
+      -w|-h|-W|-H|-r|-F|-S|--nested-width|--nested-height|--output-width|--output-height|--nested-refresh|--filter|--scaler)
+        args+=("$a")
+        if ((i + 1 < ${#parts[@]})); then
+          args+=("${parts[i + 1]}")
+          ((i++))
+        fi
+        ;;
+      esac
+    done
+  fi
+  if [[ ${#args[@]} -gt 0 ]]; then
+    echo -e "${B}launch${N}    ${args[*]}"
+  fi
+
+  echo ""
+  cmd_fsr
+  echo ""
+  cmd_fps
+  echo ""
+
+  local vrr hdr
+  vrr="$(read_atom "$disp" GAMESCOPE_VRR_FEEDBACK)"
+  hdr="$(read_atom "$disp" GAMESCOPE_HDR_OUTPUT_FEEDBACK)"
+  echo -e "${B}vrr${N}       $([[ "$vrr" == 1 ]] && echo -e "${G}active${N} (live)" || echo -e "${D}off${N}")"
+  echo -e "${B}hdr${N}       $([[ "$hdr" == 1 ]] && echo -e "${G}active${N} (live)" || echo -e "${D}off${N}")"
+}
+
+
+# ===== dispatch =====
+
+case "${1:-}" in
+help | -h | --help)
+  usage
+  ;;
+list)
+  shift
+  cmd_list "$@"
+  ;;
+fsr)
+  shift
+  cmd_fsr "$@"
+  ;;
+fps)
+  shift
+  cmd_fps "$@"
+  ;;
+status)
+  shift
+  cmd_status "$@"
+  ;;
+"")
+  cmd_status
+  ;;
+*)
+  cmd_res "$@"
+  ;;
+esac

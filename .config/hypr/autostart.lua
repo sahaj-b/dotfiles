@@ -2,6 +2,8 @@
 
 hl.on("hyprland.start", function()
   hl.exec_cmd("swaylock -c 000000 -F")
+  -- hl.exec_cmd("sleep 30; ~/projects/airdeck/airdeck serve -n")
+  -- hl.exec_cmd("steam& sleep 60; ~/scripts/of-run '/home/sahaj/games/Machine Party/Machine Party.exe'")
 
   hl.exec_cmd("sudo /usr/local/sbin/mute-led")
   hl.exec_cmd("pkill awww-daemon; awww-daemon & sleep 1 && ~/scripts/changeWall rand")

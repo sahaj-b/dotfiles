@@ -1,0 +1,11 @@
+[Unit]
+Description=Sync AI agent coding activity every 2 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+RandomizedDelaySec=15
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

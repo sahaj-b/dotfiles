@@ -18,6 +18,7 @@
   "modules-right": [
     // "custom/notes",
     // "custom/cal",
+    // "custom/arc",
     "custom/recorder",
     "custom/wakapi",
     "memory",
@@ -59,6 +60,18 @@
   "clock#3": {
     "format": "{:%I:%M %p}",
     "tooltip": false
+  },
+  "custom/arc": {
+    "return-type": "json",
+    "format": "{}",
+    "interval": 30,
+    "signal": 11,
+    "exec-on-event": false,
+    "hide-empty-text": true,
+    "exec": "~/scripts/waybar/arc.sh 2>/dev/null",
+    "on-click": "~/scripts/waybar/arc-rescan.sh",
+    "on-click-right": "pkill -RTMIN+11 waybar",
+    "tooltip": true
   },
   "custom/wakapi": {
     "format": " {}",

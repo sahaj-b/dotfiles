@@ -18,6 +18,60 @@ RUNTIME="$HOME/.steam/steam/steamapps/common/SteamLinuxRuntime_sniper/run"
 PROTON="$HOME/.local/share/lutris/runners/wine/ge-proton/proton"
 PREFIX="$HOME/wine-games"
 
+# GE-Proton 11.5+ ships `from typing import Self` which explodes on sniper's python 3.9
+# We auto-patch vulkan.py + utilities.py to be 3.9-compatible (idempotent)
+ensure_proton_py39() {
+  local proton_path="$1"
+  local dir
+  dir=$(dirname "$(readlink -f "$proton_path" 2>/dev/null || echo "$proton_path")")
+  local vk="$dir/vulkan.py" util="$dir/utilities.py"
+  if [[ -f "$vk" ]] && grep -q "from typing import Self" "$vk" 2>/dev/null && ! grep -q 'Self = TypeVar' "$vk" 2>/dev/null; then
+    echo "[of-run] patching $vk for py3.9 (Self -> TypeVar fallback)" >&2
+    python3 - "$vk" <<'PY'
+import pathlib, sys
+p = pathlib.Path(sys.argv[1])
+txt = p.read_text()
+orig = txt
+if 'Self = TypeVar("Self")' not in txt and "from typing import Self" in txt:
+    if "from __future__ import annotations" not in txt:
+        txt = txt.replace("import uuid", "from __future__ import annotations\nimport uuid", 1)
+    txt = txt.replace("from typing import Self", "try:\n    from typing import Self\nexcept ImportError:\n    from typing import TypeVar\n    Self = TypeVar(\"Self\")")
+if txt != orig:
+    p.write_text(txt)
+PY
+  fi
+  if [[ -f "$util" ]] && grep -q " | None" "$util" 2>/dev/null && ! grep -q "from __future__ import annotations" "$util" 2>/dev/null; then
+    echo "[of-run] patching $util for py3.9 (future annotations)" >&2
+    python3 - "$util" <<'PY'
+import pathlib, sys
+p = pathlib.Path(sys.argv[1])
+txt = p.read_text()
+orig = txt
+if "from __future__ import annotations" not in txt:
+    if '"""Various utility' in txt:
+        txt = txt.replace('"""Various utility', 'from __future__ import annotations\n"""Various utility', 1)
+    else:
+        txt = "from __future__ import annotations\n" + txt
+if "from functools import cache" in txt and "lru_cache as cache" not in txt:
+    txt = txt.replace("from functools import cache", "try:\n    from functools import cache\nexcept ImportError:\n    from functools import lru_cache as cache")
+if txt != orig:
+    p.write_text(txt)
+PY
+  fi
+  # bare cache fallback even if future already present
+  if [[ -f "$util" ]] && grep -q "from functools import cache" "$util" 2>/dev/null && ! grep -q "lru_cache as cache" "$util" 2>/dev/null; then
+    python3 - "$util" <<'PY'
+import pathlib, sys
+p = pathlib.Path(sys.argv[1])
+txt = p.read_text()
+orig = txt
+txt = txt.replace("from functools import cache", "try:\n    from functools import cache\nexcept ImportError:\n    from functools import lru_cache as cache")
+if txt != orig:
+    p.write_text(txt)
+PY
+  fi
+}
+
 if ! pgrep -x steam >/dev/null 2>&1; then
   notify-send -u critical "Steam aint running dawg" 2>/dev/null
   echo "steam not running" >&2
@@ -40,6 +94,8 @@ export DRI_PRIME=1
 unset LD_PRELOAD
 # correct as per nite07/mishl-dev guides: https://www.nite07.com/en/posts/linux-pirated-game/ and https://gist.github.com/mishl-dev/17fcc4bd7d3215ef50e4e03a354c8c61
 export WINEDLLOVERRIDES="OnlineFix64=n;SteamOverlay64=n;winmm=n,b;dnet=n;steam_api64=n;winhttp=n,b"
+
+ensure_proton_py39 "$PROTON" 2>/dev/null || true
 
 cd "$GAME_DIR"
 exec "$RUNTIME" -- "$PROTON" run "$GAME_EXE"

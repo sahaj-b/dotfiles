@@ -63,6 +63,7 @@ window#waybar {
 }
 
 #bluetooth,
+#custom-arc,
 #custom-notes,
 #clock.1,
 #clock.3,
@@ -188,6 +189,15 @@ window#waybar {
 #custom-easyeffects.enabled {
   background: @fg;
   color: @crust;
+  font-weight: bold;
+}
+
+/* Arc dGPU parked off the PCI bus. Hidden entirely while the card is present. */
+#custom-arc.off {
+  background: @fg;
+  color: @crust;
+  padding-left: 6px;
+  padding-right:10px;
   font-weight: bold;
 }
 

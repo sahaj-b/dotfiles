@@ -57,6 +57,32 @@ const SUBAGENT_SESSION_DIR = path.join(
  */
 const RESUME_TOOL_NAME = "resume_subagent";
 
+/**
+ * Tweakable retry delay ranges in seconds. Each entry is [min, max] for that
+ * attempt. Length determines max retries. Default gives 3 retries with
+ * increasing jitter: 10-25s, 20-40s, 30-55s. Edit this to tune backoff.
+ */
+const RETRY_DELAY_RANGES: [number, number][] = [
+	[10, 25],
+	[20, 40],
+	[30, 55],
+];
+
+/**
+ * Maximum allowed nesting depth for subagents.
+ * Depth 0 = top-level interactive session, 1 = direct subagent, 2 = sub-subagent, etc.
+ * When current depth >= MAX_NESTING_DEPTH, the `subagent` tool becomes a stub that errors.
+ * Tweak this constant to allow deeper/shallower recursion.
+ */
+const MAX_NESTING_DEPTH = 3;
+const SUBAGENT_DEPTH_ENV = "PI_SUBAGENT_DEPTH";
+
+function getSubagentDepth(): number {
+	const raw = process.env[SUBAGENT_DEPTH_ENV];
+	const n = raw ? parseInt(raw, 10) : 0;
+	return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
 const AGENTS: Record<string, AgentEntry> = {
 	scout: {
 		name: "scout",
@@ -68,9 +94,13 @@ const AGENTS: Record<string, AgentEntry> = {
 	},
 	researcher: {
 		name: "researcher",
-		model: "b-ai/deepseek-v4-flash-vision-exp",
+		// model: "b-ai/deepseek-v4-flash-vision-exp",
+		// model: "b-ai/qwen3.8-flash",
+		// model: "github-copilot/gpt-4.1",
+		model: "nvidia/meta/muse-glimmer-30b",
+		// model: "opencode/mimo-v2.5-free",
 		commands: [],
-		systemPrompt: "~/.pi/agent/prompts/research.md",
+		systemPrompt: "~/.pi/agent/prompts/research-subagent.md",
 		thinking: "high",
 	},
 	worker: {
@@ -86,6 +116,7 @@ const HIDDEN_AGENTS: Record<string, AgentEntry> = {
 	reviewer: {
 		name: "reviewer",
 		// model: "opencode/muse-spark-1.2-contributor-free",
+		// model: "opencode/mimo-v2.5-free",
 		model: "b-ai/deepseek-v4-flash-vision-exp",
 		commands: [],
 		systemPrompt: "~/notes/prompts/reviewer-generic.md",
@@ -358,6 +389,10 @@ async function runSubagent(
 		const proc = spawn(command, spawnArgs, {
 			cwd,
 			stdio: ["pipe", "pipe", "pipe"],
+			env: {
+				...process.env,
+				[SUBAGENT_DEPTH_ENV]: String(getSubagentDepth() + 1),
+			},
 		});
 
 		if (agent.commands && agent.commands.length > 0) {
@@ -566,6 +601,96 @@ async function runSubagent(
 	return result;
 }
 
+// ── Rate-limit auto-retry helpers ─────────────────────────────────────
+
+function isRateLimitError(result: AgentResult): boolean {
+	const hay =
+		`${result.progress.error ?? ""}\n${result.output ?? ""}`.toLowerCase();
+	return /429|rate.?limit|rate_limit|too many requests|\brpm\b|quota exceeded|resource exhausted/i.test(
+		hay,
+	);
+}
+
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+	return new Promise((resolve, reject) => {
+		if (signal?.aborted) {
+			reject(signal.reason ?? new Error("aborted"));
+			return;
+		}
+		const t = setTimeout(resolve, ms);
+		signal?.addEventListener(
+			"abort",
+			() => {
+				clearTimeout(t);
+				reject(signal.reason ?? new Error("aborted"));
+			},
+			{ once: true },
+		);
+	});
+}
+
+function getRetryDelayMs(attempt: number): number {
+	const range =
+		RETRY_DELAY_RANGES[attempt] ??
+		RETRY_DELAY_RANGES[RETRY_DELAY_RANGES.length - 1];
+	const [low, high] = range;
+	return (low + Math.random() * (high - low)) * 1000;
+}
+
+async function runSubagentWithAutoRetry(
+	agent: AgentEntry,
+	task: string,
+	cwd: string,
+	contextWindow: number | undefined,
+	signal: AbortSignal | undefined,
+	onUpdate: ((r: AgentResult) => void) | undefined,
+	opts: { sessionDir?: string; resumeFrom?: string } = {},
+): Promise<AgentResult> {
+	let result = await runSubagent(
+		agent,
+		task,
+		cwd,
+		contextWindow,
+		signal,
+		onUpdate,
+		opts,
+	);
+	for (let attempt = 0; attempt < RETRY_DELAY_RANGES.length; attempt++) {
+		if (signal?.aborted) break;
+		if (result.exitCode === 0 && !result.progress.error) break;
+		if (!isRateLimitError(result)) break;
+		const resumeFrom = result.sessionFile ?? result.sessionId;
+		if (!resumeFrom) break;
+		const delayMs = getRetryDelayMs(attempt);
+		const delaySec = (delayMs / 1000).toFixed(1);
+		const retryNote = `rate limited, retry ${attempt + 1}/${RETRY_DELAY_RANGES.length} in ${delaySec}s`;
+		result.progress.error = result.progress.error
+			? `${result.progress.error} , ${retryNote}`
+			: retryNote;
+		result.progress.status = "running";
+		onUpdate?.(result);
+		try {
+			await sleep(delayMs, signal);
+		} catch {
+			break;
+		}
+		if (signal?.aborted) break;
+		result = await runSubagent(
+			agent,
+			task,
+			cwd,
+			contextWindow,
+			signal,
+			onUpdate,
+			{
+				sessionDir: opts.sessionDir ?? SUBAGENT_SESSION_DIR,
+				resumeFrom,
+			},
+		);
+	}
+	return result;
+}
+
 // ── Throttle ──────────────────────────────────────────────────────────
 
 function throttle<T extends (...args: any[]) => void>(fn: T, ms: number): T {
@@ -667,7 +792,7 @@ function ensureResumeTool(pi: ExtensionAPI) {
 						? ctx.modelRegistry.find(provider, modelId)?.contextWindow
 						: undefined;
 
-				const result = await runSubagent(
+				const result = await runSubagentWithAutoRetry(
 					agentEntry,
 					params.task!,
 					params.cwd ?? ctx.cwd,
@@ -904,12 +1029,55 @@ function renderAgentProgress(
 export default function (pi: ExtensionAPI) {
 	const agents = Object.values(AGENTS);
 	const allAgents = Object.values(ALL_AGENTS);
+	const currentDepth = getSubagentDepth();
+	const nestingExceeded = currentDepth >= MAX_NESTING_DEPTH;
+
+	// ── Max nesting guard ─────────────────────────────────────────────
+	// Child pi processes inherit PI_SUBAGENT_DEPTH via env (set in runSubagent).
+	// At MAX_NESTING_DEPTH we still register `subagent` so the model sees the
+	// tool, but every call fails fast with a clear error instead of spawning
+	// unbounded recursion. The prompt guideline also advertises the limit so the
+	// model can plan to do the work itself.
+	if (nestingExceeded) {
+		pi.registerTool({
+			name: "subagent",
+			label: "Subagent",
+			description: `Subagent delegation (DISABLED — max nesting depth ${MAX_NESTING_DEPTH} reached at depth ${currentDepth}). Do the work directly instead.`,
+			promptSnippet: `Subagent nesting is at max depth (${currentDepth}/${MAX_NESTING_DEPTH}) — do NOT call subagent, do the work yourself`,
+			promptGuidelines: [
+				`MAX_NESTING_DEPTH=${MAX_NESTING_DEPTH} has been reached (current depth ${currentDepth}). You CANNOT delegate to subagents — the tool will error. Do the work yourself with your own tools.`,
+			],
+			parameters: Type.Object({
+				agent: Type.String({ description: "Name of the agent to invoke" }),
+				task: Type.String({ description: "Task description" }),
+				cwd: Type.Optional(Type.String({ description: "Working directory" })),
+			}),
+			async execute() {
+				throw new Error(
+					`Max subagent nesting depth (${MAX_NESTING_DEPTH}) reached at depth ${currentDepth}. Delegation is disabled — do the work directly with your own tools instead of calling subagent.`,
+				);
+			},
+			renderCall(args, theme, context) {
+				return new Text(
+					theme.fg("error", `subagent blocked — max depth ${MAX_NESTING_DEPTH} reached (depth ${currentDepth})`),
+					0,
+					0,
+				);
+			},
+			renderResult(result, _options, _theme, _context) {
+				const t = result.content[0];
+				const text = t?.type === "text" ? t.text : "max depth reached";
+				return new Text(text.slice(0, 200), 0, 0);
+			},
+		});
+		return;
+	}
 
 	pi.registerTool({
 		name: "subagent",
 		label: "Subagent",
 		description:
-			"Run a subagent to complete a task. Subagents have NO context from the current conversation",
+			`Run a subagent to complete a task. Subagents have NO context from the current conversation (depth ${currentDepth}/${MAX_NESTING_DEPTH}, ${MAX_NESTING_DEPTH - currentDepth} level(s) remaining)`,
 		promptSnippet: "Run subagents for delegated tasks",
 		promptGuidelines: [
 			"Use subagent to delegate *reasoning and decisions*: codebase exploration (scout), web research (researcher), or generic (worker)",
@@ -917,6 +1085,7 @@ export default function (pi: ExtensionAPI) {
 			"include ALL necessary context in the task description",
 			"DELEGATE when: output is verbose (webpages, logs, big codebase, want summary) and self-contained; utilize parallel runs",
 			"DO NOT delegate when: the task needs back-and-forth or shared context with this convo; data isn't too big; specific data(not summary) is needed; quick tasks",
+			`Nesting depth is ${currentDepth}/${MAX_NESTING_DEPTH} — you have ${MAX_NESTING_DEPTH - currentDepth} delegation level(s) left. At depth ${MAX_NESTING_DEPTH} the subagent tool is disabled and will error; do the work yourself instead.`,
 		],
 		parameters: Type.Object({
 			agent: Type.String({
@@ -930,6 +1099,12 @@ export default function (pi: ExtensionAPI) {
 		}),
 
 		async execute(toolCallId, params, signal, onUpdate, ctx) {
+			// Fast-fail before spawning a child that would just hit the nesting stub.
+			if (getSubagentDepth() + 1 > MAX_NESTING_DEPTH) {
+				throw new Error(
+					`Max subagent nesting depth (${MAX_NESTING_DEPTH}) would be exceeded (current depth ${getSubagentDepth()}). Do the work directly with your own tools instead of calling subagent.`,
+				);
+			}
 			const cwd = ctx.cwd;
 
 			if (!params.agent || !params.task) {
@@ -952,7 +1127,7 @@ export default function (pi: ExtensionAPI) {
 					? ctx.modelRegistry.find(provider, modelId)?.contextWindow
 					: undefined;
 
-			const result = await runSubagent(
+			const result = await runSubagentWithAutoRetry(
 				agent,
 				params.task!,
 				params.cwd ?? cwd,

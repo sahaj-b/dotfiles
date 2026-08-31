@@ -80,3 +80,7 @@ vim.opt.foldlevelstart = 99
 -- vim.opt.foldnestmax = 4
 -- vim.opt.fillchars = "fold: ,foldopen:,foldsep:│,foldclose:"
 vim.opt.foldcolumn = "0"
+
+vim.opt.path:append("src/_partials,**")
+vim.opt.suffixesadd:append(".md")
+vim.opt.includeexpr = "substitute(v:fname,'^','src/_partials/','') . '.md'"

@@ -1,0 +1,9 @@
+[Unit]
+Description=WakaTime AI transcript sync
+
+[Service]
+Type=oneshot
+ExecStart=/home/sahaj/.wakatime/wakatime-cli --config /home/sahaj/.wakatime-ai.cfg --sync-ai-activity
+Nice=19
+IOSchedulingClass=idle
+TimeoutStartSec=120

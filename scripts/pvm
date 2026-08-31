@@ -162,6 +162,76 @@ is_active() {
 # pretty path with ~
 tilde() { echo "${1/#$HOME/\~}"; }
 
+# fix GE-Proton 11.5+ which ships `from typing import Self` (py3.11+) but sniper still has py3.9
+# also needs `from __future__ import annotations` for `X | None` pipe syntax
+patch_proton_py39() {
+  local dir="$1"
+  [[ -d "$dir" ]] || return 0
+  local vk="$dir/vulkan.py" util="$dir/utilities.py"
+  local patched=0
+  if [[ -f "$vk" ]] && grep -q "from typing import Self" "$vk" 2>/dev/null && ! grep -q 'Self = TypeVar' "$vk" 2>/dev/null; then
+    python3 - "$vk" <<'PY'
+import pathlib, sys
+p = pathlib.Path(sys.argv[1])
+txt = p.read_text()
+orig = txt
+# idempotent: only patch if not already has fallback
+if 'Self = TypeVar("Self")' not in txt and "from typing import Self" in txt:
+    if "from __future__ import annotations" not in txt:
+        txt = txt.replace("import uuid", "from __future__ import annotations\nimport uuid", 1)
+    txt = txt.replace("from typing import Self", "try:\n    from typing import Self\nexcept ImportError:\n    from typing import TypeVar\n    Self = TypeVar(\"Self\")")
+if txt != orig:
+    p.write_text(txt)
+    print(f"    patched {p}")
+PY
+    patched=1
+  fi
+  if [[ -f "$util" ]] && grep -q " | None" "$util" 2>/dev/null && ! grep -q "from __future__ import annotations" "$util" 2>/dev/null; then
+    python3 - "$util" <<'PY'
+import pathlib, sys
+p = pathlib.Path(sys.argv[1])
+txt = p.read_text()
+orig = txt
+if "from __future__ import annotations" not in txt:
+    if '"""Various utility' in txt:
+        txt = txt.replace('"""Various utility', 'from __future__ import annotations\n"""Various utility', 1)
+    else:
+        txt = "from __future__ import annotations\n" + txt
+if "from functools import cache" in txt and "lru_cache as cache" not in txt:
+    txt = txt.replace("from functools import cache", "try:\n    from functools import cache\nexcept ImportError:\n    from functools import lru_cache as cache")
+if txt != orig:
+    p.write_text(txt)
+    print(f"    patched {p}")
+PY
+    patched=1
+  fi
+  # also handle bare cache fallback even if future already present
+  if [[ -f "$util" ]] && grep -q "from functools import cache" "$util" 2>/dev/null && ! grep -q "lru_cache as cache" "$util" 2>/dev/null; then
+    python3 - "$util" <<'PY'
+import pathlib, sys
+p = pathlib.Path(sys.argv[1])
+txt = p.read_text()
+orig = txt
+txt = txt.replace("from functools import cache", "try:\n    from functools import cache\nexcept ImportError:\n    from functools import lru_cache as cache")
+if txt != orig:
+    p.write_text(txt)
+    print(f"    patched cache fallback {p}")
+PY
+  fi
+  return 0
+}
+
+patch_all_protons() {
+  local rp _bn _sym
+  while IFS='|' read -r _bn rp _sym; do
+    patch_proton_py39 "$(readlink -f "$rp")"
+  done < <(ge_dirs "$STEAM_ROOT")
+  while IFS='|' read -r _bn rp _sym; do
+    [[ "$_sym" == 1 ]] && continue
+    patch_proton_py39 "$(readlink -f "$rp")"
+  done < <(ge_dirs "$LUTRIS_ROOT")
+}
+
 installed_set() {
   declare -gA INSTALLED=()
   local bn rp sym
@@ -242,6 +312,9 @@ _download_and_extract() {
       [[ -z "$dirname" ]] && die "extract failed: no GE-Proton dir found"
     fi
   fi
+
+  # py3.9 compat: fix vulkan.py Self import that breaks inside sniper (py3.9)
+  patch_proton_py39 "$STEAM_ROOT/$dirname" 2>/dev/null || true
 
   if ((set_active)); then
     ln -sfn "$STEAM_ROOT/$dirname" "$ACTIVE_PATH"
@@ -509,6 +582,8 @@ cmd_use() {
   while IFS='|' read -r root bn rp sym; do target="$rp"; done < <(find_ge_dirs "$name")
   [[ -z "$target" ]] && die "version '$1' not found (try 'pvm list' or 'pvm search $1')"
   [[ ! -d "$target" ]] && die "target $target is not a valid directory"
+  # ensure target is py3.9-compatible before activating (fixes 11.5+ on sniper)
+  patch_proton_py39 "$(readlink -f "$target")" 2>/dev/null || true
   local target_bn cur
   target_bn=$(basename "$target")
   cur=$(active_name || echo "none")
@@ -519,6 +594,16 @@ cmd_use() {
   mkdir -p "$LUTRIS_ROOT"
   ln -sfn "$target" "$ACTIVE_PATH"
   echo -e "switched ${D}$cur${N} ${C}->${N} ${G}$target_bn${N}"
+}
+
+# patch all installed protons for py3.9 compat (fixes GE-Proton 11.5+ Self import)
+cmd_patch() {
+  echo -e "${C}patching${N} installed GE-Protons for py3.9 compat..."
+  patch_all_protons
+  if [[ -L "$ACTIVE_PATH" ]]; then
+    patch_proton_py39 "$(readlink -f "$ACTIVE_PATH")" 2>/dev/null || true
+  fi
+  echo -e "${G}done${N} ${D}all installed protons are now sniper-py3.9 compatible${N}"
 }
 
 # --- search: query GitHub releases ---
@@ -726,6 +811,8 @@ cmd_install() {
     if ((steam_has)); then
       echo -e "${Y}already installed${N} $already_bn ${D}at $(tilde "$already_root")${N}"
       echo -e "${D}use --reinstall to force re-download${N}"
+      # still ensure py39 compat even if we skip download
+      patch_proton_py39 "$(readlink -f "$already")" 2>/dev/null || true
       return
     elif ((lutris_real)); then
       echo -e "${Y}found lutris-only${N} $already_bn ${D}($(tilde "$already_root"), real copy)${N}"
@@ -734,6 +821,7 @@ cmd_install() {
     else
       echo -e "${Y}already installed${N} $already_bn ${D}at $(tilde "$already_root")${N}"
       echo -e "${D}use --reinstall to force re-download${N}"
+      patch_proton_py39 "$(readlink -f "$already")" 2>/dev/null || true
       return
     fi
   fi
@@ -983,6 +1071,8 @@ cmd_run() {
   ((${#proton_dirs[@]})) || die "proton '$ver' ($tag) is not installed"
   dir="${proton_dirs[0]}"
   echo -e "${C}proton${N} ${G}$ver${N} ${D}-> $(tilde "$dir")${N}" >&2
+  # py3.9 compat: auto-heal broken vulkan.py before launching
+  patch_proton_py39 "$(readlink -f "$dir")" 2>/dev/null || true
 
   # --- locate umu-run ---
   local umu=""
@@ -1053,6 +1143,7 @@ ${B}pvm${N} - Proton Version Manager ${D}${N}
     r, rm, remove    remove version(s)          ${D}[-y --force]${N}
     prune            dedupe lutris (real copies -> symlinks)
     link, sync       ensure steam versions are symlinked in lutris
+    patch, fix       fix py3.9 compat for GE-Proton 11.5+ (vulkan.py Self)
 
   ${C}remote${N}
     s, search [query]   search GitHub releases     ${D}[--limit N --json]${N}
@@ -1110,6 +1201,10 @@ s | search | find | query)
 i | install | get | download | fetch | add)
   shift
   cmd_install "$@"
+  ;;
+fix | patch | heal)
+  shift
+  cmd_patch "$@"
   ;;
 version | --version | -v) echo "pvm 2.0.0 (geman successor)" ;;
 *) cmd_help ;;
