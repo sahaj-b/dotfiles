@@ -1,8 +1,8 @@
 {
-  "lastChangelogVersion": "0.84.4",
+  "lastChangelogVersion": "0.85.1",
   "packages": [],
-  "defaultProvider": "opencode",
-  "defaultModel": "muse-spark-1.2-contributor-free",
+  "defaultProvider": "oc",
+  "defaultModel": "muse-spark-1.3-contributor-free",
   "defaultThinkingLevel": "xhigh",
   "theme": "catppuccin-mocha",
   "hideThinkingBlock": true,

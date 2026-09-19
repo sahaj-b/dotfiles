@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# casio-midi-notify - instant plug/unplug notif for Casio CTK-3500 (07cf:6803)
+# triggered by udev on kernel uevent (netlink) - zero polling, <10ms latency
+# usage: casio-midi-notify [add|remove]  (udev passes ACTION env too)
+set -euo pipefail
+
+ACTION="${1:-${ACTION:-add}}"
+USER_NAME="sahaj"
+UID_NUM="1000"
+BUS="unix:path=/run/user/${UID_NUM}/bus"
+
+# fallback: resolve user's bus if path changes
+if [[ ! -S "/run/user/${UID_NUM}/bus" ]]; then
+  BUS=$(find /run/user/"$UID_NUM" -name bus 2>/dev/null | head -1 || echo "$BUS")
+fi
+
+notify_user() {
+  local urgency="$1" title="$2" body="$3" icon="${4:-audio-x-generic}"
+  # run as user with correct dbus + wayland/x11 env
+  # udev runs as root, so we need to drop to user
+  if [[ $(id -u) -eq 0 ]]; then
+    sudo -u "$USER_NAME" \
+      DBUS_SESSION_BUS_ADDRESS="$BUS" \
+      WAYLAND_DISPLAY=wayland-1 \
+      DISPLAY=:0 \
+      XDG_RUNTIME_DIR="/run/user/${UID_NUM}" \
+      notify-send -a "Casio MIDI" -u "$urgency" -i "$icon" -t 3000 "$title" "$body" || \
+    runuser -u "$USER_NAME" -- env DBUS_SESSION_BUS_ADDRESS="$BUS" WAYLAND_DISPLAY=wayland-1 DISPLAY=:0 notify-send -a "Casio MIDI" -u "$urgency" -i "$icon" -t 3000 "$title" "$body" || true
+  else
+    # already as user (when triggered via SYSTEMD_USER_WANTS)
+    DBUS_SESSION_BUS_ADDRESS="$BUS" notify-send -a "Casio MIDI" -u "$urgency" -i "$icon" -t 3000 "$title" "$body" || true
+  fi
+  # also log for journalctl
+  logger -t casio-midi "Casio CTK-3500 $ACTION: $title - $body" || true
+}
+
+play_sound() {
+  local file="$1"
+  [[ -f "$file" ]] || return 0
+  if [[ $(id -u) -eq 0 ]]; then
+    sudo -u "$USER_NAME" XDG_RUNTIME_DIR="/run/user/${UID_NUM}" DBUS_SESSION_BUS_ADDRESS="$BUS" paplay "$file" 2>/dev/null || \
+    sudo -u "$USER_NAME" XDG_RUNTIME_DIR="/run/user/${UID_NUM}" DBUS_SESSION_BUS_ADDRESS="$BUS" pw-play "$file" 2>/dev/null || true
+  else
+    paplay "$file" 2>/dev/null || pw-play "$file" 2>/dev/null || true
+  fi
+}
+
+case "$ACTION" in
+  add|bind)
+    notify_user "normal" "Casio CTK-3500 plugged in" "07cf:6803 ready — CASIO USB-MIDI" "audio-input-microphone"
+    play_sound "/usr/share/sounds/freedesktop/stereo/device-added.oga"
+    ;;
+  remove|unbind)
+    notify_user "critical" "Casio CTK-3500 unplugged" "07cf:6803 disconnected" "audio-input-microphone"
+    play_sound "/usr/share/sounds/freedesktop/stereo/device-removed.oga"
+    ;;
+  *)
+    notify_user "low" "Casio CTK-3500 $ACTION" "07cf:6803 event: $ACTION" "dialog-information"
+    ;;
+esac

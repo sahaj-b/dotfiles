@@ -192,6 +192,16 @@ window#waybar {
   font-weight: bold;
 }
 
+#custom-easyeffects.disabled {
+  background: @bg;
+  color: @overlay2;
+}
+
+#custom-easyeffects.bypassed {
+  background: @bg;
+  color: @fg;
+}
+
 /* Arc dGPU parked off the PCI bus. Hidden entirely while the card is present. */
 #custom-arc.off {
   background: @fg;

@@ -2,8 +2,10 @@
 
 hl.on("hyprland.start", function()
   hl.exec_cmd("swaylock -c 000000 -F")
+  -- hl.exec_cmd("/home/sahaj/scripts/arc rescan")
   -- hl.exec_cmd("sleep 30; ~/projects/airdeck/airdeck serve -n")
   -- hl.exec_cmd("steam& sleep 60; ~/scripts/of-run '/home/sahaj/games/Machine Party/Machine Party.exe'")
+  -- hl.exec_cmd("env LUTRIS_SKIP_INIT=1 lutris lutris:rungameid/23")
 
   hl.exec_cmd("sudo /usr/local/sbin/mute-led")
   hl.exec_cmd("pkill awww-daemon; awww-daemon & sleep 1 && ~/scripts/changeWall rand")
@@ -15,8 +17,8 @@ hl.on("hyprland.start", function()
   hl.exec_cmd("vicinae server")
 
   hl.exec_cmd("tymr --revive")
-  hl.exec_cmd("tymr 4pm 'shake'")
-  hl.exec_cmd("tymr 5pm 'gym'")
+  hl.exec_cmd("[ '$(date +%u)' -eq 7 ] && tymr 4pm 'shake'")
+  hl.exec_cmd("[ '$(date +%u)' -eq 7 ] && tymr 5pm 'gym'")
 
   hl.exec_cmd("nm-applet --no-agent")
   hl.exec_cmd("~/scripts/blu-notif")
@@ -24,6 +26,7 @@ hl.on("hyprland.start", function()
   hl.exec_cmd("~/scripts/bat-notif")
   hl.exec_cmd("dotoold")
   hl.exec_cmd("blueman-applet")
+  hl.exec_cmd("~/scripts/blu o")
   hl.exec_cmd("LBSync cp")
   -- hl.exec_cmd("syncthing --no-browser")
   hl.exec_cmd("solaar -b symbolic -w hide")
@@ -39,7 +42,7 @@ hl.on("hyprland.start", function()
 
   -- hl.exec_cmd("antigravity")
   hl.exec_cmd(
-    "[[ $(cat /sys/class/power_supply/BAT*/status) == Discharging ]] || ~/scripts/ytm")
+    "~/scripts/dongled && ~/scripts/ytm")
 
   hl.exec_cmd("~/scripts/vuln-detect")
   -- hl.exec_cmd("~/scripts/lock")

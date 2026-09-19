@@ -81,8 +81,9 @@ alias rmpv="mpv --no-video --no-terminal --no-config --script=/usr/lib/mpv-mpris
 alias res="opencode --agent research --model opencode/minimax-m2.5-free"
 alias lesgo="sudo systemctl start tailscaled && sudo tailscale up && sudo systemctl start sshd"
 alias unlesgo="sudo tailscale down; sudo systemctl stop tailscaled; sudo systemctl stop sshd"
-alias brr="sudo systemctl start tailscaled && sudo tailscale up && sudo systemctl start sshd && OPENCODE_SERVER_PASSWORD=lul opencode web --hostname 0.0.0.0; sudo tailscale down; sudo systemctl stop tailscaled; sudo systemctl stop sshd"
-alias att="attendthat"
+alias brr="sudo systemctl start tailscaled && sudo tailscale up && sudo systemctl start sshd"
+alias unbrr="sudo tailscale down; sudo systemctl stop tailscaled; sudo systemctl stop sshd"
+# alias brr="sudo systemctl start tailscaled && sudo tailscale up && sudo systemctl start sshd && OPENCODE_SERVER_PASSWORD=lul opencode web --hostname 0.0.0.0; sudo tailscale down; sudo systemctl stop tailscaled; sudo systemctl stop sshd"
 alias op="opencode"
 alias dr="dragon-drop"
 alias wl="wl-copy"
@@ -103,7 +104,6 @@ alias df="duf"
 alias du="dust"
 alias grep="grep --color=auto"
 alias o="nvim +'lua Snacks.picker.recent()'"
-alias bp="sudo l2ping -s 200"
 alias neofetch="fastfetch -c neofetch.jsonc"
 alias ff="fastfetch -c examples/14.jsonc"
 alias ls='eza --no-quotes -a --icons --group-directories-first'
@@ -417,6 +417,27 @@ export NODE_OPTIONS="--no-network-family-autoselection"
 
 # dotnet
 export PATH="$PATH:/home/sahaj/.dotnet/tools"
+
+# ---- LocalSend CLI (binary 1.18.0) ----
+# lready = make lappy discoverable, auto-accepts paired devices (pair once with P)
+alias lready='localsend-cli --destination ~/lsend/'
+# lsend = send file(s) - picker pops (1-9 + Enter). binary 1.18.0 has no headless --to, so picker is required
+# usage: lsend file1 file2 dir/
+lsend() {
+  case "${1:-}" in --help|-h|--version|-V) localsend-cli "$@"; return;; esac
+  local args=()
+  for f in "$@"; do args+=(-f "$f"); done
+  localsend-cli "${args[@]}"
+}
+# lpaste = send clipboard image or text as file
+lpaste() {
+  local tmp=$(mktemp -d /tmp/lpaste-XXXX)
+  if wl-paste --list-types 2>/dev/null | grep -q "image/png"; then
+    wl-paste --type image/png > "$tmp/p.png" 2>/dev/null && [[ -s "$tmp/p.png" ]] && { localsend-cli -f "$tmp/p.png"; rm -rf "$tmp"; return; }
+  fi
+  wl-paste -n > "$tmp/p.txt" 2>/dev/null && [[ -s "$tmp/p.txt" ]] && localsend-cli -f "$tmp/p.txt" || echo "clipboard empty"
+  rm -rf "$tmp"
+}
 
 # Clean VTT subtitles to plain text
 vttclean() { sed '/WEBVTT\|^Kind:\|^Language:\|^[0-9]\|-->/d; s/<[^>]*>//g; /^$/d' "$1" | awk '!seen[$0]++'; }

@@ -31,15 +31,41 @@ const OPENCODE_AUTH_PATH = join(
 );
 const PI_AUTH_PATH = join(homedir(), ".pi", "agent", "auth.json");
 
-const OC_SESSION_ID = `ses_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
+// Mirrors @opencode-ai/console-core Identifier.create (26 chars: 12 hex
+// timestamp + 14 base62 random). The Zen free tier validates this format;
+// 24-hex UUID slices get FreeTierError.
+const OC_ID_CHARS =
+	"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+let ocLastTimestamp = 0;
+let ocCounter = 0;
+function ocIdentifier(descending: boolean): string {
+	const now = Date.now();
+	if (now !== ocLastTimestamp) {
+		ocLastTimestamp = now;
+		ocCounter = 0;
+	}
+	ocCounter++;
+	const current = BigInt(ocLastTimestamp) * 0x1000n + BigInt(ocCounter);
+	const value = descending ? ~current : current;
+	const time = Array.from(
+		{ length: 6 },
+		(_, i) =>
+			Number((value >> BigInt(40 - 8 * i)) & 0xffn)
+				.toString(16)
+				.padStart(2, "0"),
+	).join("");
+	const bytes = crypto.getRandomValues(new Uint8Array(14));
+	return time + Array.from(bytes, (b) => OC_ID_CHARS[b % 62]).join("");
+}
+
+const OC_SESSION_ID = `ses_${ocIdentifier(true)}`;
 
 function ocHeaders(): Record<string, string> {
 	return {
-		"User-Agent":
-			"opencode/1.14.50 ai-sdk/provider-utils/4.0.23 runtime/bun/1.3.13",
+		"User-Agent": "opencode/1.18.31",
 		Accept: "*/*",
 		"x-opencode-session": OC_SESSION_ID,
-		"x-opencode-request": `msg_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`,
+		"x-opencode-request": `msg_${ocIdentifier(false)}`,
 		"x-opencode-project": "global",
 		"x-opencode-client": "cli",
 	};
@@ -204,14 +230,17 @@ function getModelConfig(meta: Record<string, unknown>): {
 } {
 	const providerNpm =
 		(meta.provider as Record<string, string> | undefined)?.npm ?? "";
-	// Anthropic-backed models (Qwen, MiniMax, Claude) return Anthropic SSE at
-	// the unified /chat/completions endpoint; route them through anthropic-messages
-	// so pi parses content_block_* / message_* events correctly.
-	// Also: Anthropic SDK hardcodes the path as /v1/messages, while OpenAI SDK
-	// uses /chat/completions. Strip the trailing /v1 so we don't get
-	// /zen/v1/v1/messages (404).
+	// Mirrors oh-my-pi/packages/ai/src/provider-models/openai-compat.ts::createOpenCodeApiResolution
+	// - @ai-sdk/anthropic -> anthropic-messages at bare /zen (SDK appends /v1/messages)
+	// - @ai-sdk/google    -> google-generative-ai at /zen/v1
+	// - @ai-sdk/openai    -> openai-responses at /zen/v1 (Muse Spark, GPT-5.x, etc need Responses API, not Chat Completions)
+	// - no npm / other    -> openai-completions at /zen/v1 (DeepSeek, GLM, Kimi etc)
 	if (providerNpm === "@ai-sdk/anthropic")
 		return { api: "anthropic-messages", baseUrl: OC_BASE_URL_ANTHROPIC };
+	if (providerNpm === "@ai-sdk/google")
+		return { api: "google-generative-ai", baseUrl: OC_BASE_URL };
+	if (providerNpm === "@ai-sdk/openai")
+		return { api: "openai-responses", baseUrl: OC_BASE_URL };
 	return { api: "openai-completions", baseUrl: OC_BASE_URL };
 }
 

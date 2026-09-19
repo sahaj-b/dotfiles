@@ -1,0 +1,13 @@
+[Unit]
+Description=Casio CTK-3500 MIDI %i notification (udev-triggered, no polling)
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+# %i is add or remove from udev SYSTEMD_USER_WANTS
+ExecStart=/home/sahaj/scripts/casio-midi-notify %i
+# if you want sound: ExecStartPost=/usr/bin/paplay /usr/share/sounds/freedesktop/stereo/device-added.oga
+
+[Install]
+WantedBy=default.target

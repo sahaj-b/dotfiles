@@ -25,29 +25,59 @@ find_arc() {
 }
 
 find_bridge() { # bridge whose secondary bus owns the card's bus
-  [ -n "$DEV" ] || return 1
-  local bus="${DEV#*:}"; bus="${bus%%:*}"
-  bus=$(printf '%d' "0x$bus")
+  local dev="${1:-$(find_arc)}"
+  [ -z "$dev" ] && return 1
+  local bus="${dev#*:}"; bus="${bus%%:*}"
+  bus=$(printf '%d' "0x$bus" 2>/dev/null) || return 1
   for b in /sys/bus/pci/devices/*; do
     [ -f "$b/secondary_bus_number" ] && [ "$(cat "$b/secondary_bus_number")" = "$bus" ] && { basename "$b"; return 0; }
   done
   return 1
 }
 
-DEV="$(find_arc)"       # empty when the card is absent
-BRIDGE="$(find_bridge)" # empty when the card is absent
-DPATH="/sys/bus/pci/devices/$DEV"
+# fallback bridges for this machine when card is GONE (can't derive bus).
+# lspci tree: 00:06.2 -> 02:00.0 -> 03:01.0 -> 04:00.0 (Arc)
+# any of those rescanned will re-enumerate the Arc.
+FALLBACK_BRIDGES=("0000:03:01.0" "0000:02:00.0" "0000:00:06.2")
 
 RULE="/etc/udev/rules.d/99-disable-arc.rules"
 RULE_OFF="${RULE}.off"
-RULE_BODY='ACTION=="add", SUBSYSTEM=="pci", ATTR{device}=="0x5694", ATTR{power/control}="auto", ATTR{remove}="1"'
+# One-shot per boot: TEST! makes it fire only on the first add after each boot.
+# /run is tmpfs, cleared at reboot, so RUN creates the flag and blocks future adds
+# in this session (manual rescan stays). No script temp-park hack needed.
+RULE_BODY='ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x8086", ATTR{device}=="0x5694", TEST!="/run/arc-one-shot.done", ATTR{power/control}="auto", ATTR{remove}="1", RUN+="/usr/bin/touch /run/arc-one-shot.done"'
+
+# Normalize shorthands before sudo so NOPASSWD sudoers matching works
+# (sudoers has rescan/remove/status, not rs/r/s). Persist shorthands stay
+# passworded intentionally.
+if [ $# -eq 0 ]; then
+  set -- status
+else
+  case "$1" in
+    s)  set -- status "${@:2}" ;;
+    rs) set -- rescan "${@:2}" ;;
+    r)  set -- remove "${@:2}" ;;
+  esac
+fi
 
 # All sysfs/udev paths are root-only.
 if [ "$(id -u)" -ne 0 ]; then
   exec sudo "$0" "$@"
 fi
 
-card_present() { [ -n "$DEV" ] && [ -e "$DPATH" ]; }
+# one-time migration: old rule without TEST -> update parked file to new one-shot form
+if [ -f "$RULE_OFF" ] && ! grep -q 'TEST!' "$RULE_OFF" 2>/dev/null; then
+  printf '%s\n' "$RULE_BODY" >"$RULE_OFF" 2>/dev/null || true
+fi
+if [ -f "$RULE" ] && ! grep -q 'TEST!' "$RULE" 2>/dev/null && grep -q '0x5694' "$RULE" 2>/dev/null; then
+  printf '%s\n' "$RULE_BODY" >"$RULE" 2>/dev/null || true
+  udevadm control --reload-rules 2>/dev/null || true
+fi
+
+card_present() {
+  local d
+  d="$(find_arc)" && [ -e "/sys/bus/pci/devices/$d" ]
+}
 
 rule_state() {
   if [ -f "$RULE" ]; then
@@ -59,65 +89,143 @@ rule_state() {
   fi
 }
 
+# helper: write 1 to a rescan file without leaking shell redirection errors
+pci_rescan() {
+  local f="$1"
+  [ -w "$f" ] || return 1
+  # printf avoids shell's > redirection-error-not-captured-by-2>/dev/null issue
+  # by checking -w first. Use tee as fallback.
+  printf '1' > "$f" 2>/dev/null && return 0
+  echo 1 | tee "$f" >/dev/null 2>&1 && return 0
+  return 1
+}
+
 # --- commands ---------------------------------------------------------------
 
 case "${1:-status}" in
 
 status | s)
-  echo "card:   $(card_present && echo PRESENT || echo GONE)"
-  driver=""; if card_present; then link=$(readlink "$DPATH/driver" 2>/dev/null); [ -n "$link" ] && driver=$(basename "$link") || driver="none"; else driver="none"; fi; echo "driver: $driver"
+  DEV="$(find_arc 2>/dev/null || true)"
+  if [ -n "$DEV" ] && [ -e "/sys/bus/pci/devices/$DEV" ]; then
+    echo "card:   PRESENT ($DEV)"
+  else
+    echo "card:   GONE"
+  fi
+  driver="none"
+  if [ -n "$DEV" ] && [ -e "/sys/bus/pci/devices/$DEV" ]; then
+    link=$(readlink "/sys/bus/pci/devices/$DEV/driver" 2>/dev/null)
+    [ -n "$link" ] && driver=$(basename "$link") || driver="none"
+  fi
+  echo "driver: $driver"
   echo "rule:   $(rule_state)"
   ;;
 
-persist-off | po) # Arc removed at every boot
+persist-off | off) # Arc removed at every boot (one-shot)
   printf '%s\n' "$RULE_BODY" >"$RULE"
   rm -f "$RULE_OFF"
+  # mark this boot as already handled so a manual rescan right after
+  # enabling doesn't get instantly re-removed in the same session
+  touch /run/arc-one-shot.done 2>/dev/null || true
   udevadm control --reload-rules 2>/dev/null
-  echo "udev rule ACTIVE - Arc will be removed at boot"
+  udevadm settle 2>/dev/null || true
+  echo "udev rule ACTIVE (one-shot) - Arc will be removed at next boot, rescan will stay this session"
   ;;
 
-persist-on | pn) # Arc present at every boot
+persist-on | on) # Arc present at every boot
   if [ -f "$RULE" ]; then
     mv "$RULE" "$RULE_OFF"
     udevadm control --reload-rules 2>/dev/null
+    udevadm settle 2>/dev/null || true
   fi
+  # keep flag as-is; rule is parked so it doesn't matter. Don't delete,
+  # otherwise switching back to off mid-session would wrongly re-remove on rescan.
   echo "udev rule PARKED - Arc will be present at boot"
   ;;
 
 remove | r) # detach the Arc this session only
-  if ! card_present; then
+  DEV="$(find_arc 2>/dev/null || true)"
+  if [ -z "$DEV" ] || [ ! -e "/sys/bus/pci/devices/$DEV" ]; then
     echo "card already gone"
     exit 1
   fi
-  echo "$DEV" >/sys/bus/pci/drivers/i915/unbind 2>/dev/null
-  echo "$DEV" >/sys/bus/pci/drivers/xe/unbind 2>/dev/null
-  printf '1' >"$DPATH/remove" 2>/dev/null
+  DPATH="/sys/bus/pci/devices/$DEV"
+  echo "$DEV" >/sys/bus/pci/drivers/i915/unbind 2>/dev/null || true
+  echo "$DEV" >/sys/bus/pci/drivers/xe/unbind 2>/dev/null || true
+  printf '1' >"$DPATH/remove" 2>/dev/null || echo 1 | tee "$DPATH/remove" >/dev/null 2>&1 || true
+  sleep 0.5
   if card_present; then
     echo "!! failed to remove card" >&2
     exit 1
   fi
-  echo "card removed"
+  echo "card removed ($DEV)"
   ;;
 
 rescan | rs) # re-enumerate the PCI bridge this session only
-  echo 1 >"/sys/bus/pci/devices/$BRIDGE/rescan" 2>/dev/null
-  sleep 2
-  if ! card_present; then
-    echo "bridge found nothing, rescanning whole bus..."
-    echo 1 >/sys/bus/pci/rescan 2>/dev/null
-    sleep 2
+  DEV="$(find_arc 2>/dev/null || true)"
+  BRIDGE=""
+  if [ -n "$DEV" ]; then
+    BRIDGE="$(find_bridge "$DEV" 2>/dev/null || true)"
   fi
-  if card_present && [ -z "$(readlink "$DPATH/driver" 2>/dev/null)" ]; then
-    grep -q i915 /proc/modules 2>/dev/null && echo "$DEV" >/sys/bus/pci/drivers/i915/bind 2>/dev/null
+
+  found=0
+  candidates=()
+  [ -n "$BRIDGE" ] && candidates+=("$BRIDGE")
+  for fb in "${FALLBACK_BRIDGES[@]}"; do
+    skip=0; for c in "${candidates[@]}"; do [ "$c" = "$fb" ] && skip=1; done
+    [ "$skip" -eq 1 ] && continue
+    candidates+=("$fb")
+  done
+
+  for b in "${candidates[@]}"; do
+    [ -d "/sys/bus/pci/devices/$b" ] || continue
+    [ -f "/sys/bus/pci/devices/$b/rescan" ] || continue
+    echo "rescanning bridge $b ..."
+    if pci_rescan "/sys/bus/pci/devices/$b/rescan"; then
+      sleep 1.5
+      DEV="$(find_arc 2>/dev/null || true)"
+      if [ -n "$DEV" ]; then
+        echo "bridge $b found $DEV"
+        found=1
+        break
+      fi
+    else
+      echo "failed to rescan $b (no permission?)" >&2
+    fi
+  done
+
+  if [ "$found" -eq 0 ]; then
+    DEV="$(find_arc 2>/dev/null || true)"
+    if [ -z "$DEV" ]; then
+      echo "bridge found nothing, rescanning whole bus..."
+      pci_rescan /sys/bus/pci/rescan 2>/dev/null || true
+      sleep 2
+    fi
   fi
-  echo "card: $(card_present && echo PRESENT || echo GONE)"
+
+  DEV="$(find_arc 2>/dev/null || true)"
+  if [ -n "$DEV" ] && [ -e "/sys/bus/pci/devices/$DEV" ]; then
+    DPATH="/sys/bus/pci/devices/$DEV"
+    if [ -z "$(readlink "$DPATH/driver" 2>/dev/null)" ]; then
+      if grep -q xe /proc/modules 2>/dev/null && [ -d /sys/bus/pci/drivers/xe ]; then
+        echo "$DEV" >/sys/bus/pci/drivers/xe/bind 2>/dev/null || true
+        sleep 0.5
+      fi
+      if [ -z "$(readlink "$DPATH/driver" 2>/dev/null)" ] && grep -q i915 /proc/modules 2>/dev/null && [ -d /sys/bus/pci/drivers/i915 ]; then
+        echo "$DEV" >/sys/bus/pci/drivers/i915/bind 2>/dev/null || true
+      fi
+    fi
+    driver=""; link=$(readlink "$DPATH/driver" 2>/dev/null); [ -n "$link" ] && driver=$(basename "$link") || driver="none"
+    echo "card: PRESENT ($DEV) driver=$driver"
+  else
+    echo "card: GONE"
+  fi
   ;;
 
 *)
   echo "usage: $0 {status|persist-off|persist-on|remove|rescan}"
   echo "  s / status    card presence + udev rule state"
-  echo "  po/ persist-off   remove Arc at every boot"
-  echo "  pn/ persist-on    keep Arc at every boot"
+  echo "  off/ persist-off   remove Arc at every boot"
+  echo "  on / persist-on    keep Arc at every boot"
   echo "  r / remove    detach Arc now (this session)"
   echo "  rs/ rescan    re-enumerate PCI bridge now (this session)"
   ;;

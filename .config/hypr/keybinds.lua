@@ -186,14 +186,19 @@ hl.bind(mod2 .. " + SHIFT + right", hl.dsp.exec_cmd("~/scripts/changeWall next")
 hl.bind(mod2 .. " + SHIFT + left", hl.dsp.exec_cmd("~/scripts/changeWall prev"))
 
 -- Touchpad toggle
-hl.bind(mod .. " + T",
-  hl.dsp.exec_cmd(
-    'hyprctl keyword "device[asue1213:00-04f3:3294-touchpad]:enabled" 0; notify-send -t 1000 "󰤳  Disabled"; pkill dotool; dotoold'))
-hl.bind(mod .. " + SHIFT + T",
-  hl.dsp.exec_cmd(
-    'hyprctl keyword "device[asue1213:00-04f3:3294-touchpad]:enabled" 1; notify-send -t 1000 "󰟸  Enabled"; pkill dotool; dotoold'))
-hl.bind(" + XF86TouchpadToggle",
-  hl.dsp.exec_cmd('hyprctl keyword "device[asue1213:00-04f3:3294-touchpad]:enabled" 0; pkill dotool; dotoold'))
+local touchpad_name = "asue1213:00-04f3:3294-touchpad"
+local touchpad_enabled = true
+local function toggle_touchpad()
+  touchpad_enabled = not touchpad_enabled
+  hl.device({ name = touchpad_name, enabled = touchpad_enabled })
+  if touchpad_enabled then
+    hl.exec_cmd('notify-send -t 1000 "󰟸    Enabled"; pkill dotool; dotoold')
+  else
+    hl.exec_cmd('notify-send -t 1000 "󰤳    Disabled"; pkill dotool; dotoold')
+  end
+end
+hl.bind(mod .. " + T", toggle_touchpad)
+hl.bind(" + XF86TouchpadToggle", toggle_touchpad)
 
 -- Notifications
 hl.bind("CTRL + SHIFT + SPACE", hl.dsp.exec_cmd("makoctl dismiss -a"))
@@ -250,7 +255,7 @@ hl.bind(mod .. " + SHIFT + R", hl.dsp.exec_cmd("~/scripts/recorder -s"))
 -- hl.bind(mod2 .. " + slash", hl.dsp.exec_cmd("hexecute"))
 
 -- Debug
--- hl.bind(" + END", hl.dsp.exec_cmd("echo"))
+hl.bind(" + END", hl.dsp.exec_cmd("echo"))
 
 -- EasyEffects toggle
 hl.bind(mod .. " + SHIFT + E",
@@ -260,7 +265,8 @@ hl.bind(mod .. " + SHIFT + E",
 --- GESTURES ---
 -- https://wiki.hypr.land/Configuring/Advanced-and-Cool/Gestures/
 
-hl.gesture({ fingers = 3, direction = "left", action = function() hl.exec_cmd(pprev) end })
+-- hl.gesture({ fingers = 3, direction = "left", action = function() hl.exec_cmd(pprev) end })
+hl.gesture({ fingers = 2, direction = "left", action = function() hl.dispatch(hl.dsp.window.fullscreen()) end })
 hl.gesture({ fingers = 3, direction = "right", action = function() hl.exec_cmd(pnext) end })
 hl.gesture({ fingers = 3, direction = "down", action = function() hl.exec_cmd(ppause) end })
 hl.gesture({ fingers = 3, direction = "up", action = function() hl.exec_cmd(ppauseMedia) end })

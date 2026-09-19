@@ -17,7 +17,7 @@
   "layout": "stretch",
   "agent": {
     "research": {
-      "prompt": "{file:~/notes/prompts/oc-research.md}",
+      "prompt": "{file:~/notes/prompts/dist/oc-research.md}",
       "description": "Does in-depth research by aggressively searching the web",
       "mode": "all",
       "color": "#caf480",

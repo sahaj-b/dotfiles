@@ -1,0 +1,57 @@
+#!/bin/bash
+# arc-dock-boot - pure CX 2.4G keyboard dongle detector.
+#
+#   dongle present (3554:fa09) -> prints "present", exit 0  (docked)
+#   dongle absent               -> prints "absent",  exit 1  (undocked)
+#
+# No side effects: never touches the Arc, udev rules, or the journal.
+# Callers branch on the exit code:
+#
+#   hyprland.conf (conditional autostart):
+#     exec-once = ~/scripts/arc-dock-boot.sh -q && docked-only-app
+#     exec-once = ~/scripts/arc-dock-boot.sh -q || undocked-only-app
+#     exec-once = bash -c 'if ~/scripts/arc-dock-boot.sh -q; then foo; else bar; fi'
+#     exec-once = [[ $(~/scripts/arc-dock-boot.sh) == present ]] && foo
+#
+#   systemd (see arc-dock-boot.service) runs this AFTER systemd-udev-settle,
+#   so USB enumeration is finished before the check. That ordering guarantee
+#   is what makes a boot-time check race-free: without settle, a docked boot
+#   could read as absent. Same caveat for hyprland exec-once lines, though
+#   those run late enough in boot that enumeration is normally done by then.
+#
+# Override the IDs via env (CX_VID/CX_PID) or trailing args:
+#   CX_VID=1234 CX_PID=abcd arc-dock-boot.sh
+#   arc-dock-boot.sh 1234 abcd
+set -u
+
+VENDOR="${CX_VID:-3554}"
+PRODUCT="${CX_PID:-fa09}"
+QUIET=0
+
+usage() {
+  echo "usage: $(basename "$0") [-q|--quiet] [-h|--help] [vendor [product]]"
+  echo "  exit 0 + 'present' when the CX dongle is on USB, else exit 1 + 'absent'"
+}
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -q|--quiet) QUIET=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    -*) echo "unknown flag: $1" >&2; usage >&2; exit 2 ;;
+    *) break ;;
+  esac
+done
+[ $# -ge 1 ] && VENDOR="$1"
+[ $# -ge 2 ] && PRODUCT="$2"
+
+for d in /sys/bus/usb/devices/*; do
+  [ -f "$d/idVendor" ] || continue
+  if [ "$(cat "$d/idVendor" 2>/dev/null)" = "$VENDOR" ] \
+    && [ "$(cat "$d/idProduct" 2>/dev/null)" = "$PRODUCT" ]; then
+    [ "$QUIET" -eq 0 ] && echo "present"
+    exit 0
+  fi
+done
+
+[ "$QUIET" -eq 0 ] && echo "absent"
+exit 1

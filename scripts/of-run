@@ -16,7 +16,7 @@ GAME_DIR="$(dirname "$GAME_EXE")"
 
 RUNTIME="$HOME/.steam/steam/steamapps/common/SteamLinuxRuntime_sniper/run"
 PROTON="$HOME/.local/share/lutris/runners/wine/ge-proton/proton"
-PREFIX="$HOME/wine-games"
+PREFIX="$HOME/wine-machine-party"
 
 # GE-Proton 11.5+ ships `from typing import Self` which explodes on sniper's python 3.9
 # We auto-patch vulkan.py + utilities.py to be 3.9-compatible (idempotent)
@@ -94,6 +94,9 @@ export DRI_PRIME=1
 unset LD_PRELOAD
 # correct as per nite07/mishl-dev guides: https://www.nite07.com/en/posts/linux-pirated-game/ and https://gist.github.com/mishl-dev/17fcc4bd7d3215ef50e4e03a354c8c61
 export WINEDLLOVERRIDES="OnlineFix64=n;SteamOverlay64=n;winmm=n,b;dnet=n;steam_api64=n;winhttp=n,b"
+
+# proton's FileLock does os.open(pfx.lock) without mkdir -p, so we must ensure prefix parent exists
+mkdir -p "$PREFIX"
 
 ensure_proton_py39 "$PROTON" 2>/dev/null || true
 

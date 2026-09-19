@@ -98,7 +98,18 @@ export function registerBash(pi: ExtensionAPI, agent: any, cwd: string): void {
 			return getBuiltInTool(agent, contextCwd(context, cwd), "bash").execute(id, params, signal, onUpdate);
 		},
 		renderCall(args: any, theme: any, context: any) {
-			if (!context?.executionStarted || !context?.isPartial) return makeEmpty();
+			if (!context?.isPartial) return makeEmpty();
+
+			if (!context?.executionStarted) {
+				const effectiveCwd = context?.cwd ?? cwd;
+				const rawCommand = typeof args?.command === "string" ? args.command : "";
+				if (!rawCommand) return makeEmpty();
+				const call = context?.expanded
+					? bashFullCallText(args ?? {}, theme, effectiveCwd)
+					: bashCallText(args ?? {}, theme, effectiveCwd);
+				const prefix = spinnerPrefix(theme, context);
+				return makeTruncatedLines(`${prefix}${call}`);
+			}
 
 			markBashStarted(context);
 			const effectiveCwd = context?.cwd ?? cwd;

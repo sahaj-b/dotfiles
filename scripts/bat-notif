@@ -1,48 +1,74 @@
 #!/usr/bin/env bash
 
-# Function to send notifications
 notification_sent=0
 notification_sent1=0
 notification_sent2=0
 notification_sent3=0
+# debounce counters - need 3 consecutive low reads (6s) to fire
+c10=0; c20=0; c30=0
+
 send_notification() {
   local percent=$1
   local state=$2
+
+  # skip flicker/empty parses - empty was treated as 0 < 10 = false positive
+  if ! [[ $percent =~ ^[0-9]+$ ]]; then
+    return
+  fi
 
   if [[ $state == "Charging" || $state == "Not charging" || $state == "Full" ]]; then
     if [[ $notification_sent == 1 ]]; then
       dunstify -C 69
       notification_sent=0
     fi
-  elif [[ $state == "Discharging" ]]; then
-    if [[ $notification_sent == 0 ]]; then
-      dunstify -r 69 -u critical "Battery is Discharging (dblur)"
-      notification_sent=1
-    fi
-    if [[ $percent -lt 10 ]]; then
-      if [[ $notification_sent1 == 0 ]]; then
-        notify-send -u critical -t 0 'BATTERY IS VERY LOW (10%)!!!'
-        notification_sent1=1
-      fi
-    elif [[ $percent -lt 20 ]]; then
-      if [[ $notification_sent2 == 0 ]]; then
-        notify-send -u critical -t 0 "Low Battery (20%)"
-        notification_sent2=1
-      fi
-    elif [[ $percent -lt 30 ]]; then
-      if [[ $notification_sent3 == 0 ]]; then
-        notify-send "Low Battery (30%)"
-        notification_sent3=1
-      fi
-    fi
+    # reset low-battery flags + debounce on AC
+    notification_sent1=0; notification_sent2=0; notification_sent3=0
+    c10=0; c20=0; c30=0
+    return
+  fi
+
+  # ignore Unknown/empty transient states - don't trigger, don't reset
+  [[ $state != "Discharging" ]] && return
+
+  if [[ $notification_sent == 0 ]]; then
+    dunstify -r 69 -u critical "Battery is Discharging (dblur)"
+    notification_sent=1
+  fi
+
+  # debounce counting
+  if [[ $percent -lt 10 ]]; then
+    ((c10++)); c20=0; c30=0
+  elif [[ $percent -lt 20 ]]; then
+    ((c20++)); c10=0; c30=0
+  elif [[ $percent -lt 30 ]]; then
+    ((c30++)); c10=0; c20=0
+  else
+    c10=0; c20=0; c30=0
+  fi
+
+  # hysteresis - allow re-notify after charging/recovering above threshold
+  [[ $percent -ge 13 ]] && notification_sent1=0
+  [[ $percent -ge 23 ]] && notification_sent2=0
+  [[ $percent -ge 33 ]] && notification_sent3=0
+
+  if [[ $c10 -ge 3 && $notification_sent1 == 0 ]]; then
+    notify-send -u critical -t 0 'BATTERY IS VERY LOW (10%)!!!'
+    notification_sent1=1
+  elif [[ $c20 -ge 3 && $notification_sent2 == 0 ]]; then
+    notify-send -u critical -t 0 "Low Battery (20%)"
+    notification_sent2=1
+  elif [[ $c30 -ge 3 && $notification_sent3 == 0 ]]; then
+    notify-send "Low Battery (30%)"
+    notification_sent3=1
   fi
 }
 
 while true; do
-  percent=$(acpi -b | grep -oP '\d+%' | tr -d '%')
-  state=$(acpi -b | grep -oP "Discharging|Charging|Full|Unknown|Not charging")
+  # single acpi call - avoids race where percent/state come from different snapshots
+  out=$(acpi -b 2>/dev/null)
+  percent=$(grep -oP '\d+%' <<< "$out" | tr -d '%' | head -n1)
+  state=$(grep -oP "Discharging|Charging|Full|Unknown|Not charging" <<< "$out" | head -n1)
 
-  # Send notifications if necessary
   send_notification "$percent" "$state"
 
   sleep 2

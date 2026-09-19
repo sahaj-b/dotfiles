@@ -967,6 +967,381 @@ cmd_probe() {
   fi
 }
 
+_help_migrate() {
+  cat <<EOF
+${B}pvm migrate${N} - change and rebuild a wine prefix to another proton version
+
+  pvm migrate <prefix> <ver> [options]
+
+  prefix   path to wine prefix (must contain drive_c)
+  ver      target proton version: "11-5", "GE-Proton11-5", etc.
+
+  options:
+    --backup          create full tarball backup before migrating (default: meta files only)
+    --no-backup       skip even meta backup (version/config_info/system.reg)
+    --rebuild         run wineboot -u to rebuild prefix (default: yes)
+    --no-rebuild      only swap version files, don't run wineboot
+    --fresh, --nuke    nuke the prefix and rebuild it from scratch,
+                      preserving saves (drive_c/users, drive_c/ProgramData).
+                      fixes prefixes where dlls got zeroed and wineboot
+                      can no longer heal them. implies --force.
+                      close games using the prefix first.
+    --keep <path>     extra path inside the prefix to preserve across
+                      --fresh (repeatable, e.g. --keep drive_c/games)
+    -f, --force       allow migrating to same version (force rebuild)
+    -n, --dry-run     show what would happen without changing anything
+    -y, --yes         skip confirmation prompt
+    --install         auto-install target proton if missing
+    -h, --help        show this help
+
+  examples:
+    pvm migrate ~/wine-tekken 11-5
+    pvm migrate ~/wine-tekken GE-Proton10-8 --backup
+    pvm migrate ~/Games/pfx 11-6 --no-rebuild
+    pvm migrate ~/pfx 11-5 --dry-run
+    pvm migrate ~/wine-games 11-6 --fresh -y   # nuke + rebuild, keep saves
+EOF
+}
+
+# run wineboot -u in a prefix via umu (fall back to proton, then raw wine).
+# $1 prefix, $2 proton dir, $3 arch. always returns 0; warns on failure.
+_run_wineboot_once() {
+  local prefix="$1" dir="$2" arch="${3:-win64}"
+  local umu=""
+  umu=$(command -v umu-run 2>/dev/null || true)
+  if [[ -z "$umu" ]]; then
+    local cand
+    for cand in "$HOME/.local/share/lutris/runtime/umu/umu-run" "/usr/local/share/umu/umu-run" "/usr/share/umu/umu-run" "/opt/umu/umu-run"; do [[ -x "$cand" ]] && umu="$cand" && break; done
+  fi
+  local -a envs=()
+  envs+=("WINEARCH=$arch")
+  envs+=("WINEPREFIX=$prefix")
+  envs+=("PROTONPATH=$dir")
+  envs+=("GAMEID=umu-migrate")
+  envs+=("PROTON_VERB=waitforexitandrun")
+  [[ -z "${WINEDEBUG:-}" ]] && envs+=("WINEDEBUG=-all")
+  [[ -z "${DXVK_LOG_LEVEL:-}" ]] && envs+=("DXVK_LOG_LEVEL=error")
+  [[ -z "${UMU_LOG:-}" ]] && envs+=("UMU_LOG=1")
+  [[ -z "${WINEESYNC:-}" ]] && envs+=("WINEESYNC=1")
+  [[ -z "${WINEFSYNC:-}" ]] && envs+=("WINEFSYNC=1")
+  [[ -d "$dir/files/mono" ]] && envs+=("WINE_MONO_CACHE_DIR=$dir/files/mono")
+  [[ -d "$dir/files/gecko" ]] && envs+=("WINE_GECKO_CACHE_DIR=$dir/files/gecko")
+  [[ -z "${WINEDLLOVERRIDES:-}" ]] && envs+=("WINEDLLOVERRIDES=winemenubuilder=")
+  [[ -n "${LC_ALL:-}" && -z "${HOST_LC_ALL:-}" ]] && envs+=("HOST_LC_ALL=$LC_ALL")
+  local rc=0
+  if [[ -n "$umu" && -x "$umu" ]]; then
+    echo -e "${D}using umu:${N} $(tilde "$umu")" >&2
+    if ! env "${envs[@]}" "$umu" wineboot -u 2>&1; then rc=$?; warn "umu wineboot exited $rc"; fi
+  elif [[ -x "$dir/proton" ]]; then
+    echo -e "${D}using proton:${N} $(tilde "$dir/proton") run wineboot -u" >&2
+    if ! env "${envs[@]}" "$dir/proton" run wineboot -u 2>&1; then rc=$?; warn "proton wineboot exited $rc"; fi
+  elif [[ -x "$dir/files/bin/wine" ]]; then
+    warn "no umu/proton runner, falling back to direct wine"
+    if ! env WINEPREFIX="$prefix" WINEARCH="$arch" "$dir/files/bin/wine" wineboot -u 2>&1; then rc=$?; warn "wine wineboot exited $rc"; fi
+  else
+    die "no runner found to rebuild prefix (need umu-run or $dir/proton)"
+  fi
+  return 0
+}
+
+# best-effort wineserver shutdown for a prefix so files can be moved/deleted.
+_kill_prefix_server() {
+  local prefix="$1" dir="${2:-}"
+  if [[ -n "$dir" && -x "$dir/files/bin/wineserver" ]]; then
+    WINEPREFIX="$prefix" "$dir/files/bin/wineserver" -k 2>/dev/null || true
+  fi
+  if command -v wineserver &>/dev/null; then
+    WINEPREFIX="$prefix" wineserver -k 2>/dev/null || true
+  fi
+  sleep 1
+}
+
+# check the dlls that brick a prefix when zeroed. prints bad ones, returns 1 if any.
+_check_prefix_dlls() {
+  local prefix="$1" bad=0 f
+  for f in ntdll.dll ucrtbase.dll msvcrt.dll kernel32.dll kernelbase.dll; do
+    for d in system32 syswow64; do
+      local p="$prefix/drive_c/windows/$d/$f"
+      if [[ ! -s "$p" ]]; then
+        echo -e "  ${R}bad${N}  drive_c/windows/$d/$f ${D}($(stat -c%s "$p" 2>/dev/null || echo missing) bytes)${N}" >&2
+        bad=1
+      fi
+    done
+  done
+  return $bad
+}
+
+# fresh rebuild: nuke prefix, recreate via proton, restore saves.
+# $1 prefix, $2 proton dir, $3 tag, $4 arch, $5 ts, $@ extra keep paths (relative to prefix)
+cmd_migrate_fresh() {
+  local prefix="$1" dir="$2" tag="$3" arch="${4:-win64}" ts="$5"
+  shift 5
+  local -a extra_keeps=("$@")
+  local parent base staging
+  parent=$(dirname "$prefix")
+  base=$(basename "$prefix")
+  staging="$parent/.${base}.fresh-staging.$ts"
+  [[ -e "$staging" ]] && die "staging dir already exists: $(tilde "$staging") (remove it first)"
+
+  local -a preserves=(drive_c/users drive_c/ProgramData lutris.json)
+  local k
+  if ((${#extra_keeps[@]})); then
+    for k in "${extra_keeps[@]}"; do
+      k="${k#/}"
+      [[ -n "$k" ]] && preserves+=("$k")
+    done
+  fi
+
+  echo -e "${B}preserve${N} ${D}(moved aside, restored after rebuild)${N}" >&2
+  local p
+  for p in "${preserves[@]}"; do
+    if [[ -e "$prefix/$p" || -L "$prefix/$p" ]]; then
+      echo -e "  ${G}keep${N} $p ${D}($(du -sh "$prefix/$p" 2>/dev/null | cut -f1))${N}" >&2
+    else
+      echo -e "  ${D}skip${N} $p ${D}(not present)${N}" >&2
+    fi
+  done
+  echo -e "${B}nuke${N}     ${D}everything else in $(tilde "$prefix") (dlls, regs, dosdevices)${N}" >&2
+  echo -e "${B}staging${N}   $(tilde "$staging")" >&2
+
+  mkdir -p "$staging/meta"
+  _kill_prefix_server "$prefix" "$dir"
+
+  # meta copies live OUTSIDE the prefix so the nuke cannot eat them
+  for f in version config_info system.reg user.reg userdef.reg; do
+    [[ -r "$prefix/$f" ]] && cp -a "$prefix/$f" "$staging/meta/$f" 2>/dev/null || true
+  done
+  local had_pfx_link=0
+  [[ -L "$prefix/pfx" ]] && had_pfx_link=1
+
+  # move preserves to staging (same parent dir, so renames are instant)
+  for p in "${preserves[@]}"; do
+    if [[ -e "$prefix/$p" || -L "$prefix/$p" ]]; then
+      mkdir -p "$staging/keep/$(dirname "$p")"
+      mv "$prefix/$p" "$staging/keep/$p" || die "failed to stage $p"
+    fi
+  done
+  echo -e "${C}nuking${N} ${D}$(tilde "$prefix") contents...${N}" >&2
+  find "$prefix" -mindepth 1 -maxdepth 1 -exec rm -rf {} + || die "nuke failed"
+  if ((had_pfx_link)); then ln -s . "$prefix/pfx"; fi
+
+  echo -e "${C}rebuilding${N} ${D}fresh prefix with $tag...${N}" >&2
+  _run_wineboot_once "$prefix" "$dir" "$arch"
+  if _check_prefix_dlls "$prefix"; then
+    echo -e "${G}prefix dlls healthy${N}" >&2
+  else
+    die "fresh prefix still has bad dlls — proton copy failed, saves are safe in $(tilde "$staging")"
+  fi
+
+  # drop the skeleton user dirs proton just made, move the real saves back
+  _kill_prefix_server "$prefix" "$dir"
+  for p in "${preserves[@]}"; do
+    if [[ -e "$staging/keep/$p" || -L "$staging/keep/$p" ]]; then
+      rm -rf "${prefix:?}/$p"
+      mkdir -p "$(dirname "$prefix/$p")"
+      mv "$staging/keep/$p" "$prefix/$p" || die "failed to restore $p (saves are in $(tilde "$staging"))"
+      echo -e "  ${G}restored${N} $p" >&2
+    fi
+  done
+
+  echo -e "${C}settling${N} ${D}second wineboot with saves in place...${N}" >&2
+  _run_wineboot_once "$prefix" "$dir" "$arch"
+  if _check_prefix_dlls "$prefix"; then
+    echo -e "${G}rebuild verified${N} ${D}critical dlls healthy${N}" >&2
+  else
+    warn "critical dlls look bad after restore — saves are safe in $(tilde "$staging")"
+  fi
+  rmdir "$staging/keep" 2>/dev/null || true
+  echo -e "${D}meta backup kept at $(tilde "$staging/meta") — delete when happy${N}" >&2
+}
+
+cmd_migrate() {
+  local prefix="" target_ver="" do_backup="meta" do_rebuild=1 force=0 dry_run=0 yes=0 auto_install=0 fresh=0
+  local -a positionals=() keeps=()
+  while (($#)); do
+    case "$1" in
+    -h|--help) _help_migrate; return ;;
+    --backup) do_backup="full"; shift ;;
+    --no-backup) do_backup="none"; shift ;;
+    --rebuild) do_rebuild=1; shift ;;
+    --no-rebuild) do_rebuild=0; shift ;;
+    --fresh|--nuke) fresh=1; force=1; shift ;;
+    --keep) keeps+=("${2:-}"); shift 2 ;;
+    --keep=*) keeps+=("${1#*=}"); shift ;;
+    -f|--force) force=1; shift ;;
+    -n|--dry-run) dry_run=1; shift ;;
+    -y|--yes) yes=1; shift ;;
+    --install) auto_install=1; shift ;;
+    --) shift; while (($#)); do positionals+=("$1"); shift; done; break ;;
+    -*) die "unknown flag '$1' (try: pvm migrate --help)" ;;
+    *) positionals+=("$1"); shift ;;
+    esac
+  done
+  if ((${#positionals[@]} < 2)); then
+    _help_migrate
+    die "need <prefix> and <ver> (e.g. pvm migrate ~/wine-tekken 11-5)"
+  fi
+  if ((${#positionals[@]} > 2)); then die "too many args: ${positionals[*]:2}"; fi
+  prefix="${positionals[0]}"
+  target_ver="${positionals[1]}"
+  prefix="${prefix/#\~/$HOME}"
+  [[ -d "$prefix" ]] || die "prefix not found: $prefix"
+  prefix=$(readlink -f "$prefix" 2>/dev/null || echo "$prefix")
+  if ((fresh)); then
+    ((do_rebuild)) || die "--fresh needs a rebuild; drop --no-rebuild"
+    [[ -d "$prefix/drive_c" ]] || die "no drive_c in $(tilde "$prefix"); --fresh refuses to nuke that"
+    [[ "$prefix" == "$HOME" || "$prefix" == "/" ]] && die "--fresh refuses to nuke $(tilde "$prefix")"
+    local kk
+    if ((${#keeps[@]})); then
+      for kk in "${keeps[@]}"; do [[ -n "$kk" ]] || die "--keep needs a path (e.g. --keep drive_c/games)"; done
+    fi
+  else
+    [[ -d "$prefix/drive_c" ]] || warn "no drive_c in $(tilde "$prefix"); not clearly a wine prefix"
+    ((${#keeps[@]})) && die "--keep only makes sense with --fresh"
+  fi
+  local arch=""
+  if [[ -r "$prefix/system.reg" ]]; then arch=$(grep -m1 '^#arch=' "$prefix/system.reg" | cut -d= -f2); fi
+  # current version (probe logic)
+  local recorded="" info_ver="" cur_tag="" cur_display="unknown"
+  if [[ -r "$prefix/version" ]]; then
+    recorded=$(tr -d '[:space:]' < "$prefix/version")
+    if [[ "$recorded" =~ ^[0-9]+(GE-Proton.*)$ ]]; then recorded="${BASH_REMATCH[1]}"; fi
+  fi
+  if [[ -r "$prefix/config_info" ]]; then info_ver=$(head -1 "$prefix/config_info" | tr -d '[:space:]'); fi
+  if [[ -n "$recorded" ]]; then cur_tag=$(canonical_tag "$recorded" 2>/dev/null || echo "$recorded"); cur_display="$cur_tag"
+  elif [[ -n "$info_ver" ]]; then cur_tag=$(canonical_tag "$info_ver" 2>/dev/null || echo "$info_ver"); cur_display="$cur_tag"
+  fi
+  local tag
+  tag=$(canonical_tag "$target_ver")
+  # resolve target proton
+  local -a proton_dirs=()
+  local root bn rp sym
+  while IFS='|' read -r root bn rp sym; do
+    [[ -x "$rp/proton" ]] || continue
+    proton_dirs+=("$rp")
+  done < <(find_ge_dirs "$tag")
+  if (( ${#proton_dirs[@]} == 0 )); then
+    if ((auto_install)); then
+      echo -e "${C}installing${N} $tag for migrate..." >&2
+      cmd_install "$tag" || die "auto-install failed for $tag"
+      while IFS='|' read -r root bn rp sym; do [[ -x "$rp/proton" ]] || continue; proton_dirs+=("$rp"); done < <(find_ge_dirs "$tag")
+      (( ${#proton_dirs[@]} )) || die "proton '$target_ver' ($tag) still not found after install"
+    else
+      die "proton '$target_ver' ($tag) is not installed (try: pvm install $tag  or  pvm migrate --install $prefix $tag)"
+    fi
+  fi
+  local dir="${proton_dirs[0]}"
+  dir=$(readlink -f "$dir" 2>/dev/null || echo "$dir")
+  patch_proton_py39 "$dir" 2>/dev/null || true
+  # same version check
+  if [[ -n "$cur_tag" && "$cur_tag" == "$tag" && $force -eq 0 ]]; then
+    echo -e "${G}already${N} on $tag ${D}($(tilde "$prefix"))${N}"
+    echo -e "${D}use --force to rebuild anyway${N}"
+    return 0
+  fi
+  # plan
+  echo -e "${B}prefix${N}  $(tilde "$prefix")"
+  echo -e "${B}arch${N}    ${arch:-unknown}"
+  echo -e "${B}from${N}    ${cur_display}"
+  echo -e "${B}to${N}      ${G}$tag${N} ${D}-> $(tilde "$dir")${N}"
+  echo -e "${B}rebuild${N} $( ((do_rebuild)) && echo "${G}yes (wineboot -u)${N}" || echo "${Y}no (swap files only)${N}" )"
+  if ((fresh)); then
+    echo -e "${B}mode${N}    ${R}FRESH${N} ${D}nuke prefix, rebuild from scratch, restore saves${N}"
+    echo -e "${B}keep${N}    drive_c/users drive_c/ProgramData lutris.json${keeps:+ ${keeps[*]}}"
+  fi
+  if [[ "$do_backup" == "full" ]]; then echo -e "${B}backup${N}  full tarball"
+  elif [[ "$do_backup" == "meta" ]]; then echo -e "${B}backup${N}  meta files (version/config_info/*.reg)"
+  else echo -e "${B}backup${N}  ${D}none${N}"; fi
+  if ((dry_run)); then
+    echo -e "${Y}dry-run${N} ${D}no changes made${N}"
+    return 0
+  fi
+  if (( ! yes )); then
+    echo ""
+    local ans
+    if ((fresh)); then
+      read -r -p "NUKE $(tilde "$prefix") and rebuild fresh with $tag (saves preserved)? [y/N] " ans
+    else
+      read -r -p "migrate $(tilde "$prefix") $cur_display -> $tag ? [y/N] " ans
+    fi
+    [[ "$ans" == y || "$ans" == Y ]] || { echo "aborted"; return 0; }
+  fi
+  local ts
+  ts=$(date +%Y%m%d-%H%M%S)
+  # --- backup ---
+  if [[ "$do_backup" != "none" ]]; then
+    if [[ "$do_backup" == "full" ]]; then
+      local parent base tarball
+      parent=$(dirname "$prefix")
+      base=$(basename "$prefix")
+      tarball="${prefix}.bak.${ts}.tar.gz"
+      echo -e "${C}backup${N} ${D}full -> $(tilde "$tarball")${N}" >&2
+      if ! tar -czf "$tarball" -C "$parent" "$base" 2>/dev/null; then
+        warn "full backup failed, continuing with meta backup"
+        do_backup="meta"
+      else
+        echo -e "${G}backup done${N} ${D}$(du -sh "$tarball" 2>/dev/null | cut -f1)${N}" >&2
+      fi
+    fi
+    if [[ "$do_backup" == "meta" && $fresh -eq 0 ]]; then
+      for f in version config_info system.reg user.reg userdef.reg; do
+        if [[ -r "$prefix/$f" ]]; then
+          cp -a "$prefix/$f" "$prefix/$f.bak.$ts" 2>/dev/null && echo -e "${D}backup${N} $f -> $f.bak.$ts" >&2 || true
+        fi
+      done
+    fi
+  fi
+  # --- fresh: nuke + rebuild + restore saves ---
+  if ((fresh)); then
+    cmd_migrate_fresh "$prefix" "$dir" "$tag" "${arch:-win64}" "$ts" "${keeps[@]}"
+    # fresh wineboot stamps version itself; enforce it matches target
+    local fresh_ver=""
+    [[ -r "$prefix/version" ]] && fresh_ver=$(tr -d '[:space:]' < "$prefix/version")
+    if [[ -n "$fresh_ver" && "$fresh_ver" != "$tag" ]]; then
+      warn "prefix reports '$fresh_ver' (expected $tag); stamping"
+      echo "$tag" > "$prefix/version" 2>/dev/null || true
+    fi
+    echo -e "${G}migrated${N} ${R}fresh${N} ${D}$cur_display${N} ${C}->${N} ${G}$tag${N} ${D}$(tilde "$prefix")${N}"
+    return 0
+  fi
+  # --- rebuild ---
+  if ((do_rebuild)); then
+    echo -e "${C}rebuilding${N} ${D}wineboot -u in $(tilde "$prefix") with $tag...${N}" >&2
+    _run_wineboot_once "$prefix" "$dir" "${arch:-win64}"
+    # proton should have updated version/config_info; verify and stamp
+    local new_ver="" new_info="" new_tag="" info_tag=""
+    if [[ -r "$prefix/version" ]]; then new_ver=$(tr -d '[:space:]' < "$prefix/version"); fi
+    if [[ "$new_ver" =~ ^[0-9]+(GE-Proton.*)$ ]]; then new_ver="${BASH_REMATCH[1]}"; fi
+    if [[ -r "$prefix/config_info" ]]; then new_info=$(head -1 "$prefix/config_info" | tr -d '[:space:]'); fi
+    [[ -n "$new_ver" ]] && new_tag=$(canonical_tag "$new_ver" 2>/dev/null || echo "$new_ver")
+    [[ -n "$new_info" ]] && info_tag=$(canonical_tag "$new_info" 2>/dev/null || echo "$new_info")
+    if [[ "$new_tag" == "$tag" ]]; then
+      # also sync config_info if stale (proton sometimes only updates version)
+      if [[ -n "$new_info" && "$info_tag" != "$tag" ]]; then
+        echo "$tag" > "$prefix/config_info" 2>/dev/null || true
+        echo -e "${D}synced config_info${N} $info_tag ${C}->${N} $tag" >&2
+      elif [[ ! -e "$prefix/config_info" ]]; then
+        echo "$tag" > "$prefix/config_info" 2>/dev/null || true
+      fi
+      echo -e "${G}rebuild done${N} ${D}prefix now reports $new_tag${N}" >&2
+    elif [[ -n "$new_ver" ]]; then
+      warn "prefix version is '$new_ver' (expected $tag) — proton may not have updated it; forcing"
+      echo "$tag" > "$prefix/version" 2>/dev/null || true
+      echo "$tag" > "$prefix/config_info" 2>/dev/null || true
+    else
+      echo "$tag" > "$prefix/version" 2>/dev/null || true
+      echo "$tag" > "$prefix/config_info" 2>/dev/null || true
+      echo -e "${G}rebuild done${N} ${D}stamped version $tag${N}" >&2
+    fi
+  else
+    # no-rebuild: just swap version files
+    echo "$tag" > "$prefix/version" 2>/dev/null || warn "failed to write $prefix/version"
+    if [[ -e "$prefix/config_info" ]]; then echo "$tag" > "$prefix/config_info" 2>/dev/null || true; fi
+    echo -e "${Y}swapped${N} ${D}version files to $tag (no wineboot) — next 'pvm run' will rebuild${N}" >&2
+  fi
+  echo -e "${G}migrated${N} $cur_display ${C}->${N} ${G}$tag${N} ${D}$(tilde "$prefix")${N}"
+}
+
 _help_run() {
   cat <<EOF
 ${B}pvm run${N} - launch an exe in a prefix the way Lutris does (umu + proton)
@@ -979,17 +1354,73 @@ ${B}pvm run${N} - launch an exe in a prefix the way Lutris does (umu + proton)
   options:
     -p, --proton <ver>        force a specific proton instead of the prefix's
                               recorded version
+    -a, --appid <id>          steam appid for protonfixes (auto-detected if possible)
+        --gameid <id>         full GAMEID (e.g. umu-601150 or umu-default)
     -h, --help                show this help
+
+  appid auto-detection tries: --appid flag, steam_appid.txt next to exe, lutris pga.db (service_id), umu-database.csv
 
   example:
     pvm run ~/wine-tekken ~/wine-tekken/drive_c/games/foo/foo.exe -fullscreen
     pvm run ~/wine-games "Z:\\install\\game.exe"
+    pvm run ~/wine-dmc5 "/media/data/DMC5/DevilMayCry5.exe" --appid 601150
 EOF
+}
+
+# auto-detect steam appid for protonfixes (steam_appid.txt, lutris pga.db, umu-database)
+_detect_appid() {
+  local prefix="$1" exe="$2"
+  local appid=""
+  if [[ -n "$exe" && "$exe" == /* ]]; then
+    local d
+    d="$(dirname "$exe")"
+    for i in 1 2 3 4; do
+      if [[ -r "$d/steam_appid.txt" ]]; then
+        appid="$(tr -cd '0-9' < "$d/steam_appid.txt" 2>/dev/null | head -c 12)"
+        [[ "$appid" =~ ^[0-9]{2,10}$ ]] && { echo "$appid"; return 0; }
+      fi
+      [[ "$d" == "/" || "$d" == "." ]] && break
+      d="$(dirname "$d")"
+    done
+  fi
+  local pga="$HOME/.local/share/lutris/pga.db"
+  if [[ -f "$pga" ]] && command -v sqlite3 &>/dev/null; then
+    local exe_esc="${exe//\'/\'\'}"
+    local pfx_esc="${prefix//\'/\'\'}"
+    appid="$(sqlite3 -separator '|' "$pga" "SELECT service_id FROM games WHERE service='steam' AND service_id GLOB '[0-9]*' AND (executable LIKE '%$exe_esc%' OR directory LIKE '%$pfx_esc%' OR configpath IN (SELECT configpath FROM games WHERE configpath LIKE '%$(basename "$prefix" 2>/dev/null)%')) LIMIT 1;" 2>/dev/null | tr -cd '0-9' | head -c 12)"
+    if [[ "$appid" =~ ^[0-9]{2,10}$ ]]; then echo "$appid"; return 0; fi
+    if [[ -n "$exe" ]]; then
+      local lut_games="$HOME/.local/share/lutris/games"
+      if [[ -d "$lut_games" ]]; then
+        local yml
+        for yml in "$lut_games"/*.yml; do
+          [[ -f "$yml" ]] || continue
+          if grep -Fq "$exe" "$yml" 2>/dev/null; then
+            local slug
+            slug="$(basename "$yml" | sed -E 's/-[0-9]+\.yml$//')"
+            appid="$(sqlite3 "$pga" "SELECT service_id FROM games WHERE slug='$slug' AND service='steam' AND service_id GLOB '[0-9]*' LIMIT 1;" 2>/dev/null | tr -cd '0-9' | head -c 12)"
+            [[ "$appid" =~ ^[0-9]{2,10}$ ]] && { echo "$appid"; return 0; }
+          fi
+        done
+      fi
+    fi
+  fi
+  local umu_db=""
+  for cand in "$HOME/.local/share/umu/umu-database.csv" "$HOME/.cache/umu/umu-database.csv" "/usr/share/umu/umu-database.csv"; do
+    [[ -r "$cand" ]] && umu_db="$cand" && break
+  done
+  if [[ -n "$umu_db" && -n "$exe" ]]; then
+    local base
+    base="$(basename "$exe" | tr '[:upper:]' '[:lower:]')"
+    appid="$(grep -i -m1 "$base" "$umu_db" 2>/dev/null | awk -F',' '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]{2,10}$/) {print $i; exit}}' | tr -cd '0-9' | head -c 12)"
+    [[ "$appid" =~ ^[0-9]{2,10}$ ]] && { echo "$appid"; return 0; }
+  fi
+  return 1
 }
 
 # --- run: launch an exe in a prefix exactly like Lutris (umu + proton) ---
 cmd_run() {
-  local proton_ver="" prefix="" exe=""
+  local proton_ver="" prefix="" exe="" appid="" gameid=""
   local -a args=()
   # Known pvm flags are recognized anywhere; anything else (including game
   # flags like -fullscreen) is positional. Use '--' to force everything after
@@ -1014,6 +1445,32 @@ cmd_run() {
         shift
       done
       break
+      ;;
+    -a | --appid)
+      appid="${2:-}"
+      shift 2
+      ;;
+    --appid=*)
+      appid="${1#*=}"
+      shift
+      ;;
+    --gameid=*)
+      gameid="${1#*=}"
+      shift
+      ;;
+    --gameid)
+      gameid="${2:-}"
+      shift 2
+      ;;
+    --umu-id=*)
+      appid="${1#*=}"
+      appid="${appid#umu-}"
+      shift
+      ;;
+    --umu-id)
+      appid="${2:-}"
+      appid="${appid#umu-}"
+      shift 2
       ;;
     -p | --proton)
       proton_ver="${2:-}"
@@ -1091,6 +1548,17 @@ cmd_run() {
   if [[ "$exe" =~ ^[A-Za-z]: ]] || [[ "$exe" == *\\* ]]; then
     windows_like=1
   fi
+  if ((!windows_like)) && [[ "$exe" != /* ]]; then
+    # relative unix path: resolve against CWD so umu, appid detect, and cwd all see the real file
+    local resolved
+    resolved=$(readlink -f "$exe" 2>/dev/null || realpath -m "$exe" 2>/dev/null || echo "$exe")
+    if [[ -f "$resolved" ]]; then
+      echo -e "${D}exe${N}  ${D}$exe -> $(tilde "$resolved")${N}" >&2
+      exe="$resolved"
+    else
+      warn "exe is not an absolute path and '$exe' does not resolve; umu may not find it"
+    fi
+  fi
   local -a lexe=()
   case "$(basename "$exe" | tr '[:upper:]' '[:lower:]')" in
   *.msi) lexe=(msiexec /i "$exe") ;;
@@ -1099,16 +1567,36 @@ cmd_run() {
   *) lexe=("$exe") ;;
   esac
   if ((!windows_like)); then
-    [[ "$exe" == /* ]] || warn "exe is not an absolute path; umu may not find it"
     [[ -f "$exe" ]] || warn "exe not found: $exe"
   fi
 
   # --- env (mirrors Lutris get_env + finish_env + update_proton_env) ---
+  local resolved_gameid=""
+  if [[ -n "$gameid" ]]; then
+    resolved_gameid="$gameid"
+  elif [[ -n "$appid" ]]; then
+    appid="$(tr -cd '0-9' <<<"$appid" | head -c 12)"
+    if [[ "$appid" =~ ^[0-9]{2,10}$ ]]; then
+      resolved_gameid="umu-$appid"
+    else
+      warn "invalid --appid '$appid', using auto-detect"
+      appid=""
+    fi
+  fi
+  if [[ -z "$resolved_gameid" ]]; then
+    local auto_appid
+    if auto_appid="$(_detect_appid "$prefix" "$exe" 2>/dev/null)"; then
+      resolved_gameid="umu-$auto_appid"
+      echo -e "${D}appid${N}  ${G}$auto_appid${N} ${D}auto-detected -> $resolved_gameid${N}" >&2
+    else
+      resolved_gameid="umu-default"
+    fi
+  fi
   local -a env=()
   env+=("WINEARCH=win64")
   env+=("WINEPREFIX=$prefix")
   env+=("PROTONPATH=$dir")
-  env+=("GAMEID=umu-default")
+  env+=("GAMEID=$resolved_gameid")
   env+=("PROTON_VERB=waitforexitandrun")
   [[ -z "${WINEDEBUG:-}" ]] && env+=("WINEDEBUG=-all")
   [[ -z "${DXVK_LOG_LEVEL:-}" ]] && env+=("DXVK_LOG_LEVEL=error")
@@ -1116,6 +1604,8 @@ cmd_run() {
   [[ -z "${WINEESYNC:-}" ]] && env+=("WINEESYNC=1")
   [[ -z "${WINEFSYNC:-}" ]] && env+=("WINEFSYNC=1")
   [[ -z "${WINE_LARGE_ADDRESS_AWARE:-}" ]] && env+=("WINE_LARGE_ADDRESS_AWARE=1")
+  [[ -z "${WINE_FULLSCREEN_FSR:-}" ]] && env+=("WINE_FULLSCREEN_FSR=1")
+  [[ -z "${WINE_FULLSCREEN_FSR_STRENGTH:-}" ]] && env+=("WINE_FULLSCREEN_FSR_STRENGTH=2")
   if [[ -d "$dir/files/mono" ]]; then env+=("WINE_MONO_CACHE_DIR=$dir/files/mono"); fi
   if [[ -d "$dir/files/gecko" ]]; then env+=("WINE_GECKO_CACHE_DIR=$dir/files/gecko"); fi
   [[ -z "${WINEDLLOVERRIDES:-}" ]] && env+=("WINEDLLOVERRIDES=winemenubuilder=")
@@ -1140,6 +1630,7 @@ ${B}pvm${N} - Proton Version Manager ${D}${N}
     l, ls, list      list installed versions across steam + lutris
     use <ver>     switch active version (lutris ge-proton symlink)
     probe <prefix>    report which proton/wine/ge version a prefix was built with
+    migrate <prefix> <ver>  change and rebuild prefix to another version ${D}[--backup --no-rebuild --fresh]${N}
     r, rm, remove    remove version(s)          ${D}[-y --force]${N}
     prune            dedupe lutris (real copies -> symlinks)
     link, sync       ensure steam versions are symlinked in lutris
@@ -1185,6 +1676,10 @@ r | rm | remove)
 probe | which | info)
   shift
   cmd_probe "$@"
+  ;;
+migrate | change | set | prefix | set-prefix | migrate-prefix)
+  shift
+  cmd_migrate "$@"
   ;;
 use | activate)
   shift

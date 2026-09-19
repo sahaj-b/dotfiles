@@ -26,7 +26,7 @@ ${B}gsman${N} - gamescope session manager
 
   ${C}fsr${N}
     ${D}status, on, off, nis, nearest, integer${N}
-    sharp <0-20>    ${D}higher = sharper for FSR, inverted for NIS${N}
+    sharp <0-20>    ${D}0 = sharpest, 20 = softest (FSR + NIS), turns FSR on${N}
 
   ${C}fps${N}
     ${D}show current limit, or <N> to cap at N fps (0 = native)${N}
@@ -98,6 +98,16 @@ fsr_state() {
   while IFS== read -r k v; do [[ -n "$k" ]] && echo "$k=$v"; done < "$STATE_FILE"
 }
 
+state_filter() {
+  sed -n 's/^filter=//p' "$STATE_FILE" 2>/dev/null
+}
+
+enable_fsr() {
+  set_atom "$1" GAMESCOPE_SCALING_FILTER 3
+  cat > "$STATE_FILE" <<< "filter=fsr
+scaler=auto"
+}
+
 # ===== subcommands =====
 
 # gsman [WxH|720p] [-s] [-i N] [-d :N]
@@ -161,22 +171,22 @@ cmd_fsr() {
   status)
     local fb="$(read_atom "$disp" GAMESCOPE_FSR_FEEDBACK)"
     if [[ "$fb" == 1 ]]; then
-      echo -e "${G}FSR active${N}  yes (live)"
+      echo -e "${B}fsr${N}       ${G}active (live)${N}"
+    elif [[ "$(state_filter)" == fsr ]]; then
+      echo -e "${B}fsr${N}       on (idle: nothing to upscale right now)"
     else
-      echo -e "FSR active  ${D}no (live)${N}"
+      echo -e "${B}fsr${N}       ${D}off${N}"
     fi
     echo -e "${D}--- last set via gsman ---${N}"
     local state="$(fsr_state)"
     if [[ -n "$state" ]]; then
-      echo "$state"
+      echo "$state" | sed 's/^/  /'
     else
       echo -e "  ${D}nothing yet (try: gsman fsr on)${N}"
     fi
     ;;
   on)
-    set_atom "$disp" GAMESCOPE_SCALING_FILTER 3
-    cat > "$STATE_FILE" <<< "filter=fsr
-scaler=auto"
+    enable_fsr "$disp"
     echo -e "scaling filter: ${G}FSR${N} (auto scaler)"
     echo -e "  ${D}FSR only engages when gamescope actually has to upscale${N}"
     ;;
@@ -208,12 +218,16 @@ scaler=integer"
     local n="${2:-}"
     [[ "$n" =~ ^[0-9]+$ ]] || die "sharpness wants a number 0-20"
     ((n >= 0 && n <= 20)) || die "sharpness wants 0-20"
+    # nis users tweak sharpness through this command too; don't silently flip them to fsr
+    if [[ "$(state_filter)" != nis ]]; then
+      enable_fsr "$disp"
+      echo -e "scaling filter: ${G}FSR${N} (auto scaler)"
+    fi
     set_atom "$disp" GAMESCOPE_FSR_SHARPNESS "$n"
     sed -i "/^sharpness=/d" "$STATE_FILE" 2>/dev/null || true
     echo "sharpness=$n" >> "$STATE_FILE"
     echo -e "sharpness: ${B}${n}${N}"
-    echo -e "  ${D}FSR: n/10 → RCAS (higher = sharper)${N}"
-    echo -e "  ${D}NIS: (20-n)/20 → NIS (lower = sharper)${N}  ${D}default is 2${N}"
+    echo -e "  ${D}0 = sharpest, 20 = softest (same for FSR and NIS), default 2${N}"
     ;;
   *)
     die "unknown fsr action '$action' (on, off, nis, nearest, integer, sharp N, status)"

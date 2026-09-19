@@ -228,13 +228,14 @@
   },
   "custom/easyeffects": {
     "return-type": "json",
-    "exec": "pgrep easyeffects > /dev/null && echo '{\"text\": \"󱡫\", \"class\":\"enabled\"}' || echo '{\"text\": \"󱡫\", \"class\":\"disabled\"}'",
-    "on-click": "pgrep easyeffects && easyeffects -q || easyeffects --gapplication-service&",
-    "on-click-right": "easyeffects",
+    "exec": "~/scripts/waybar/easyeffects.sh",
+    "on-click": "~/scripts/waybar/easyeffects-toggle.sh",
+    "on-click-right": "~/scripts/waybar/easyeffects-open.sh",
+    "on-click-middle": "if pgrep -x easyeffects >/dev/null; then easyeffects -q; else setsid -f easyeffects --hide-window --service-mode >/dev/null 2>&1; fi; sleep 0.5; pkill -RTMIN+12 waybar",
     "tooltip": true,
-    "tooltip-format": "EasyEffects",
     "format": "{}",
-    "interval": 1
+    "interval": 1,
+    "signal": 12
   },
   "tray": {
     "spacing": 5,

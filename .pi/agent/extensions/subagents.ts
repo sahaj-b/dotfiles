@@ -71,8 +71,9 @@ const RETRY_DELAY_RANGES: [number, number][] = [
 /**
  * Maximum allowed nesting depth for subagents.
  * Depth 0 = top-level interactive session, 1 = direct subagent, 2 = sub-subagent, etc.
+ * MAX=3 means max chain is: top(0) -> sub(1) -> sub(2) -> sub(3), then blocked.
+ * So the value = number of delegation hops allowed from top (1 = only top can delegate).
  * When current depth >= MAX_NESTING_DEPTH, the `subagent` tool becomes a stub that errors.
- * Tweak this constant to allow deeper/shallower recursion.
  */
 const MAX_NESTING_DEPTH = 3;
 const SUBAGENT_DEPTH_ENV = "PI_SUBAGENT_DEPTH";
@@ -86,26 +87,28 @@ function getSubagentDepth(): number {
 const AGENTS: Record<string, AgentEntry> = {
 	scout: {
 		name: "scout",
-		model: "b-ai/deepseek-v4-flash-vision-exp",
-		commands: ["/mode md"],
+		model: "opencode/muse-spark-1.2-contributor-free",
+		// commands: ["/mode md"], // adds submit_tool so naah
+		commands: [],
 		systemPrompt:
-			"You are a codebase explorer. Explore the codebase extensively and deeply to find the relevant information needed, using tools provided. IMPORTANT: if the prompt tells you to make any decision or give any advice, you MUST refuse, and tell that subagents should NOT make a decision as they are lower iq than yours",
+			"You are a codebase explorer. Explore the codebase extensively and deeply to find the relevant information needed, using tools provided. IMPORTANT: if the prompt tells you to make any decision/review or give any advice, you MUST refuse, and tell that subagents should NOT make a decision as they are lower iq than yours",
 		thinking: "high",
 	},
 	researcher: {
 		name: "researcher",
 		// model: "b-ai/deepseek-v4-flash-vision-exp",
 		// model: "b-ai/qwen3.8-flash",
+		model: "opencode/muse-spark-1.2-contributor-free",
 		// model: "github-copilot/gpt-4.1",
-		model: "nvidia/meta/muse-glimmer-30b",
+		// model: "nvidia/meta/muse-glimmer-30b",
 		// model: "opencode/mimo-v2.5-free",
 		commands: [],
-		systemPrompt: "~/.pi/agent/prompts/research-subagent.md",
+		systemPrompt: "~/notes/prompts/dist/research_subagent.md",
 		thinking: "high",
 	},
 	worker: {
 		name: "worker",
-		model: "opencode/muse-spark-1.2-contributor-free",
+		model: "opencode/muse-spark-1.3-contributor-free",
 		commands: [],
 		thinking: "xhigh",
 	},
@@ -116,8 +119,11 @@ const HIDDEN_AGENTS: Record<string, AgentEntry> = {
 	reviewer: {
 		name: "reviewer",
 		// model: "opencode/muse-spark-1.2-contributor-free",
+		model: "opencode/muse-spark-1.3-contributor-free",
 		// model: "opencode/mimo-v2.5-free",
-		model: "b-ai/deepseek-v4-flash-vision-exp",
+		// model: "b-ai/glm-5.3-flash",
+
+		// model: "orca/glm-5.3-flash-free",
 		commands: [],
 		systemPrompt: "~/notes/prompts/reviewer-generic.md",
 		thinking: "xhigh",
@@ -1059,7 +1065,10 @@ export default function (pi: ExtensionAPI) {
 			},
 			renderCall(args, theme, context) {
 				return new Text(
-					theme.fg("error", `subagent blocked — max depth ${MAX_NESTING_DEPTH} reached (depth ${currentDepth})`),
+					theme.fg(
+						"error",
+						`subagent blocked — max depth ${MAX_NESTING_DEPTH} reached (depth ${currentDepth})`,
+					),
 					0,
 					0,
 				);
@@ -1076,16 +1085,15 @@ export default function (pi: ExtensionAPI) {
 	pi.registerTool({
 		name: "subagent",
 		label: "Subagent",
-		description:
-			`Run a subagent to complete a task. Subagents have NO context from the current conversation (depth ${currentDepth}/${MAX_NESTING_DEPTH}, ${MAX_NESTING_DEPTH - currentDepth} level(s) remaining)`,
+		description: `Run a subagent to complete a task. Subagents have NO context from the current conversation (depth ${currentDepth}/${MAX_NESTING_DEPTH}, ${MAX_NESTING_DEPTH - currentDepth} level(s) remaining)`,
 		promptSnippet: "Run subagents for delegated tasks",
 		promptGuidelines: [
-			"Use subagent to delegate *reasoning and decisions*: codebase exploration (scout), web research (researcher), or generic (worker)",
+			"Use subagent to delegate: codebase exploration (scout, low iq, recon ONLY), web research (researcher), or generic (worker, good iq)",
 			"For multiple independent PARALLEL subagent tasks, emit multiple `subagent` tool calls in the same turn",
 			"include ALL necessary context in the task description",
 			"DELEGATE when: output is verbose (webpages, logs, big codebase, want summary) and self-contained; utilize parallel runs",
 			"DO NOT delegate when: the task needs back-and-forth or shared context with this convo; data isn't too big; specific data(not summary) is needed; quick tasks",
-			`Nesting depth is ${currentDepth}/${MAX_NESTING_DEPTH} — you have ${MAX_NESTING_DEPTH - currentDepth} delegation level(s) left. At depth ${MAX_NESTING_DEPTH} the subagent tool is disabled and will error; do the work yourself instead.`,
+			`You have ${MAX_NESTING_DEPTH - currentDepth} delegation level(s) left`,
 		],
 		parameters: Type.Object({
 			agent: Type.String({

@@ -1488,6 +1488,7 @@ export class DiffResult {
 
 	render(width: number): string[] {
 		if (this.cachedLines && this.cachedWidth === width) return this.cachedLines;
+		const safeWidth = Math.max(1, Math.floor(width || 1));
 		const diffText = renderStructuredDiff(
 			this.diff,
 			this.theme,
@@ -1496,10 +1497,18 @@ export class DiffResult {
 			undefined,
 			this.path,
 			0,
-			width,
+			safeWidth,
 		);
-		const lines = diffText.split(/\r?\n/);
-		lines.unshift(this.header);
+		// Header is built once in renderResult with terminalWidth(), which can
+		// exceed the actual render width on narrow terminals and hard-crash pi
+		// ("Rendered line exceeds terminal width"). Truncate it here where the
+		// real width is known. Also defensively clamp table rows so no future
+		// off-by-one in the table layout can crash the TUI.
+		const fit = (line: string) =>
+			visibleWidth(line) > safeWidth ? truncateAnsi(line, safeWidth) : line;
+		const lines = diffText.split(/\r?\n/).map(fit);
+		for (const headerLine of this.header.split(/\r?\n/).reverse())
+			lines.unshift(fit(headerLine));
 		this.cachedLines = lines;
 		this.cachedWidth = width;
 		return this.cachedLines;

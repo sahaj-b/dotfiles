@@ -3,6 +3,11 @@
 
 OF_WRAPPER="/home/sahaj/scripts/of-run"
 
+# most scene rars (online-fix.me etc.) are password-protected.
+# order per archive: no password -> --password/LUTMAN_PASSWORD -> online-fix.me -> prompt (cached for the pair)
+ARCHIVE_PASS="${LUTMAN_PASSWORD:-}"
+COMMON_ARCHIVE_PASS="online-fix.me"
+
 NO_COLOR="${NO_COLOR:-}"
 if [[ -t 1 && -z "$NO_COLOR" ]]; then
   D=$'\033[2m'; B=$'\033[1m'; R=$'\033[31m'; G=$'\033[32m'; Y=$'\033[33m'; C=$'\033[36m'; N=$'\033[0m'
@@ -15,21 +20,16 @@ die() { echo -e "${R}error${N}: $*" >&2; exit 1; }
 usage() {
   cat <<EOF
 ${B}lutman${N} - lutris game manager
-
-  ${C}add${N}
-    lutman add <name> <exe> [-o] [-n] [-p <prefix>]    add a game (pga.db entry + yml + art + icon)
-
-  ${C}list${N}
-    lutman list  (l, ls)                list games, sorted by last played
-
-  ${C}delete${N}
-    lutman delete <id|slug|name>  (d, rm, remove)
-
-  ${C}options${N}
-    -o, --of          launch via of-run
-    -n, --no-mango    disable mangohud
-    -p, --prefix DIR  wine prefix to use (default: auto-detect)
-    -h, --help
+  ${C}list${N} (l, ls)                       list games by last played
+  ${C}add${N} <name> <exe> | <exe> [-o] [-n] [-p DIR]   add installed game, in place (name prompted if omitted)
+  ${C}add${N} <archive|dir> [fix...] [-d DIR] [--name NAME] [-o] [--no-of] [-n] [-p DIR] [--password PASS]
+                                    add game from rar/zip/7z/tar archive or an
+                                    already-extracted dir (dirs skip extraction,
+                                    default game dir strips spaces from the name)
+                                    (OFME + Fix_Repair pair supported, sibling auto-find)
+                                    ${D}(encrypted rars auto-try --password/LUTMAN_PASSWORD, then "online-fix.me", then prompt; OFME files go straight to "online-fix.me")${N}
+  ${C}delete${N} <id|slug|name> (d, rm)         delete game
+  ${C}run${N} <id|slug|name> (r)               launch game
 EOF
 }
 
@@ -66,15 +66,585 @@ fetch() {
   curl -fsSL --connect-timeout 8 --max-time 15 "$@"
 }
 
+# ===== archive-add helpers (start) =====
+# expand leading ~ (shell doesn't do it inside variables)
+# shellcheck disable=SC2088 # intentional: we expand ~ manually
+expand_tilde() {
+  local p="$1"
+  if [[ "$p" == "~" ]]; then printf '%s' "$HOME"
+  elif [[ "$p" == "~/"* ]]; then printf '%s' "$HOME/${p:2}"
+  else printf '%s' "$p"; fi
+}
+
+# "Cake.Bash.Build.23102020-OFME.rar" -> "Cake Bash"
+clean_game_name() {
+  local f
+  f="$(basename "$1")"
+  f="$(printf '%s' "$f" | sed -E 's/\.[0-9]{3}$//')"                       # .001 split part
+  f="$(printf '%s' "$f" | sed -E 's/\.part[0-9]+(\.|$)/./I')"                # .part1.rar
+  f="$(printf '%s' "$f" | sed -E 's/\.(tar\.gz|tar\.xz|tar\.bz2|tar\.zst|tgz|txz|tbz2|tzst|rar|zip|7z|tar|gz|bz2|xz|zst|r[0-9]+)$//I')"
+  f="$(printf '%s' "$f" | sed -E 's/\.(tar\.gz|tar\.xz|tar\.bz2|tar\.zst|tgz|txz|tbz2|tzst|rar|zip|7z|tar|gz|bz2|xz|zst|r[0-9]+)$//I')"
+  f="$(printf '%s' "$f" | sed -E 's/\[[^]]*\]//g; s/\([^)]*\)//g; s/\{[^}]*\}//g')"
+  # strip versions BEFORE flattening separators (v2023.08.08 must die as one token)
+  f="$(printf '%s' "$f" | sed -E 's/[._-]+\bv[0-9][0-9a-z.]*//gI')"
+  f="$(printf '%s' "$f" | sed -E 's/\b[0-9]+\.[0-9]+(\.[0-9]+)+\b//g')"
+  f="$(printf '%s' "$f" | sed -E 's/[._-]+\b[0-9]{6,}\b//g')"
+  f="$(printf '%s' "$f" | sed -E 's/[._]+/ /g; s/-+/ /g')"
+  # scene junk tokens (conservative: only stuff that is basically never a real title word)
+  f="$(printf '%s' "$f" | sed -E 's/\b(ofme|online[ _-]?fix|fix[ _-]?repair|repair[ _-]?fix|steamrip|steamunlocked|pre[ _-]?installed|repack|codex|plaza|flt|skidrow|gog|tnt|build|update)([ ._-]*[0-9][0-9a-z.]*)?\b/ /gI')"
+  f="$(printf '%s' "$f" | sed -E 's/  +/ /g; s/^ //; s/ $//')"
+  [[ -z "$f" ]] && f="game"
+  printf '%s' "$f"
+}
+
+# 0 if the filename looks like an archive (by extension only)
+is_archive_name() {
+  case "${1,,}" in
+    *.rar|*.zip|*.7z|*.tar.gz|*.tgz|*.tar.xz|*.txz|*.tar.bz2|*.tbz2|*.tar|*.gz|*.bz2|*.xz|*.zst|*.001|*.r[0-9][0-9]) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# fix | main | unknown, by filename only (fast path for sibling search)
+classify_name_kind() {
+  local b
+  b="$(basename "$1")"
+  local lb="${b,,}"
+  if [[ "$lb" == *fix*repair* || "$lb" == *repair*fix* ]]; then printf 'fix'; return; fi
+  if [[ "$lb" == *ofme* || "$lb" == *onlinefix* ]]; then printf 'main'; return; fi
+  printf 'unknown'
+}
+
+# true if this root-level name is scene junk (unwrap counting + cleanup)
+is_root_junk() {
+  local b lb
+  b="$(basename "$1")"
+  lb="${b,,}"
+  case "$lb" in
+    _redist|_commonredist|__macosx|redist) return 0 ;;
+    *.url|*.lnk) return 0 ;;
+    *.nfo|*.diz|*.sfv|*.md) return 0 ;;
+    how*to*run*|howto*|readme*|read*me*|eula*) return 0 ;;
+  esac
+  return 1
+}
+
+# copy with live overall % on a tty (rsync), plain cp -a otherwise
+copy_tree() {
+  local src="$1" dest="$2"
+  mkdir -p "$dest"
+  if [[ -t 1 || -t 2 ]] && command -v rsync &>/dev/null; then
+    rsync -a --info=progress2 "$src/." "$dest/" >&2 || die "copy failed: $src -> $dest"
+    echo >&2
+  else
+    cp -a "$src/." "$dest/" || die "copy failed: $src -> $dest"
+  fi
+}
+
+# move with same merge semantics as copy_tree but deletes source (rename when possible)
+move_tree() {
+  local src="$1" dest="$2"
+  mkdir -p "$dest"
+  # fast path: dest empty -> try atomic rename of src -> dest
+  if [[ -z "$(ls -A "$dest" 2>/dev/null)" ]]; then
+    if rmdir "$dest" 2>/dev/null && mv -f "$src" "$dest" 2>/dev/null; then
+      return 0
+    fi
+    mkdir -p "$dest"
+  fi
+  # fallback: move contents (handles merge/overwrite when dest already has files)
+  shopt -s dotglob nullglob
+  local item
+  for item in "$src"/*; do
+    mv -f "$item" "$dest/" || die "move failed: $item -> $dest"
+  done
+  shopt -u dotglob nullglob
+  rmdir "$src" 2>/dev/null || true
+}
+
+# prompt once per run, cache in ARCHIVE_PASS so the fix pair reuses it
+prompt_archive_password() {
+  local src="$1"
+  if [[ ! -t 0 ]]; then
+    die "extract failed (password-protected): $(basename "$src") -- rerun with --password PASS or LUTMAN_PASSWORD=PASS"
+  fi
+  local pw
+  printf "password for %s [online-fix.me]: " "$(basename "$src")" >&2
+  IFS= read -rs pw || pw=""
+  echo >&2
+  [[ -z "$pw" ]] && pw="$COMMON_ARCHIVE_PASS"
+  ARCHIVE_PASS="$pw"
+}
+
+# 0 if a tool log looks like a password failure (vs corrupt archive etc.)
+archive_err_is_password() {
+  grep -qiE 'wrong password|enter password|encrypt|break signaled|password required' "$1" 2>/dev/null
+}
+
+# last useful lines of a tool log (filters \r progress spam)
+show_log_tail() {
+  local lines
+  lines="$(tr '\r' '\n' <"$1" 2>/dev/null | grep -a -iE 'error|wrong|password|encrypt|cannot|can not|failed|no such|unsupported|not supported|bad archive|unexpected end' | tail -n 5)"
+  if [[ -n "$lines" ]]; then printf '%s\n' "$lines"
+  else tail -n 3 "$1" 2>/dev/null; fi
+}
+
+# single 7z extract attempt ($3 = password, empty = none; output -> $4 log, live on tty)
+_7z_x_once() {
+  local src="$1" dest="$2" pass="$3" log="$4" rc
+  local -a cmd=(7z x -y)
+  [[ -n "$pass" ]] && cmd+=("-p$pass")
+  if [[ -t 1 || -t 2 ]]; then
+    cmd+=(-bsp1 -bso0 -bse2 "-o$dest" "$src")
+    "${cmd[@]}" </dev/null 2>&1 | tee "$log" >&2
+    rc="${PIPESTATUS[0]}"
+    return "$rc"
+  else
+    cmd+=(-bsp0 -bso0 -bse1 "-o$dest" "$src")
+    "${cmd[@]}" </dev/null >"$log" 2>&1
+    return "$?"
+  fi
+}
+
+# single extract attempt with whatever backend is available (7z first).
+# </dev/null everywhere so tools fail fast instead of hanging on their own password prompt.
+_extract_once() {
+  local src="$1" dest="$2" pass="$3" log="$4"
+  if command -v 7z &>/dev/null; then
+    _7z_x_once "$src" "$dest" "$pass" "$log"
+    return "$?"
+  elif command -v bsdtar &>/dev/null; then
+    if [[ -z "$pass" ]]; then
+      bsdtar -xf "$src" -C "$dest" </dev/null >"$log" 2>&1
+    else
+      bsdtar --passphrase "$pass" -xf "$src" -C "$dest" </dev/null >"$log" 2>&1
+    fi
+    return "$?"
+  else
+    case "${src,,}" in
+      *.zip)
+        command -v unzip &>/dev/null || die "need 7z/bsdtar/unzip to extract: $src"
+        if [[ -z "$pass" ]]; then unzip -q -o "$src" -d "$dest" </dev/null >"$log" 2>&1
+        else unzip -q -o -P "$pass" "$src" -d "$dest" </dev/null >"$log" 2>&1; fi
+        return "$?" ;;
+      *.rar)
+        command -v unrar &>/dev/null || die "need 7z/bsdtar/unrar to extract: $src"
+        if [[ -z "$pass" ]]; then unrar x -o+ "$src" "$dest/" </dev/null >"$log" 2>&1
+        else unrar x -o+ "-p$pass" "$src" "$dest/" </dev/null >"$log" 2>&1; fi
+        return "$?" ;;
+      *) die "need 7z or bsdtar to extract: $src" ;;
+    esac
+  fi
+}
+
+# peek inside an archive (headers only, no extraction) for OnlineFix markers.
+# tries passwords in order so header-encrypted rars still classify.
+archive_has_onlinefix() {
+  local a="$1" list pass found
+  local -a tries=("")
+  [[ -n "$ARCHIVE_PASS" ]] && tries+=("$ARCHIVE_PASS")
+  [[ "$COMMON_ARCHIVE_PASS" != "${ARCHIVE_PASS:-}" ]] && tries+=("$COMMON_ARCHIVE_PASS")
+  # OFME scene archives are always online-fix.me: try it first so
+  # header-encrypted rars classify without a wasted no-password peek
+  if [[ "$(classify_name_kind "$a")" != "unknown" ]]; then
+    local -a ordered=()
+    [[ -n "$ARCHIVE_PASS" ]] && ordered+=("$ARCHIVE_PASS")
+    [[ "$COMMON_ARCHIVE_PASS" != "${ARCHIVE_PASS:-}" ]] && ordered+=("$COMMON_ARCHIVE_PASS")
+    ordered+=("")
+    tries=("${ordered[@]}")
+  fi
+  if command -v 7z &>/dev/null; then
+    for pass in "${tries[@]}"; do
+      if [[ -z "$pass" ]]; then
+        list="$(7z l -ba "$a" </dev/null 2>/dev/null)" || continue
+      else
+        list="$(7z l -ba "-p$pass" "$a" </dev/null 2>/dev/null)" || continue
+      fi
+      found=1
+      printf '%s' "$list" | grep -qiE 'OnlineFix\.(dll|ini)$|dlllist\.txt$' && found=0
+      # listing worked: cache the password so extract skips a retry
+      [[ -n "$pass" ]] && ARCHIVE_PASS="$pass"
+      return "$found"
+    done
+    return 1
+  elif command -v bsdtar &>/dev/null; then
+    for pass in "${tries[@]}"; do
+      if [[ -z "$pass" ]]; then
+        list="$(bsdtar -tf "$a" </dev/null 2>/dev/null)" || continue
+      else
+        list="$(bsdtar --passphrase "$pass" -tf "$a" </dev/null 2>/dev/null)" || continue
+      fi
+      found=1
+      printf '%s' "$list" | grep -qiE 'OnlineFix\.(dll|ini)$|dlllist\.txt$' && found=0
+      [[ -n "$pass" ]] && ARCHIVE_PASS="$pass"
+      return "$found"
+    done
+    return 1
+  else
+    return 1
+  fi
+}
+
+# 7z draws its own "12%" progress with -bsp1: show it on a tty,
+# stay silent off-tty so logs don't fill with \r spam.
+# auto-tries passwords ("", --password/LUTMAN_PASSWORD, online-fix.me),
+# then prompts once and caches for the fix pair.
+# OFME-named archives (or -o force, via $3) skip "" and go straight to
+# online-fix.me, prompting only when it fails.
+extract_archive() {
+  local src="$1" dest="$2" of_hint="${3:-}"
+  mkdir -p "$dest"
+  local log pw t
+  log="$(mktemp)"
+  trap 'rm -f "$log"' RETURN
+  local ofme=false
+  if [[ "$of_hint" == "force" ]]; then ofme=true
+  elif [[ "$(classify_name_kind "$src")" != "unknown" ]]; then ofme=true
+  fi
+  local -a tries=()
+  if $ofme; then
+    [[ -n "$ARCHIVE_PASS" ]] && tries+=("$ARCHIVE_PASS")
+    [[ "$COMMON_ARCHIVE_PASS" != "${ARCHIVE_PASS:-}" ]] && tries+=("$COMMON_ARCHIVE_PASS")
+  else
+    tries=("")
+    [[ -n "$ARCHIVE_PASS" ]] && tries+=("$ARCHIVE_PASS")
+    [[ "$COMMON_ARCHIVE_PASS" != "${ARCHIVE_PASS:-}" ]] && tries+=("$COMMON_ARCHIVE_PASS")
+  fi
+  for pw in "${tries[@]}"; do
+    if [[ -n "$pw" ]]; then
+      if [[ "$pw" == "$COMMON_ARCHIVE_PASS" ]]; then
+        if $ofme; then
+          echo -e "${D}password${N} online-fix.me ${D}(OFME, no prompt)${N}" >&2
+        else
+          echo -e "${D}password${N} trying default ${D}\"online-fix.me\"${N}" >&2
+        fi
+      else
+        echo -e "${D}password${N} trying saved password" >&2
+      fi
+    fi
+    if _extract_once "$src" "$dest" "$pw" "$log"; then
+      [[ -n "$pw" ]] && ARCHIVE_PASS="$pw"
+      [[ -t 1 || -t 2 ]] && echo >&2
+      rm -f "$log"; trap - RETURN
+      return 0
+    fi
+  done
+  if archive_err_is_password "$log"; then
+    prompt_archive_password "$src"
+    for t in "${tries[@]}"; do
+      if [[ "$ARCHIVE_PASS" == "$t" ]]; then
+        echo -e "${R}extract failed${N}: $src ${D}(password already tried)${N}" >&2
+        show_log_tail "$log" >&2
+        rm -f "$log"; trap - RETURN
+        die "wrong password for: $src"
+      fi
+    done
+    if _extract_once "$src" "$dest" "$ARCHIVE_PASS" "$log"; then
+      [[ -t 1 || -t 2 ]] && echo >&2
+      rm -f "$log"; trap - RETURN
+      return 0
+    fi
+    echo -e "${R}extract failed${N}: $src" >&2
+    show_log_tail "$log" >&2
+    rm -f "$log"; trap - RETURN
+    die "extract failed (wrong password?): $src"
+  fi
+  echo -e "${R}extract failed${N}: $src" >&2
+  show_log_tail "$log" >&2
+  rm -f "$log"; trap - RETURN
+  die "extract failed: $src"
+}
+
+# descend through useless single-folder nesting (ignores root junk when counting).
+# handles Broforce.v2023.08.08/Broforce.v2023.08.08 double nesting.
+unwrap_root() {
+  local root="$1" i
+  for ((i = 0; i < 10; i++)); do
+    local -a nonjunk_dirs=() nonjunk_files=()
+    local k bn
+    while IFS= read -r k; do
+      bn="$(basename "$k")"
+      if is_root_junk "$bn"; then continue; fi
+      if [[ -d "$k" ]]; then nonjunk_dirs+=("$k"); else nonjunk_files+=("$k"); fi
+    done < <(find "$root" -mindepth 1 -maxdepth 1 -print 2>/dev/null)
+    if ((${#nonjunk_dirs[@]} == 1 && ${#nonjunk_files[@]} == 0)); then
+      root="${nonjunk_dirs[0]}"
+    else
+      break
+    fi
+  done
+  printf '%s' "$root"
+}
+
+# 0 = candidate game exe, 1 = redist/setup/crash bait
+is_candidate_exe() {
+  local lp bn
+  lp="${1,,}"
+  bn="$(basename "$lp")"
+  [[ "$lp" == *redist* ]] && return 1
+  case "$bn" in
+    unitycrashhandler*|*crashhandler*|*crashreport*|vcredist*|vc_redist*|\
+dxsetup*|dxwebsetup*|dotnet*|netfx*|ndp*|xnafx*|oalinst*|ue4prereq*|\
+*prereq*|*vcredist*|*redist*|*setup*|*install*|unins*|\
+*updat*|*config*|*report*|*helper*|*service*) return 1 ;;
+  esac
+  return 0
+}
+
+# 0 if dir has a top-level candidate exe
+dir_has_game_exe() {
+  local d="$1" f
+  while IFS= read -r f; do
+    if is_candidate_exe "$f"; then return 0; fi
+  done < <(find "$d" -mindepth 1 -maxdepth 1 -iname '*.exe' -type f -print 2>/dev/null)
+  return 1
+}
+
+# "score size" for a candidate game dir
+score_game_dir() {
+  local d="$1" s=0 sz=0
+  [[ -n "$(find "$d" -mindepth 1 -maxdepth 1 -iname '*_data' -type d -print -quit 2>/dev/null)" ]] && s=$((s + 20))
+  [[ -n "$(find "$d" -mindepth 1 -maxdepth 1 -iname 'UnityPlayer.dll' -type f -print -quit 2>/dev/null)" ]] && s=$((s + 10))
+  [[ -n "$(find "$d" -mindepth 1 -maxdepth 1 -iname 'MonoBleedingEdge' -print -quit 2>/dev/null)" ]] && s=$((s + 8))
+  [[ -n "$(find "$d" -mindepth 1 -maxdepth 1 -iname '*.pck' -type f -print -quit 2>/dev/null)" ]] && s=$((s + 8))
+  [[ -n "$(find "$d" -mindepth 1 -maxdepth 1 -iname 'GameAssembly.dll' -type f -print -quit 2>/dev/null)" ]] && s=$((s + 5))
+  [[ -n "$(find "$d" -mindepth 1 -maxdepth 1 -iname 'steam_api*.dll' -type f -print -quit 2>/dev/null)" ]] && s=$((s + 5))
+  local f b
+  while IFS= read -r f; do
+    if is_candidate_exe "$f"; then
+      b=$(stat -c%s "$f" 2>/dev/null || echo 0)
+      sz=$((sz + b))
+    fi
+  done < <(find "$d" -mindepth 1 -maxdepth 1 -iname '*.exe' -type f -print 2>/dev/null)
+  printf '%s %s' "$s" "$sz"
+}
+
+# print main game dir to stdout; prompts on tie
+find_main_dir() {
+  local root="$1"
+  local -a cands=()
+  if dir_has_game_exe "$root"; then cands+=("$root"); fi
+  local d
+  while IFS= read -r d; do
+    if dir_has_game_exe "$d"; then cands+=("$d"); fi
+  done < <(find "$root" -mindepth 1 -maxdepth 4 -type d -print 2>/dev/null)
+  if ((${#cands[@]} == 0)); then
+    echo -e "${R}error${N}: no game exe found under $root" >&2
+    find "$root" -maxdepth 4 -iname '*.exe' -print 2>/dev/null | head -n 20 >&2
+    return 1
+  fi
+  if ((${#cands[@]} == 1)); then printf '%s' "${cands[0]}"; return 0; fi
+  # score all, track best (bigger score wins, exe bytes break ties)
+  local best="" best_score=-1 best_size=0 c sc sz
+  for c in "${cands[@]}"; do
+    read -r sc sz < <(score_game_dir "$c")
+    if ((sc > best_score)) || ((sc == best_score && sz > best_size)); then
+      best="$c"; best_score="$sc"; best_size="$sz"
+    fi
+  done
+  # re-check tie: any other cand with same score+size as best?
+  local n_tied=0
+  for c in "${cands[@]}"; do
+    read -r sc sz < <(score_game_dir "$c")
+    if [[ "$c" != "$best" && "$sc" == "$best_score" && "$sz" == "$best_size" ]]; then n_tied=$((n_tied + 1)); fi
+  done
+  if ((n_tied > 0)); then
+    echo -e "${Y}multiple game dirs${N} look alike, pick the real one:" >&2
+    local i=1
+    for c in "${cands[@]}"; do
+      read -r sc sz < <(score_game_dir "$c")
+      printf "  ${B}%d)${N} score=%s size=%s  %s\n" "$i" "$sc" "$sz" "${c#$root/}" >&2
+      i=$((i + 1))
+    done
+    local ans
+    printf "dir [1]: " >&2
+    read -r ans
+    [[ -z "$ans" ]] && ans=1
+    if ! [[ "$ans" =~ ^[0-9]+$ ]] || ((ans < 1 || ans > ${#cands[@]})); then
+      echo -e "${R}error${N}: bad choice" >&2
+      return 1
+    fi
+    printf '%s' "${cands[$((ans - 1))]}"
+    return 0
+  fi
+  echo -e "${D}maindir${N} $best ${D}(score $best_score)${N}" >&2
+  printf '%s' "$best"
+}
+
+human_size() {
+  local b="$1"
+  if command -v numfmt &>/dev/null; then numfmt --to=iec-i --suffix=B "$b" 2>/dev/null || printf '%sB' "$b"
+  else printf '%sB' "$b"; fi
+}
+
+dir_bytes() {
+  local d="$1" b
+  b=$(du -sb "$d" 2>/dev/null | cut -f1)
+  printf '%s' "${b:-0}"
+}
+
+# The exe dir is not always the whole game (ME2: exe lives in Binaries/,
+# data in BioGame/). If siblings outside the exe dir hold real data, show
+# sizes and ask what to keep. Echoes the chosen source dir. Info -> stderr.
+# $1 unwrapped root, $2 found exe dir
+resolve_mainsrc() {
+  local unwrapped="$1" found="$2"
+  local uunwrap ufound
+  uunwrap="$(readlink -f "$unwrapped" 2>/dev/null || echo "$unwrapped")"
+  ufound="$(readlink -f "$found" 2>/dev/null || echo "$found")"
+  if [[ "$ufound" == "$uunwrap" ]]; then
+    echo -e "${D}size${N}    extracted $(human_size "$(dir_bytes "$uunwrap")") ${D}(exe dir is the whole tree)${N}" >&2
+    printf '%s' "$found"
+    return 0
+  fi
+  case "$ufound" in
+    "$uunwrap"/*) ;;
+    *) printf '%s' "$found"; return 0 ;;
+  esac
+  local total fsize left
+  total="$(dir_bytes "$uunwrap")"
+  fsize="$(dir_bytes "$ufound")"
+  left=$((total - fsize))
+  ((left < 0)) && left=0
+  echo -e "${D}size${N}    extracted $(human_size "$total") ${D}total${N}" >&2
+  echo -e "${D}size${N}    exe dir   $(human_size "$fsize") ${D}(${ufound#$uunwrap/})${N}" >&2
+  echo -e "${D}size${N}    siblings  $(human_size "$left") ${D}outside the exe dir${N}" >&2
+  # significant? >=128M outright, or >=25% of total when >=10M
+  local sig=0
+  if ((left >= 134217728)); then sig=1
+  elif ((left >= 10485760 && total > 0 && left * 4 >= total)); then sig=1
+  fi
+  if ((sig == 0)); then
+    printf '%s' "$found"
+    return 0
+  fi
+  echo -e "${Y}siblings look like real game data${N} ${D}(Binaries/BioGame split etc.) — keeping only the exe dir would delete them${N}" >&2
+  local rel top entry eb2 s
+  rel="${ufound#$uunwrap/}"
+  top="${rel%%/*}"
+  local -a srows=()
+  while IFS= read -r entry; do
+    [[ "$(basename "$entry")" == "$top" ]] && continue
+    eb2="$(dir_bytes "$entry")"
+    srows+=("$eb2|$entry")
+  done < <(find "$uunwrap" -mindepth 1 -maxdepth 1 -print 2>/dev/null)
+  if ((${#srows[@]})); then
+    while IFS= read -r s; do
+      eb2="${s%%|*}"; entry="${s#*|}"
+      echo -e "  ${D}would drop${N} $(human_size "$eb2")  $(basename "$entry")" >&2
+    done < <(printf '%s\n' "${srows[@]}" | sort -nr -t'|' -k1,1 | head -n 10)
+  fi
+  echo -e "${Y}keep what?${N}" >&2
+  echo -e "  ${B}1)${N} whole root ${D}($(basename "$uunwrap") — safe, keeps $(human_size "$left") of siblings)${N}" >&2
+  echo -e "  ${B}2)${N} exe dir only ${D}(${ufound#$uunwrap/} — old behavior, drops siblings)${N}" >&2
+  local ans=1
+  if [[ -t 0 ]]; then
+    printf "keep [1]: " >&2
+    read -r ans || ans=1
+    [[ -z "$ans" ]] && ans=1
+  else
+    echo -e "${D}non-interactive, keeping whole root${N}" >&2
+  fi
+  if [[ "$ans" == "2" ]]; then
+    printf '%s' "$found"
+  else
+    printf '%s' "$unwrapped"
+  fi
+}
+
+# print chosen exe to stdout; silent when 1, numbered prompt when many
+pick_game_exe() {
+  local dir="$1"
+  local -a rows=()  # "size|path"
+  local f b
+  while IFS= read -r f; do
+    if is_candidate_exe "$f"; then
+      b=$(stat -c%s "$f" 2>/dev/null || echo 0)
+      rows+=("$b|$f")
+    fi
+  done < <(find "$dir" -maxdepth 3 \( -iname '*.exe' \) -type f -print 2>/dev/null | grep -viE '/(_redist|_commonredist|redist)/' || true)
+  if ((${#rows[@]} == 0)); then
+    echo -e "${R}error${N}: no game exe in $dir (all filtered as setup/redist bait?)" >&2
+    echo -e "${D}all exes found:${N}" >&2
+    find "$dir" -maxdepth 3 -iname '*.exe' -printf '  %s %p\n' 2>/dev/null | sort -nr | head -n 20 >&2
+    return 1
+  fi
+  mapfile -t rows < <(printf '%s\n' "${rows[@]}" | sort -nr -t'|' -k1,1)
+  if ((${#rows[@]} == 1)); then
+    printf '%s' "${rows[0]#*|}"
+    return 0
+  fi
+  echo -e "${Y}multiple exes${N}, pick the game exe:" >&2
+  local i=1 sz p
+  for b in "${rows[@]}"; do
+    sz="${b%%|*}"; p="${b#*|}"
+    printf "  ${B}%d)${N} %-10s %s\n" "$i" "$(human_size "$sz")" "${p#$dir/}" >&2
+    i=$((i + 1))
+  done
+  local ans
+  printf "exe [1]: " >&2
+  read -r ans
+  [[ -z "$ans" ]] && ans=1
+  if ! [[ "$ans" =~ ^[0-9]+$ ]] || ((ans < 1 || ans > ${#rows[@]})); then
+    echo -e "${R}error${N}: bad choice" >&2
+    return 1
+  fi
+  printf '%s' "${rows[$((ans - 1))]#*|}"
+}
+
+# 0 if dir tree has OnlineFix markers
+has_onlinefix() {
+  local d="$1"
+  [[ -n "$(find "$d" -maxdepth 4 \( -iname 'OnlineFix*.dll' -o -iname 'OnlineFix.ini' \) -print -quit 2>/dev/null)" ]] && return 0
+  [[ -n "$(find "$d" -maxdepth 3 -iname 'dlllist.txt' -type f -print -quit 2>/dev/null)" ]] && return 0
+  return 1
+}
+
+# RealAppId from OnlineFix.ini (empty when missing/spacewar-spoof)
+real_appid() {
+  local d="$1" ini v
+  ini="$(find "$d" -maxdepth 4 -iname 'OnlineFix.ini' -type f -print -quit 2>/dev/null)"
+  [[ -z "$ini" ]] && return 0
+  v="$(grep -i -m1 -E '^\s*RealAppId\s*=' "$ini" 2>/dev/null | sed -E 's/[^0-9]//g')"
+  [[ -z "$v" || "$v" == "480" || "$v" == "0" ]] && return 0
+  printf '%s' "$v"
+}
+
+# delete scene junk at game root + the OnlineFix site-link anywhere
+nuke_root_junk() {
+  local d="$1" f bn lb
+  find "$d" -iname 'OnlineFix.url' -type f -print -delete 2>/dev/null | while IFS= read -r f; do
+    echo -e "${D}rm${N}      $f"
+  done
+  find "$d" -mindepth 1 -maxdepth 1 \( -iname '*.url' -o -iname '*.lnk' \) -type f -print -delete 2>/dev/null | while IFS= read -r f; do
+    echo -e "${D}rm${N}      $f"
+  done
+  while IFS= read -r f; do
+    bn="$(basename "$f")"; lb="${bn,,}"
+    case "$lb" in
+      how*to*run*|howto*|readme*|read*me*|eula*|*.nfo|*.diz|*.sfv) rm -fv "$f" | sed "s/^/${D}rm${N}      /" ;;
+    esac
+  done < <(find "$d" -mindepth 1 -maxdepth 1 -type f -print 2>/dev/null)
+}
+# ===== archive-add helpers (end) =====
+
 cmd_list() {
   find_dirs
   [[ -f "$LUT_DATA/pga.db" ]] || die "no pga.db"
   local now count=0
   now=$(date +%s)
 
-  printf "${D}%-11s %-22.22s %-6s %-22.22s %s${N}\n" "ID" "SLUG" "RUN" "NAME" "LAST PLAYED"
-  while IFS='|' read -r last id slug runner name; do
+  printf "${D}%-11s %-22.22s %-6s %-22.22s %-11s %-24.24s %s${N}\n" "ID" "SLUG" "RUN" "NAME" "LAST PLAYED" "WINE" "PREFIX"
+  while IFS='|' read -r last id slug runner configpath name; do
     count=$((count + 1))
+    local prefix_short="-" wine_short="symlinked"
+    if [[ -n "$configpath" && -f "$GAMES_DIR/$configpath.yml" ]]; then
+      local raw_prefix raw_wine
+      raw_prefix=$(unquote_yaml "$(grep -E "^\s*prefix:" "$GAMES_DIR/$configpath.yml" | head -n 1 | sed -E "s/^\s*prefix:\s*//")")
+      [[ -n "$raw_prefix" ]] && prefix_short="${raw_prefix/#$HOME/\~}"
+      raw_wine=$(unquote_yaml "$(grep -E "^\s*version:" "$GAMES_DIR/$configpath.yml" | head -n 1 | sed -E "s/^\s*version:\s*//")")
+      [[ -n "$raw_wine" ]] && wine_short="$raw_wine"
+    fi
     local when="never" wc="$D"
     if [[ "${last:-0}" -gt 0 ]] 2>/dev/null; then
       local d=$((now - last))
@@ -94,9 +664,9 @@ cmd_list() {
     local rc="$N"
     [[ "$runner" == "wine" ]] && rc="$C"
     [[ "$runner" == "linux" ]] && rc="$G"
-    printf "${B}%-11s${N} %-22.22s ${rc}%-6s${N} %-22.22s ${wc}%s${N}\n" "$id" "$slug" "$runner" "$name" "$when"
+    printf "${B}%-11s${N} %-22.22s ${rc}%-6s${N} %-22.22s ${wc}%-11s${N} ${D}%-24.24s %s${N}\n" "$id" "$slug" "$runner" "$name" "$when" "$wine_short" "$prefix_short"
   done < <(sqlite3 -separator '|' "$LUT_DATA/pga.db" \
-    "SELECT COALESCE(lastplayed,0), id, slug, runner, name FROM games
+    "SELECT COALESCE(lastplayed,0), id, slug, runner, configpath, name FROM games
      ORDER BY (COALESCE(lastplayed,0) = 0), lastplayed DESC, name COLLATE NOCASE;")
 
   echo ""
@@ -134,37 +704,37 @@ cmd_delete() {
   echo -e "${G}deleted${N} $slug ${D}($id)${N}"
 }
 
-cmd_add() {
-  local -a pos=()
-  local of_run=false mango=true prefix_override=""
-  while (($#)); do
-    case "$1" in
-      -h|--help) usage; return ;;
-      -o|--of) of_run=true ;;
-      -n|--no-mango) mango=false ;;
-      -p|--prefix)
-        [[ -n "${2:-}" ]] || die "--prefix needs a path"
-        prefix_override="$2"
-        shift
-        ;;
-      --prefix=*)
-        prefix_override="${1#*=}"
-        [[ -n "$prefix_override" ]] || die "--prefix needs a path"
-        ;;
-      --) shift; pos+=("$@"); break ;;
-      -*) die "unknown flag '$1'" ;;
-      *) pos+=("$1") ;;
-    esac
-    shift
-  done
+cmd_run() {
+  local query="$*"
+  [[ -n "$query" ]] || { usage >&2; die "give an id, slug, or name to run"; }
+  find_dirs
+  [[ -f "$LUT_DATA/pga.db" ]] || die "no pga.db"
+  local esc="${query//\'/\'\'}"
+  local matches
+  matches=$(sqlite3 -separator '|' "$LUT_DATA/pga.db" \
+    "SELECT id, slug, name FROM games
+     WHERE id='$esc' OR slug='$esc' COLLATE NOCASE OR name LIKE '%$esc%' ESCAPE '\\' OR slug LIKE '%$esc%' ESCAPE '\\'
+     ORDER BY id;")
+  [[ -n "$matches" ]] || die "no match: $query"
+  if (( $(echo "$matches" | wc -l) > 1 )); then
+    echo -e "${Y}multiple matches${N} for '$query':"
+    while IFS='|' read -r id slug name; do printf "  ${B}%-11s${N} %-22s %s\n" "$id" "$slug" "$name"; done <<<"$matches"
+    echo -e "${D}be more specific (use the id)${N}"
+    exit 1
+  fi
+  local id slug name
+  IFS='|' read -r id slug name <<<"$matches"
+  echo -e "${G}launching${N} $name ${D}($slug/$id)${N}" >&2
+  exec env LUTRIS_SKIP_INIT=1 lutris "lutris:rungameid/$id"
+}
 
-  local name="${pos[0]:-}" exe="${pos[1]:-}"
-  [[ -n "$name" && -n "$exe" ]] || { usage >&2; die "give a game name and an exe (e.g. lutman add 'Tekken 8' ~/wine-tekken/game.exe)"; }
+# shared lutris registration: artwork + appid + icon + yml + desktop
+# args: name | exe_path | of_run(true/false) | mango(true/false) | prefix_override | forced_appid
+register_lutris_game() {
+  local name="$1" exe_path="$2" of_run="$3" mango="$4" prefix_override="$5" forced_appid="${6:-}"
 
   find_dirs
-  local exe_path game_dir prefix_dir slug game_id
-  exe_path="$(readlink -f "$exe")"
-  [[ -f "$exe_path" ]] || die "exe not found: $exe"
+  local game_dir prefix_dir slug game_id
   game_dir="$(dirname "$exe_path")"
 
   echo -e "${D}name${N}    $name"
@@ -235,7 +805,10 @@ cmd_add() {
   # --- artwork ---
   local app_id="" banner_found=false cover_found=false
 
-  if command -v jq &>/dev/null; then
+  if [[ -n "$forced_appid" ]]; then
+    app_id="$forced_appid"
+    echo -e "${C}steam${N}  using OnlineFix RealAppId $app_id"
+  elif command -v jq &>/dev/null; then
     local term search_json total
     term=$(url_encode "$name")
     search_json=$(fetch "https://store.steampowered.com/api/storesearch/?term=${term}&l=english&cc=US" 2>/dev/null || true)
@@ -255,8 +828,12 @@ cmd_add() {
   if [[ -n "$app_id" ]]; then
     echo -e "${C}steam${N}  matched app id $app_id"
     local details header
-    details=$(fetch "https://store.steampowered.com/api/appdetails?appids=${app_id}" 2>/dev/null || true)
-    header=$(printf '%s' "$details" | jq -r ".[\"${app_id}\"].data.header_image // empty" 2>/dev/null || true)
+    if command -v jq &>/dev/null; then
+      details=$(fetch "https://store.steampowered.com/api/appdetails?appids=${app_id}" 2>/dev/null || true)
+      header=$(printf '%s' "$details" | jq -r ".[\"${app_id}\"].data.header_image // empty" 2>/dev/null || true)
+    else
+      header=""
+    fi
 
     if [[ -n "$header" ]]; then
       fetch "$header" -o "${BANNERS_DIR}/${slug}.jpg" 2>/dev/null && [[ -s "${BANNERS_DIR}/${slug}.jpg" ]] && banner_found=true
@@ -298,6 +875,23 @@ cmd_add() {
   $cover_found && echo -e "${G}coverart${N} ${COVERART_DIR}/${slug}.jpg"
   ! $banner_found && echo -e "${D}banner${N}  ${D}not found${N}"
   ! $cover_found && echo -e "${D}coverart${N} ${D}not found${N}"
+
+  # --- steam_appid.txt for pvm protonfixes auto-detect ---
+  if [[ -n "$app_id" ]]; then
+    local appid_file="$game_dir/steam_appid.txt"
+    if [[ ! -f "$appid_file" ]] || [[ "$(tr -cd '0-9' < "$appid_file" 2>/dev/null)" != "$app_id" ]]; then
+      if echo "$app_id" > "$appid_file" 2>/dev/null; then
+        echo -e "${G}appid${N}   $appid_file -> $app_id"
+      else
+        echo -e "${Y}appid${N}   failed to write $appid_file"
+      fi
+    else
+      echo -e "${D}appid${N}   already $app_id at $appid_file"
+    fi
+    if [[ -f "$LUT_DATA/pga.db" && -n "$game_id" ]]; then
+      sqlite3 "$LUT_DATA/pga.db" "UPDATE games SET service='steam', service_id='$app_id' WHERE id=$game_id AND (service IS NULL OR service='' OR service_id IS NULL OR service_id='');" 2>/dev/null || true
+    fi
+  fi
 
   # --- icon from exe ---
   if command -v wrestool &>/dev/null; then
@@ -399,10 +993,428 @@ EOF
   [[ -n "$desktop_dir" ]] && ln -sf "$desk_file" "$desktop_dir/${slug}.desktop"
 }
 
+# archive/dir mode: extract (dirs skip it), unwrap nesting, merge OF fix, pick exe, register
+# all questions (pair pick, name, dest confirm) happen before the long work
+# args: --dest DIR --name NAME --of/--no-of state via env-ish positionals:
+#   cmd_add_archive <mango> <prefix_override> <dest_override> <name_opt> <of_state> <input...>
+#   of_state: auto | force | off
+cmd_add_archive() {
+  local mango="$1" prefix_override="$2" dest_override="$3" name_opt="$4" of_state="$5"
+  shift 5
+  local -a archives=("$@")
+
+  ((${#archives[@]} >= 1 && ${#archives[@]} <= 2)) || die "archive/dir mode takes 1-2 inputs (got ${#archives[@]})"
+
+  local a ap p
+  local -a abs_archives=()
+  for a in "${archives[@]}"; do
+    ap="$(expand_tilde "$a")"
+    [[ -f "$ap" || -d "$ap" ]] || die "archive or dir not found: $a"
+    abs_archives+=("$(readlink -f "$ap")")
+  done
+  if ((${#abs_archives[@]} == 2)) && [[ "${abs_archives[0]}" == "${abs_archives[1]}" ]]; then
+    die "same input passed twice"
+  fi
+  local need_extract=false
+  for p in "${abs_archives[@]}"; do [[ -f "$p" ]] && need_extract=true; done
+  if $need_extract; then
+    command -v 7z &>/dev/null || command -v bsdtar &>/dev/null || die "need 7z or bsdtar to extract archives"
+  fi
+
+  local main_archive="" fix_archive=""
+  if ((${#abs_archives[@]} == 2)); then
+    # peek inside (headers only, no extraction) so every question gets
+    # asked before the long extract/copy work starts
+    local a_has=false b_has=false ka kb
+    if [[ -d "${abs_archives[0]}" ]]; then has_onlinefix "${abs_archives[0]}" && a_has=true
+    else archive_has_onlinefix "${abs_archives[0]}" && a_has=true; fi
+    if [[ -d "${abs_archives[1]}" ]]; then has_onlinefix "${abs_archives[1]}" && b_has=true
+    else archive_has_onlinefix "${abs_archives[1]}" && b_has=true; fi
+    ka="$(classify_name_kind "${abs_archives[0]}")"
+    kb="$(classify_name_kind "${abs_archives[1]}")"
+    if $a_has && ! $b_has; then
+      main_archive="${abs_archives[1]}"; fix_archive="${abs_archives[0]}"
+    elif $b_has && ! $a_has; then
+      main_archive="${abs_archives[0]}"; fix_archive="${abs_archives[1]}"
+    elif [[ "$ka" == "fix" && "$kb" != "fix" ]]; then
+      main_archive="${abs_archives[1]}"; fix_archive="${abs_archives[0]}"
+    elif [[ "$kb" == "fix" && "$ka" != "fix" ]]; then
+      main_archive="${abs_archives[0]}"; fix_archive="${abs_archives[1]}"
+    else
+      echo -e "${Y}ambiguous pair${N}, which holds the main game?"
+      printf "  ${B}1)${N} %s\n  ${B}2)${N} %s\n" "$(basename "${abs_archives[0]}")" "$(basename "${abs_archives[1]}")"
+      local ans2
+      printf "main [1]: "
+      read -r ans2
+      [[ -z "$ans2" ]] && ans2=1
+      if [[ "$ans2" == "2" ]]; then
+        main_archive="${abs_archives[1]}"; fix_archive="${abs_archives[0]}"
+      else
+        main_archive="${abs_archives[0]}"; fix_archive="${abs_archives[1]}"
+      fi
+    fi
+  elif [[ -d "${abs_archives[0]}" ]]; then
+    # already-extracted dir: skip extraction, use it as-is
+    main_archive="${abs_archives[0]}"
+  else
+    local single="${abs_archives[0]}"
+    local kind
+    kind="$(classify_name_kind "$single")"
+    if [[ "$kind" == "unknown" ]]; then
+      main_archive="$single"
+    else
+      # looks like half of an OFME/Fix_Repair pair: hunt the sibling in the same dir
+      local sdir want sib
+      sdir="$(dirname "$single")"
+      local -a sibs=()
+      if [[ "$kind" == "fix" ]]; then
+        want="main"
+        while IFS= read -r sib; do sibs+=("$sib"); done < <(find "$sdir" -mindepth 1 -maxdepth 1 -type f \( -iname '*ofme*' -o -iname '*onlinefix*' \) -print 2>/dev/null | grep -viE 'fix.*repair|repair.*fix' || true)
+      else
+        want="fix"
+        while IFS= read -r sib; do sibs+=("$sib"); done < <(find "$sdir" -mindepth 1 -maxdepth 1 -type f \( -iname '*fix*repair*' -o -iname '*repair*fix*' \) -print 2>/dev/null || true)
+      fi
+      # keep only real archives
+      local -a real_sibs=()
+      for sib in "${sibs[@]}"; do
+        [[ "$sib" == "$single" ]] && continue
+        case "${sib,,}" in
+          *.rar|*.zip|*.7z|*.tar.gz|*.tgz|*.tar.xz|*.txz|*.tar.bz2|*.tbz2|*.tar|*.gz|*.bz2|*.xz|*.zst|*.001) real_sibs+=("$sib") ;;
+        esac
+      done
+      if ((${#real_sibs[@]} == 0)); then
+        if [[ "$want" == "fix" ]]; then
+          echo -e "${Y}no fix sibling${N} in $sdir, continuing main-only"
+          printf "fix archive path (empty = main only): "
+          local given
+          read -r given
+          if [[ -n "$given" ]]; then
+            given="$(expand_tilde "$given")"
+            [[ -f "$given" ]] || die "archive not found: $given"
+            main_archive="$single"
+            fix_archive="$(readlink -f "$given")"
+          else
+            main_archive="$single"
+          fi
+        else
+          echo -e "${D}siblings${N}  ${D}no main archive next to fix file${N}"
+          printf "main (OFME) archive path: "
+          local given
+          read -r given
+          [[ -n "$given" ]] || die "need the main game archive to pair with this fix"
+          given="$(expand_tilde "$given")"
+          [[ -f "$given" ]] || die "archive not found: $given"
+          fix_archive="$single"
+          main_archive="$(readlink -f "$given")"
+        fi
+      elif ((${#real_sibs[@]} == 1)); then
+        echo -e "${C}pair${N}   auto-found sibling: $(basename "${real_sibs[0]}")"
+        if [[ "$want" == "fix" ]]; then main_archive="$single"; fix_archive="${real_sibs[0]}"
+        else fix_archive="$single"; main_archive="${real_sibs[0]}"; fi
+      else
+        echo -e "${Y}multiple siblings${N} in $sdir, pick the $want file:"
+        local i=1
+        for sib in "${real_sibs[@]}"; do printf "  ${B}%d)${N} %s\n" "$i" "$(basename "$sib")"; i=$((i + 1)); done
+        local ans
+        printf "file [1]: "
+        read -r ans
+        [[ -z "$ans" ]] && ans=1
+        if ! [[ "$ans" =~ ^[0-9]+$ ]] || ((ans < 1 || ans > ${#real_sibs[@]})); then die "bad choice"; fi
+        if [[ "$want" == "fix" ]]; then main_archive="$single"; fix_archive="${real_sibs[$((ans - 1))]}"
+        else fix_archive="$single"; main_archive="${real_sibs[$((ans - 1))]}"; fi
+      fi
+    fi
+  fi
+
+  # --- name FIRST: every question up front, long work after ---
+  local name clean
+  if [[ -n "$name_opt" ]]; then
+    name="$name_opt"
+  else
+    clean="$(clean_game_name "$main_archive")"
+    printf "name [%s]: " "$clean"
+    read -r name
+    [[ -z "$name" ]] && name="$clean"
+  fi
+  [[ -n "$name" ]] || die "empty game name"
+
+  # --- dest (-d is the full game dir; default ~/games/<name minus spaces>) ---
+  local dest dirname
+  dirname="$(printf '%s' "$name" | tr -d '[:space:]')"
+  [[ -n "$dirname" ]] || dirname="game"
+  if [[ -n "$dest_override" ]]; then
+    dest="$(expand_tilde "$dest_override")"
+  else
+    dest="$HOME/games/$dirname"
+  fi
+  dest="$(readlink -m "$dest")"
+  echo -e "${D}dest${N}    $dest"
+  if [[ -e "$dest" ]] && [[ -n "$(ls -A "$dest" 2>/dev/null)" ]]; then
+    echo -e "${Y}warn${N}  $dest exists and is populated:"
+    ls -A "$dest" 2>/dev/null | head -n 15 | sed 's/^/  /'
+    local ans
+    printf "continue into it (merge/overwrite)? [y/N]: "
+    read -r ans
+    case "${ans,,}" in
+      y|yes) ;;
+      *) die "aborted" ;;
+    esac
+  fi
+
+  # scratch lives next to dest (same filesystem, real disk): /tmp is
+  # often a tiny tmpfs and games are tens of GB
+  local work_parent work
+  work_parent="$(dirname "$dest")"
+  mkdir -p "$work_parent"
+  work="$(mktemp -d -p "$work_parent" tmp.lutman.XXXXXX)"
+  # shellcheck disable=SC2064
+  trap "rm -rf \"$work\"" EXIT
+
+  # --- long work: extract (dirs skip it), merge fix, copy ---
+  local main_src
+  if [[ -n "$fix_archive" ]]; then
+    local main_raw fix_raw
+    if [[ -d "$main_archive" ]]; then
+      main_raw="$main_archive"
+      echo -e "${D}using dir${N} $(basename "$main_archive") ${D}(skip extract)${N}"
+    else
+      main_raw="$work/raw_main"
+      echo -e "${C}extract${N} $(basename "$main_archive")"
+      extract_archive "$main_archive" "$main_raw" "$of_state"
+    fi
+    if [[ -d "$fix_archive" ]]; then
+      fix_raw="$fix_archive"
+      echo -e "${D}using dir${N} $(basename "$fix_archive") ${D}(skip extract)${N}"
+    else
+      fix_raw="$work/raw_fix"
+      echo -e "${C}extract${N} $(basename "$fix_archive")"
+      extract_archive "$fix_archive" "$fix_raw" "$of_state"
+    fi
+    local main_unwrapped fix_unwrapped
+    main_unwrapped="$(unwrap_root "$main_raw")"
+    fix_unwrapped="$(unwrap_root "$fix_raw")"
+    local staging found_main seed
+    found_main="$(find_main_dir "$main_unwrapped")" || exit 1
+    seed="$(resolve_mainsrc "$main_unwrapped" "$found_main")" || exit 1
+    staging="$work/staging"
+    mkdir -p "$staging"
+    move_tree "$seed" "$staging"
+    echo -e "${C}fix${N}    merging $(basename "$fix_archive") over main"
+    move_tree "$fix_unwrapped" "$staging"
+    main_src="$staging"
+  else
+    local raw
+    if [[ -d "$main_archive" ]]; then
+      raw="$main_archive"
+      echo -e "${D}using dir${N} $(basename "$main_archive") ${D}(skip extract)${N}"
+    else
+      raw="$work/raw"
+      echo -e "${C}extract${N} $(basename "$main_archive")"
+      extract_archive "$main_archive" "$raw" "$of_state"
+    fi
+    local unwrapped found
+    unwrapped="$(unwrap_root "$raw")"
+    found="$(find_main_dir "$unwrapped")" || exit 1
+    main_src="$(resolve_mainsrc "$unwrapped" "$found")" || exit 1
+  fi
+
+  mkdir -p "$dest"
+  if [[ "$(readlink -f "$main_src")" == "$dest" ]]; then
+    echo -e "${D}already in place${N} $dest ${D}(skip move)${N}"
+  else
+    move_tree "$main_src" "$dest"
+    echo -e "${G}moved${N}   -> $dest"
+    # cleanup leftover source dir when input was a dir and found was a subdir
+    # e.g. input ~/Downloads/Pack/Inner -> dest, leftover ~/Downloads/Pack should go
+    if [[ -d "$main_archive" && "$main_archive" != "$dest" ]]; then
+      # try to remove empty parents up to main_archive (handles unwrap nesting)
+      local p="$(dirname "$main_src" 2>/dev/null || true)"
+      # if we renamed src directly, main_src is gone; p may not exist - just try main_archive
+      if [[ -n "$p" && "$p" != "$main_archive" && -d "$p" ]]; then
+        rmdir "$p" 2>/dev/null || true
+      fi
+      # finally try to remove the original input dir if now empty
+      rmdir "$main_archive" 2>/dev/null || true
+      # if main_archive had single-folder nesting, unwrap may have left intermediate empty dirs
+      # try rmdir -p style cleanup for empty chain
+      local cur="$main_archive"
+      while [[ -d "$cur" ]] && [[ -z "$(ls -A "$cur" 2>/dev/null)" ]]; do
+        rmdir "$cur" 2>/dev/null || break
+        cur="$(dirname "$cur")"
+        # don't climb beyond HOME
+        [[ "$cur" == "$HOME" || "$cur" == "/" ]] && break
+      done
+    fi
+    if [[ -n "${fix_archive:-}" && -d "$fix_archive" && "$fix_archive" != "$dest" ]]; then
+      rmdir "$fix_archive" 2>/dev/null || true
+      cur="$fix_archive"
+      while [[ -d "$cur" ]] && [[ -z "$(ls -A "$cur" 2>/dev/null)" ]]; do
+        rmdir "$cur" 2>/dev/null || break
+        cur="$(dirname "$cur")"
+        [[ "$cur" == "$HOME" || "$cur" == "/" ]] && break
+      done
+    fi
+  fi
+
+  echo -e "${D}size${N}    dest $(human_size "$(dir_bytes "$dest")") ${D}($dest)${N}"
+  nuke_root_junk "$dest"
+
+  # --- exe ---
+  local exe_rel exe_path
+  exe_rel="$(pick_game_exe "$dest")" || exit 1
+  exe_path="$exe_rel"
+  echo -e "${D}exe${N}     $exe_path"
+
+  # --- onlinefix auto-detect ---
+  local of_run=false forced_appid=""
+  if [[ "$of_state" == "force" ]]; then
+    of_run=true
+  elif [[ "$of_state" == "off" ]]; then
+    of_run=false
+  else
+    if has_onlinefix "$dest"; then of_run=true; fi
+  fi
+  if $of_run; then
+    echo -e "${C}onlinefix${N} detected"
+    forced_appid="$(real_appid "$dest")"
+    if [[ -n "$forced_appid" ]]; then
+      echo -e "${D}realappid${N} $forced_appid"
+    else
+      echo -e "${Y}realappid${N} missing/spacewar-spoof, falling back to name search for artwork"
+    fi
+  fi
+
+  rm -rf "$work"
+  trap - EXIT
+
+  register_lutris_game "$name" "$exe_path" "$of_run" "$mango" "$prefix_override" "$forced_appid"
+}
+
+cmd_add() {
+  local -a pos=()
+  local of_force=false no_of=false mango=true prefix_override="" dest_override="" name_opt=""
+  while (($#)); do
+    case "$1" in
+      -h|--help) usage; return ;;
+      -o|--of) of_force=true ;;
+      --no-of|--no-of-run|--no-onlinefix) no_of=true ;;
+      -n|--no-mango) mango=false ;;
+      -d|--directory)
+        [[ -n "${2:-}" ]] || die "--directory needs a path"
+        dest_override="$2"
+        shift
+        ;;
+      --directory=*)
+        dest_override="${1#*=}"
+        [[ -n "$dest_override" ]] || die "--directory needs a path"
+        ;;
+      --name)
+        [[ -n "${2:-}" ]] || die "--name needs a value"
+        name_opt="$2"
+        shift
+        ;;
+      --name=*)
+        name_opt="${1#*=}"
+        [[ -n "$name_opt" ]] || die "--name needs a value"
+        ;;
+      -p|--prefix)
+        [[ -n "${2:-}" ]] || die "--prefix needs a path"
+        prefix_override="$2"
+        shift
+        ;;
+      -P|--password)
+        [[ -n "${2:-}" ]] || die "--password needs a value"
+        ARCHIVE_PASS="$2"
+        shift
+        ;;
+      --password=*)
+        ARCHIVE_PASS="${1#*=}"
+        [[ -n "$ARCHIVE_PASS" ]] || die "--password needs a value"
+        ;;
+      --prefix=*)
+        prefix_override="${1#*=}"
+        [[ -n "$prefix_override" ]] || die "--prefix needs a path"
+        ;;
+      --) shift; pos+=("$@"); break ;;
+      -*) die "unknown flag '$1'" ;;
+      *) pos+=("$1") ;;
+    esac
+    shift
+  done
+
+  # lone exe: register in place (no copy), name prompted unless --name
+  if ((${#pos[@]} == 1)); then
+    local one
+    one="$(expand_tilde "${pos[0]}")"
+    if [[ -f "$one" ]] && ! is_archive_name "$one"; then
+      [[ -n "$dest_override" ]] && die "--directory is archive/dir-mode only (in-place register has no copy step)"
+      $no_of && die "--no-of is archive/dir-mode only (in-place register uses -o explicitly)"
+      local exe_path xname xsugg of_run
+      exe_path="$(readlink -f "$one")"
+      if [[ -n "$name_opt" ]]; then
+        xname="$name_opt"
+      else
+        xsugg="$(clean_game_name "$(dirname "$exe_path")")"
+        printf "name [%s]: " "$xsugg"
+        read -r xname
+        [[ -z "$xname" ]] && xname="$xsugg"
+      fi
+      [[ -n "$xname" ]] || die "empty game name"
+      of_run="false"
+      $of_force && of_run="true"
+      register_lutris_game "$xname" "$exe_path" "$of_run" "$mango" "$prefix_override" ""
+      return
+    fi
+  fi
+
+  # archive/dir mode: an existing dir, or a file with an archive extension.
+  # (a lone non-archive file is handled above, <name> <exe> below)
+  if ((${#pos[@]} >= 1)); then
+    local first_expanded want_archive
+    first_expanded="$(expand_tilde "${pos[0]}")"
+    want_archive=false
+    if [[ -d "$first_expanded" ]]; then
+      want_archive=true
+    elif [[ -f "$first_expanded" ]] && is_archive_name "$first_expanded"; then
+      want_archive=true
+    fi
+    if $want_archive; then
+      if $no_of && $of_force; then die "use either -o or --no-of, not both"; fi
+      local of_state="auto"
+      $of_force && of_state="force"
+      $no_of && of_state="off"
+      local -a arch_args=()
+      local p
+      for p in "${pos[@]}"; do arch_args+=("$p"); done
+      cmd_add_archive "$mango" "$prefix_override" "$dest_override" "$name_opt" "$of_state" "${arch_args[@]}"
+      return
+    fi
+  fi
+
+  # legacy mode: <name> <exe>
+  [[ -n "$dest_override" ]] && die "--directory is archive/dir-mode only (in-place register has no copy step)"
+  [[ -n "$name_opt" ]] && die "--name is for archive/dir and lone-exe mode (<name> <exe> takes the name directly)"
+  $no_of && die "--no-of is archive/dir-mode only (in-place register uses -o explicitly)"
+  if ((${#pos[@]} >= 1)) && [[ "${pos[0],,}" =~ \.(rar|zip|7z|tar\.gz|tgz|tar\.xz|txz|tar\.bz2|tbz2|tar|gz|bz2|xz|zst|001)$ ]]; then
+    die "archive not found: ${pos[0]}"
+  fi
+
+  local name="${pos[0]:-}" exe="${pos[1]:-}"
+  ((${#pos[@]} == 2)) || { usage >&2; die "give a game name and an exe (e.g. lutman add 'Tekken 8' ~/wine-tekken/game.exe)"; }
+  [[ -n "$name" && -n "$exe" ]] || { usage >&2; die "give a game name and an exe (e.g. lutman add 'Tekken 8' ~/wine-tekken/game.exe)"; }
+
+  local exe_path of_run="false"
+  $of_force && of_run="true"
+  exe_path="$(readlink -f "$(expand_tilde "$exe")")"
+  [[ -f "$exe_path" ]] || die "exe not found: $exe"
+  register_lutris_game "$name" "$exe_path" "$of_run" "$mango" "$prefix_override" ""
+}
+
 case "${1:-help}" in
   l|ls|list) shift; cmd_list "$@" ;;
   a|add) shift; cmd_add "$@" ;;
   d|del|rm|remove|delete) shift; cmd_delete "$@" ;;
+  r|run) shift; cmd_run "$@" ;;
   h|help|-h|--help) usage ;;
   *) usage >&2; exit 1 ;;
 esac
