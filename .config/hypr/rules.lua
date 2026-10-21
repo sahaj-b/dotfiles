@@ -37,6 +37,14 @@ hl.window_rule({ match = { class = "^picker$", title = "picker-small$" }, float 
 -- Scratch workspace
 hl.window_rule({ match = { class = "^scratch$" }, workspace = "special:term" })
 
+-- Discord popout overlay, initialTitle is "Discord Popout", current title changes to channel/DM name
+-- a lil transparent, auto-float for next opens
+hl.window_rule({
+  match = { class = "^discord$", title = "^Discord Popout$" },
+  float = true,
+  opacity = "0.88 override 0.82 override 0.88 override",
+})
+
 -- Music workspace
 hl.window_rule({ match = { class = "^com.github.th-ch.youtube-music$" }, workspace = "special:music silent" })
 

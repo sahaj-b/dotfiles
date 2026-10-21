@@ -1,5 +1,12 @@
 {
   "providers": {
+    "oc": {
+      "modelOverrides": {
+        "deepseek-v4.1-flash-free": {
+          "contextWindow": 380000
+        }
+      }
+    },
     "nvidia": {
       "baseUrl": "https://integrate.api.nvidia.com/v1",
       "api": "openai-completions",

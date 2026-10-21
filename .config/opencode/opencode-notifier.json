@@ -1,4 +1,5 @@
 {
+  "sound": false,
   "format": {
     "title": "{directory} | {title}",
     "body": "{message}"

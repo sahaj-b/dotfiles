@@ -817,6 +817,7 @@ level_0() {
 level_g() {
   echo -e "\n${BOLD}${GREEN}LEVEL G${NC}\n"
   apply_rapl 25 35
+  # apply_rapl 20 30
   apply_governor "powersave"
   apply_platform_profile "balanced"
   apply_epp "power"

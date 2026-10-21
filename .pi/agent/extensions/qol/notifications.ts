@@ -36,6 +36,17 @@ export type SoundKind =
 	| "question"
 	| "subagent_complete";
 
+// Subagent child processes inherit PI_SUBAGENT_DEPTH via env (set in
+// subagents.ts runSubagent). Depth 0 = top-level interactive session,
+// >0 = running inside a subagent. Subagents must NEVER notify — no sound,
+// no desktop ping, no bell. Only the top-level session notifies.
+export function isSubagentProcess(): boolean {
+	const raw = process.env.PI_SUBAGENT_DEPTH;
+	if (!raw) return false;
+	const n = parseInt(raw, 10);
+	return Number.isFinite(n) && n > 0;
+}
+
 // ===== Sound Support =====
 
 const SOUND_KIND_MAP: Partial<Record<QolNotificationKind, SoundKind>> = {
@@ -110,6 +121,7 @@ export async function playQolNotificationSound(
 	soundKind: SoundKind,
 	cwd?: string,
 ): Promise<void> {
+	if (isSubagentProcess()) return;
 	if (!settingBoolean("notification.sound", DEFAULT_SOUND_ENABLED, cwd)) return;
 	const now = Date.now();
 	if (now - _lastSoundTime < SOUND_DEBOUNCE_MS) return;
@@ -215,6 +227,7 @@ function writeTerminalBell(): void {
 // ===== Desktop Notifications =====
 
 export function notifyDesktop(title: string, body: string, cwd?: string): void {
+	if (isSubagentProcess()) return;
 	if (
 		!settingBoolean(
 			"notification.desktop",
@@ -303,6 +316,7 @@ export function sendQolNotification(
 	key: string = kind,
 	options?: { sound?: SoundKind | false; desktop?: boolean },
 ): void {
+	if (isSubagentProcess()) return;
 	const cwd = ctx?.cwd;
 	if (ctx && !ctx.hasUI) return;
 	if (!notificationEnabledFor(kind, cwd)) return;

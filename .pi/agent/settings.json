@@ -1,8 +1,8 @@
 {
-  "lastChangelogVersion": "0.85.1",
+  "lastChangelogVersion": "1.3.0",
   "packages": [],
   "defaultProvider": "oc",
-  "defaultModel": "muse-spark-1.3-contributor-free",
+  "defaultModel": "deepseek-v4.1-flash-free",
   "defaultThinkingLevel": "xhigh",
   "theme": "catppuccin-mocha",
   "hideThinkingBlock": true,

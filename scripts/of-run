@@ -1,11 +1,20 @@
 #!/bin/bash
-if [ -z "$1" ]; then
-  echo "Usage: of-run /path/to/game.exe"
+OFFLINE=0
+GAME_ARG=""
+for arg in "$@"; do
+  case "$arg" in
+    --offline|-o|offline) OFFLINE=1 ;;
+    *) if [ -z "$GAME_ARG" ]; then GAME_ARG="$arg"; fi ;;
+  esac
+done
+
+if [ -z "$GAME_ARG" ]; then
+  echo "Usage: of-run [--offline] /path/to/game.exe"
   exit 1
 fi
 
 # strip surrounding double quotes if present (lutris args may be quoted as '"/path"')
-ARG="$1"
+ARG="$GAME_ARG"
 # remove leading/trailing double quotes if both present
 if [[ "$ARG" == '"'*'"' ]]; then
   ARG="${ARG#\"}"
@@ -13,10 +22,14 @@ if [[ "$ARG" == '"'*'"' ]]; then
 fi
 GAME_EXE="$(readlink -f "$ARG")"
 GAME_DIR="$(dirname "$GAME_EXE")"
+# real appid for protonfixes lookup, the emu keeps using FakeAppId 480 itself
+REALAPPID=$(grep -m1 -E "^RealAppId=" "$GAME_DIR/OnlineFix.ini" 2>/dev/null | cut -d= -f2 | tr -cd '0-9')
+[ -n "$REALAPPID" ] || REALAPPID=480
 
 RUNTIME="$HOME/.steam/steam/steamapps/common/SteamLinuxRuntime_sniper/run"
 PROTON="$HOME/.local/share/lutris/runners/wine/ge-proton/proton"
-PREFIX="$HOME/wine-machine-party"
+# per-game prefixes via OF_PREFIX, default shared. virgin prefixes dodge corpse'd windows steams
+PREFIX="${OF_PREFIX:-$HOME/wine-ofme}"
 
 # GE-Proton 11.5+ ships `from typing import Self` which explodes on sniper's python 3.9
 # We auto-patch vulkan.py + utilities.py to be 3.9-compatible (idempotent)
@@ -72,20 +85,124 @@ PY
   fi
 }
 
-if ! pgrep -x steam >/dev/null 2>&1; then
-  notify-send -u critical "Steam aint running dawg" 2>/dev/null
-  echo "steam not running" >&2
-  exit 1
+GBE_TAG="release-2026_09_27"
+GBE_URL="https://github.com/Detanup01/gbe_fork/releases/download/$GBE_TAG/emu-win-release-vs22.7z"
+GBE_SHA="300186c34f49a9ea75b33ce2af299267cc1dad0225cf45e81a229578d4e11c85"
+GBE_DIR="$HOME/.cache/of-run/goldberg/release/regular"
+GBE_EXP="$HOME/.cache/of-run/goldberg/release/steamclient_experimental"
+STASH="$GAME_DIR/.ofrun-stash"
+
+goldberg_ensure() {
+  [ -f "$GBE_DIR/x64/steam_api64.dll" ] && [ -f "$GBE_DIR/x86/steam_api.dll" ] && return 0
+  echo "[of-run] fetching goldberg $GBE_TAG" >&2
+  mkdir -p "$HOME/.cache/of-run" || return 1
+  curl -L --fail -o "$HOME/.cache/of-run/emu-win.7z" "$GBE_URL" >&2 || return 1
+  echo "$GBE_SHA  $HOME/.cache/of-run/emu-win.7z" | sha256sum -c - >/dev/null 2>&1 || { echo "[of-run] goldberg hash mismatch" >&2; return 1; }
+  7z x -y -o"$HOME/.cache/of-run/goldberg" "$HOME/.cache/of-run/emu-win.7z" >/dev/null 2>&1 || return 1
+  [ -f "$GBE_DIR/x64/steam_api64.dll" ] && [ -f "$GBE_EXP/steamclient64.dll" ]
+}
+
+stash_rel() {
+  local rel="$1"
+  [ -e "$GAME_DIR/$rel" ] || return 0
+  mkdir -p "$STASH/$(dirname "$rel")"
+  mv -f "$GAME_DIR/$rel" "$STASH/$rel"
+  echo "$rel" >> "$STASH/MANIFEST"
+}
+
+goldberg_off() {
+  prefix_client_restore
+  [ -f "$STASH/MANIFEST" ] || return 0
+  local rel
+  while IFS= read -r rel; do
+    [ -e "$STASH/$rel" ] || continue
+    mkdir -p "$GAME_DIR/$(dirname "$rel")"
+    mv -f "$STASH/$rel" "$GAME_DIR/$rel"
+  done < "$STASH/MANIFEST"
+  [ -f "$STASH/APPID_CREATED" ] && rm -f "$GAME_DIR/steam_appid.txt"
+  rm -rf "$STASH"
+  echo "[of-run] onlinefix files restored" >&2
+}
+
+prefix_client_restore() {
+  local pbk="$HOME/.cache/of-run/prefix-steambak/$(basename "$PREFIX")"
+  [ -f "$pbk/DEPLOYED" ] || return 0
+  local psteam="$PREFIX/pfx/drive_c/Program Files (x86)/Steam" c
+  while IFS= read -r c; do
+    [ -n "$c" ] || continue
+    if [ -f "$pbk/$c" ]; then mv -f "$pbk/$c" "$psteam/$c"
+    else rm -f "$psteam/$c"; fi
+  done < "$pbk/DEPLOYED"
+  rm -f "$pbk/DEPLOYED"
+  echo "[of-run] prefix steamclient restored" >&2
+}
+
+goldberg_on() {
+  [ -f "$GAME_DIR/OnlineFix64.dll" ] || return 1
+  prefix_client_restore
+  local apis
+  apis=$(find "$GAME_DIR" -path "$STASH" -prune -o \( -iname steam_api64.dll -o -iname steam_api.dll \) -print 2>/dev/null)
+  [ -n "$apis" ] || return 1
+  goldberg_ensure || return 1
+  [ -f "$STASH/MANIFEST" ] && goldberg_off
+  mkdir -p "$STASH"
+  : > "$STASH/MANIFEST"
+  local f api rel
+  for f in winmm.dll version.dll winhttp.dll OnlineFix64.dll SteamOverlay64.dll dlllist.txt; do stash_rel "$f"; done
+  while IFS= read -r api; do
+    [ -n "$api" ] || continue
+    rel="${api#$GAME_DIR/}"
+    stash_rel "$rel"
+    if [[ "$rel" == *64.dll ]]; then cp -f "$GBE_DIR/x64/steam_api64.dll" "$api"
+    else cp -f "$GBE_DIR/x86/steam_api.dll" "$api"; fi
+  done <<< "$apis"
+  if [ -f "$GAME_DIR/steam_appid.txt" ]; then stash_rel steam_appid.txt
+  else touch "$STASH/APPID_CREATED"; fi
+  echo "$REALAPPID" > "$GAME_DIR/steam_appid.txt"
+  local psteam="$PREFIX/pfx/drive_c/Program Files (x86)/Steam"
+  local pbk="$HOME/.cache/of-run/prefix-steambak/$(basename "$PREFIX")"
+  mkdir -p "$psteam" "$pbk"
+  : > "$pbk/DEPLOYED"
+  local c src
+  for c in steamclient64.dll steamclient.dll; do
+    if [ "$c" = steamclient64.dll ]; then src="$GBE_EXP/steamclient64.dll"; else src="$GBE_EXP/steamclient.dll"; fi
+    [ -f "$src" ] || continue
+    if [ -f "$psteam/$c" ] && [ ! -f "$pbk/$c" ]; then cp -f "$psteam/$c" "$pbk/$c"; fi
+    cp -f "$src" "$psteam/$c"
+    echo "$c" >> "$pbk/DEPLOYED"
+  done
+  echo "[of-run] goldberg swap active for app $REALAPPID" >&2
+}
+
+if [ "$OFFLINE" -eq 1 ]; then
+  echo "[of-run] offline mode, skipping steam check" >&2
+  if goldberg_on; then
+    trap goldberg_off EXIT
+    trap 'goldberg_off; exit 130' INT TERM
+  else
+    echo "[of-run] no swappable emu found, plain offline run" >&2
+  fi
+else
+  if ! pgrep -x steam >/dev/null 2>&1; then
+    notify-send -u critical "Steam aint running dawg" 2>/dev/null
+    echo "steam not running (use --offline for solo play)" >&2
+    exit 1
+  fi
 fi
 
 export STEAM_COMPAT_DATA_PATH="$PREFIX"
+# proton setup_prefix reads this even with no steam process, path only, no daemon needed
 export STEAM_COMPAT_CLIENT_INSTALL_PATH="$HOME/.steam/steam"
 export SteamAppId=480
 export SteamGameId=480
-export SteamOverlayGameId=480
-export GAMEID=480
-export UMU_ID=480
-export ENABLE_VK_LAYER_VALVE_steam_overlay_1=1
+# umu id uses the real appid so protonfixes resolves the actual game, not Spacewar
+export GAMEID="umu-$REALAPPID"
+export UMU_ID="umu-$REALAPPID"
+# overlay layer needs a live steam client, skip it offline
+if [ "$OFFLINE" -eq 0 ]; then
+  export SteamOverlayGameId=480
+  export ENABLE_VK_LAYER_VALVE_steam_overlay_1=1
+fi
 # force dGPU explicitly - Vulkan auto-picks discrete but this guarantees GL and Vulkan ordering
 # if you really trust auto, you can comment this, but keep it for now
 # see Valve PRIME.md: discrete GPUs are prioritized but DRI_PRIME=1 swaps order reliably
@@ -94,11 +211,19 @@ export DRI_PRIME=1
 unset LD_PRELOAD
 # correct as per nite07/mishl-dev guides: https://www.nite07.com/en/posts/linux-pirated-game/ and https://gist.github.com/mishl-dev/17fcc4bd7d3215ef50e4e03a354c8c61
 export WINEDLLOVERRIDES="OnlineFix64=n;SteamOverlay64=n;winmm=n,b;dnet=n;steam_api64=n;winhttp=n,b"
+# offline games must never load a real steamclient, shared prefixes often hold a dead windows steam
+if [ "$OFFLINE" -eq 1 ]; then
+  export WINEDLLOVERRIDES="$WINEDLLOVERRIDES;steamclient64=d;steamclient=d"
+fi
 
 # proton's FileLock does os.open(pfx.lock) without mkdir -p, so we must ensure prefix parent exists
 mkdir -p "$PREFIX"
 
 ensure_proton_py39 "$PROTON" 2>/dev/null || true
 
+export PROTON_VERB=waitforexitandrun
 cd "$GAME_DIR"
-exec "$RUNTIME" -- "$PROTON" run "$GAME_EXE"
+"$RUNTIME" -- "$PROTON" waitforexitandrun "$GAME_EXE"
+rc=$?
+goldberg_off
+exit $rc

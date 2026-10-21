@@ -34,6 +34,15 @@
                }
             }
          }
+      },
+      "files": {
+         "enabled": false,
+         "preferences": {
+            "autoIndexing": false,
+            "excludedPaths": "",
+            "paths": "/home/sahaj",
+            "watcherPaths": ""
+         }
       }
    }
 }

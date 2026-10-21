@@ -1,0 +1,277 @@
+#!/usr/bin/env python3
+"""mute-active - toggle mute for whatever app owns the focused Hyprland window.
+
+Replaces manually opening pavucontrol and hunting for the right stream.
+
+How it matches (in order):
+  1. exact PID  (hyprctl pid == PipeWire application.process.id)
+  2. process family (one is ancestor of the other, or same parent)
+  3. fuzzy name (class / initialClass vs binary / application.name / node.name)
+
+Toggles ALL sink-inputs for the matched app together.
+If any stream is unmuted -> mute all. If all muted -> unmute all.
+
+Deps: hyprctl, pactl, python3 stdlib only. notify-send optional.
+"""
+import argparse
+import json
+import os
+import re
+import subprocess
+import sys
+
+
+def run(cmd):
+    return subprocess.run(cmd, capture_output=True, text=True)
+
+
+def get_active_window():
+    r = run(["hyprctl", "activewindow", "-j"])
+    if r.returncode != 0:
+        print(f"hyprctl failed: {r.stderr.strip()}", file=sys.stderr)
+        sys.exit(1)
+    try:
+        data = json.loads(r.stdout or "{}")
+    except json.JSONDecodeError:
+        print("hyprctl returned non-JSON", file=sys.stderr)
+        sys.exit(1)
+    if not data or not data.get("pid"):
+        print("no active window (empty workspace?)", file=sys.stderr)
+        sys.exit(1)
+    return data
+
+
+def get_fullscreen_window():
+    r = run(["hyprctl", "clients", "-j"])
+    if r.returncode != 0:
+        print(f"hyprctl clients failed: {r.stderr.strip()}", file=sys.stderr)
+        sys.exit(1)
+    try:
+        clients = json.loads(r.stdout or "[]")
+    except json.JSONDecodeError:
+        print("hyprctl returned non-JSON", file=sys.stderr)
+        sys.exit(1)
+    # fullscreen: 0 none, 1 maximize, 2 fullscreen, 3 maximize+fullscreen
+    # we want real fullscreen only, so >= 2
+    fs = [c for c in clients if c.get("fullscreen", 0) >= 2]
+    if not fs:
+        print("no fullscreen window", file=sys.stderr)
+        sys.exit(1)
+    # most recently focused first (0 = current)
+    fs.sort(key=lambda c: c.get("focusHistoryID", 999))
+    return fs[0]
+
+
+def get_sink_inputs():
+    r = run(["pactl", "-f", "json", "list", "sink-inputs"])
+    if r.returncode != 0:
+        print(f"pactl failed: {r.stderr.strip()}", file=sys.stderr)
+        sys.exit(1)
+    try:
+        return json.loads(r.stdout or "[]")
+    except json.JSONDecodeError:
+        print("pactl returned non-JSON (need newer pipewire-pulse)", file=sys.stderr)
+        sys.exit(1)
+
+
+def get_ppid(pid):
+    try:
+        with open(f"/proc/{pid}/status") as f:
+            for line in f:
+                if line.startswith("PPid:"):
+                    return int(line.split()[1])
+    except (FileNotFoundError, ValueError, PermissionError):
+        return None
+    return None
+
+
+def ancestors(pid, limit=20):
+    chain = []
+    cur = pid
+    for _ in range(limit):
+        ppid = get_ppid(cur)
+        if not ppid:
+            break
+        chain.append(ppid)
+        if ppid == 1:
+            break
+        cur = ppid
+    return chain
+
+
+def is_family(win_pid, audio_pid):
+    if win_pid == audio_pid:
+        return True, "exact-pid"
+    if win_pid in ancestors(audio_pid) or audio_pid in ancestors(win_pid):
+        return True, "ancestor"
+    wp, ap = get_ppid(win_pid), get_ppid(audio_pid)
+    if wp is not None and wp == ap and wp not in (None, 0, 1):
+        return True, "sibling(same-parent)"
+    return False, ""
+
+
+def tokens(s):
+    return set(re.findall(r"[a-z0-9]+", (s or "").lower()))
+
+
+def strip_noise(s):
+    s = (s or "").lower()
+    s = s.removesuffix(".exe")
+    for suf in ("-bin", "-bin.exe", ".bin"):
+        if s.endswith(suf):
+            s = s[: -len(suf)]
+    return s
+
+
+def fuzzy_match(win_class, win_initial, props):
+    candidates = [
+        props.get("application.process.binary", ""),
+        props.get("application.name", ""),
+        props.get("node.name", ""),
+        props.get("media.name", ""),
+    ]
+    win_names = [win_class or "", win_initial or ""]
+    for w in win_names:
+        w_norm = strip_noise(w)
+        w_tok = tokens(w)
+        if not w_norm:
+            continue
+        for c in candidates:
+            if not c:
+                continue
+            c_norm = strip_noise(c)
+            if not c_norm:
+                continue
+            # direct contains either way: zen in zen-bin, etc.
+            if w_norm in c_norm or c_norm in w_norm:
+                return True, f"name-contains({w}<->{c})"
+            # token overlap, ignoring generic junk
+            junk = {"com", "github", "th", "ch", "app", "exe", "bin", "io", "org", "net"}
+            if (w_tok - junk) & (tokens(c) - junk):
+                return True, f"token-match({w}<->{c})"
+    return False, ""
+
+
+def score_inputs(win, inputs, verbose=False):
+    win_pid = int(win.get("pid", 0))
+    win_class = win.get("class", "") or ""
+    win_initial = win.get("initialClass", "") or ""
+    scored = []
+    for si in inputs:
+        props = si.get("properties", {})
+        try:
+            audio_pid = int(props.get("application.process.id", -1))
+        except (ValueError, TypeError):
+            audio_pid = -1
+        idx = si.get("index")
+        fam, fam_reason = is_family(win_pid, audio_pid) if audio_pid > 0 else (False, "")
+        if fam:
+            score = 100 if fam_reason == "exact-pid" else 90
+            scored.append((score, fam_reason, si))
+            if verbose:
+                print(f"[{idx}] score={score} {fam_reason} win_pid={win_pid} audio_pid={audio_pid} name={props.get('application.name')}", file=sys.stderr)
+            continue
+        ok, reason = fuzzy_match(win_class, win_initial, props)
+        if ok:
+            scored.append((60, reason, si))
+            if verbose:
+                print(f"[{idx}] score=60 {reason} binary={props.get('application.process.binary')} app={props.get('application.name')}", file=sys.stderr)
+        elif verbose:
+            print(f"[{idx}] score=0 no-match binary={props.get('application.process.binary')} app={props.get('application.name')} pid={audio_pid}", file=sys.stderr)
+    return scored
+
+
+def notify(msg, app="mute-active"):
+    if os.environ.get("NO_NOTIFY"):
+        return
+    if subprocess.run(["which", "notify-send"], capture_output=True).returncode == 0:
+        subprocess.run(["notify-send", "-t", "1500", "-h", "string:x-dunst-stack-tag:mute-active", app, msg], capture_output=True)
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Toggle mute for the focused Hyprland window's app (or --fullscreen)")
+    ap.add_argument("--list", action="store_true", help="list sink-inputs and what they'd match, don't toggle")
+    ap.add_argument("--verbose", "-v", action="store_true", help="debug matching to stderr")
+    ap.add_argument("--mute", action="store_true", help="force mute instead of toggle")
+    ap.add_argument("--unmute", action="store_true", help="force unmute instead of toggle")
+    ap.add_argument("--no-notify", action="store_true", help="skip notify-send")
+    ap.add_argument("--pid", type=int, default=None, help="override: pretend this pid is focused (for testing / manual mute)")
+    ap.add_argument("--class", dest="win_class", default=None, help="override: pretend this class is focused (e.g. --class discord)")
+    ap.add_argument("--fullscreen", action="store_true", help="target the fullscreen app instead of the active window")
+    args = ap.parse_args()
+
+    win = get_fullscreen_window() if args.fullscreen else get_active_window()
+    src = "fullscreen" if args.fullscreen else "active"
+    if args.pid is not None:
+        win["pid"] = args.pid
+    if args.win_class is not None:
+        win["class"] = args.win_class
+        win["initialClass"] = args.win_class
+    win_pid = win.get("pid")
+    win_class = win.get("class", "")
+    win_title = (win.get("title", "") or "")[:80]
+    inputs = get_sink_inputs()
+
+    if not inputs:
+        print("no audio streams playing at all", file=sys.stderr)
+        sys.exit(1)
+
+    if args.list:
+        print(f"{src}: pid={win_pid} class={win_class} title={win_title}")
+        for si in inputs:
+            p = si.get("properties", {})
+            print(f"  #{si.get('index')} mute={si.get('mute')} pid={p.get('application.process.id')} binary={p.get('application.process.binary')} app={p.get('application.name')} media={(p.get('media.name') or '')[:60]}")
+        scored = score_inputs(win, inputs, verbose=True)
+        if scored:
+            best = max(sc for sc, _, _ in scored)
+            ids = [si["index"] for sc, _, si in scored if sc == best]
+            print(f"would match (score {best}): {ids}")
+        else:
+            print("would match: nothing")
+        return
+
+    scored = score_inputs(win, inputs, verbose=args.verbose)
+    if not scored:
+        msg = f"No audio stream for {win_class} (pid {win_pid})"
+        print(msg, file=sys.stderr)
+        if not args.no_notify:
+            notify(msg)
+        sys.exit(1)
+
+    best = max(s for s, _, _ in scored)
+    targets = [si for s, _, si in scored if s == best]
+    reason = next(r for s, r, _ in scored if s == best)
+
+    if args.mute:
+        target_mute = True
+    elif args.unmute:
+        target_mute = False
+    else:
+        # if any unmuted -> mute all, else unmute all
+        target_mute = any(not t.get("mute", False) for t in targets)
+
+    val = "1" if target_mute else "0"
+    action = "Muted" if target_mute else "Unmuted"
+    failed = 0
+    for t in targets:
+        idx = t["index"]
+        r = run(["pactl", "set-sink-input-mute", str(idx), val])
+        if r.returncode != 0:
+            print(f"failed to mute #{idx}: {r.stderr.strip()}", file=sys.stderr)
+            failed += 1
+
+    app_name = targets[0].get("properties", {}).get("application.name", win_class)
+    streams = ", ".join(f"#{t['index']}" for t in targets)
+    msg = f"{action} {app_name} ({streams}) [{reason}]"
+    print(msg)
+    if not args.no_notify:
+        notify(msg)
+
+    sys.exit(1 if failed else 0)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except BrokenPipeError:
+        pass

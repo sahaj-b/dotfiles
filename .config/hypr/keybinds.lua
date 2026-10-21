@@ -148,6 +148,7 @@ local micNotif =
 hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("pamixer --default-source -t && " .. micNotif))
 
 -- Close / Lock
+-- hl.bind(mod .. " SHIFT + Q", hl.dsp.window.close())
 hl.bind(mod .. " + Q", hl.dsp.window.close())
 hl.bind(mod .. " + " .. mod2 .. " + Q", hl.dsp.window.close())
 hl.bind(mod2 .. " + SHIFT + X", hl.dsp.exec_cmd("swaylock -c 000000 -F"))
@@ -260,6 +261,10 @@ hl.bind(" + END", hl.dsp.exec_cmd("echo"))
 -- EasyEffects toggle
 hl.bind(mod .. " + SHIFT + E",
   hl.dsp.exec_cmd("pgrep easyeffects && easyeffects -q || easyeffects --gapplication-service&"))
+
+-- Mute active / fullscreen app (pavucontrol replacer)
+hl.bind(mod .. " + SHIFT + M", hl.dsp.exec_cmd("~/scripts/mute-active"))
+hl.bind(mod .. " + " .. mod2 .. " + M", hl.dsp.exec_cmd("~/scripts/mute-active --fullscreen"))
 
 
 --- GESTURES ---

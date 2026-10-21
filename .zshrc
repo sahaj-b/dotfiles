@@ -62,25 +62,23 @@ if [[ -f ~/yeah.sh ]]; then
   source ~/yeah.sh
 fi
 
-alias refr="src/reframe/scripts/reframe"
-alias wtch="src/reframe/scripts/wtch"
+alias runts="~/projects/airdeck/airdeck serve -n& sleep 1; arc rs && sleep 3 && /usr/bin/steam& sleep 15 && env LUTRIS_SKIP_INIT=1 lutman run"
+alias lm="lutman"
 alias ptojpg="wl-paste | magick png:- -quality 80 jpeg:- | wl-copy"
-alias pbeep="~/projects/pbeep/pbeep -port CASIO -vol 0.4 -off ~/media/oreo1.wav -on ~/media/oreo2.wav"
-alias wrp='sudo systemctl start warp-svc.service && sleep 1 && systemctl --user start warp-taskbar; warp-cli connect'
-alias wrpd='warp-cli disconnect && sudo systemctl stop warp-svc.service && systemctl --user stop warp-taskbar'
 alias card0='lspci -nn -s "$(basename $(readlink -f /sys/class/drm/card0/device))"'
 alias card1='lspci -nn -s "$(basename $(readlink -f /sys/class/drm/card1/device))"'
 alias mvr='rsync -a --remove-source-files --info=progress2'
 alias cpr='rsync -a --info=progress2'
-alias ll='latexmk -lualatex'
 alias drpaste="wl-paste > .tempimg.png && dragon-drop .tempimg.png"
-alias mdata="sudo mount -t ntfs3 -o rw,uid=1000,gid=1000 /dev/nvme0n1p6 /media/data"
-alias mwindows="sudo mount -t ntfs3 /dev/nvme0n1p3 /media/windows"
-alias mexternal="sudo mount -t ntfs3 -o rw,uid=1000,gid=1000 /dev/sda1 /media/external"
+alias mdata="mount /media/data"
+alias mwindows="mount /media/windows"
+alias mssd="mount /media/ssd"
+alias mexternal="mount /media/external"
+alias udata="umount /media/data"
+alias uwindows="umount /media/windows"
+alias ussd="umount /media/ssd"
+alias uexternal="umount /media/external"
 alias rmpv="mpv --no-video --no-terminal --no-config --script=/usr/lib/mpv-mpris/mpris.so"
-alias res="opencode --agent research --model opencode/minimax-m2.5-free"
-alias lesgo="sudo systemctl start tailscaled && sudo tailscale up && sudo systemctl start sshd"
-alias unlesgo="sudo tailscale down; sudo systemctl stop tailscaled; sudo systemctl stop sshd"
 alias brr="sudo systemctl start tailscaled && sudo tailscale up && sudo systemctl start sshd"
 alias unbrr="sudo tailscale down; sudo systemctl stop tailscaled; sudo systemctl stop sshd"
 # alias brr="sudo systemctl start tailscaled && sudo tailscale up && sudo systemctl start sshd && OPENCODE_SERVER_PASSWORD=lul opencode web --hostname 0.0.0.0; sudo tailscale down; sudo systemctl stop tailscaled; sudo systemctl stop sshd"
@@ -113,7 +111,6 @@ alias nvsu='sudoedit'
 alias cpcmd='fc -nl -1 | wl-copy'
 alias todo="glow ~/notes/todo.md"
 alias f="nvim ~/notes/todo.md"
-alias pim="cd ~/bluetooth; openssl enc -d -aes-256-cbc -in cache.bin -out cache && pi --system-prompt ~/notes/prompts/genN.md; openssl enc -e -aes-256-cbc -in cache -out cache.bin && rm cache"
 alias pc="sudo pacman -Syu"
 alias pcn="sudo pacman -Syu --noconfirm --needed"
 alias nvl='nvim ~/Leetcode/leet.cpp +"lua vim.diagnostic.enable(false)" +"Copilot disable" +":,%d _" +"norm i#include <bits/stdc++.h>" +"norm ousing namespace std;" +"norm o"'
@@ -147,7 +144,7 @@ alias duration="ffprobe -show_entries format=duration -v quiet -of csv='p=0' -i"
 alias ga="git add -A"
 alias ga.="git add ."
 alias gd="git dt --staged"
-alias gdg="git diff --staged | l mi write a short commit message, single line response"
+alias gdg="git diff --staged | fpi -S '' write a short commit message, single line response"
 alias gr="git restore --staged"
 alias gc="git commit -m"
 alias gca="git commit --amend"
@@ -161,17 +158,24 @@ alias bd="bun run dev"
 fpi="/home/sahaj/projects/fast-pi/dist/fast-pi.js"
 alias fpi="$fpi"
 
+enc(){
+  openssl enc -aes-256-cbc -in "$1" -out "$1.enc"
+}
+
+dec(){
+  openssl enc -aes-256-cbc -d -in "$1" -out "${1%.enc}"
+}
+
 l() {
   local model=""
   local thinking=""
   case "$1" in
-    m) model="oc/muse-spark-1.2-contributor-free" ; shift ;;
-    mi) model="oc/mimo-v2.5-free" ; shift ;;
-    h) model="oc/hy3-free" ; shift ;;
+    m) model="oc/muse-spark-1.3-contributor-free" ; shift ;;
+    mi) model="oc/mimo-v2.6-flash-free" ; shift ;;
     g) model="github-copilot/gpt-4.1" ; shift ;;
     l) model="google/gemini-3.1-flash-lite" ; shift ;;
     f) model="google/gemini-3-flash-preview" ; shift ;;
-    h) echo "m: muse-spark1.2, mi: mimov2.5, h: hy3, g: gpt4.1, l: gemini3.1fl, f: gemini3f" ; return ;;
+    h) echo "m: muse-spark1.3, mi: mimov2.6f, g: gpt4.1, l: gemini3.1fl, f: gemini3f" ; return ;;
   esac
 
   local args=()

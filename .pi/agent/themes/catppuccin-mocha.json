@@ -50,8 +50,6 @@
     "toolPendingBg": "mantle",
     "toolSuccessBg": "#364344",
     "toolErrorBg": "#443244",
-    "toolDiffAddedBg": "#4a6b5a",
-    "toolDiffRemovedBg": "#6b4a5a",
     "toolTitle": "",
     "toolOutput": "subtext0",
     "mdHeading": "peach",

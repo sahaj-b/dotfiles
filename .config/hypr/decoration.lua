@@ -15,6 +15,7 @@ hl.config({
   cursor = {
     inactive_timeout = 2,
     hotspot_padding = 0, -- fixes edge cursor clicking
+    no_hardware_cursors = true,
   },
   binds = {
     allow_workspace_cycles = true,

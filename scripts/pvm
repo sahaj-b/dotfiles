@@ -524,8 +524,8 @@ cmd_remove() {
     found=0
     while IFS='|' read -r root bn rp sym; do
       found=1
-      [[ -n "${SEEN[$root|$bn]:-}" ]] && continue
-      SEEN[$root|$bn]=1
+      [[ -n "${SEEN[$root | $bn]:-}" ]] && continue
+      SEEN[$root | $bn]=1
       hits+=("$root|$bn|$rp|$sym")
     done < <(find_ge_dirs "$name")
     ((found)) || warn "no match for '$arg'"
@@ -871,7 +871,7 @@ cmd_install() {
   local dirnm
   dirnm=$(_download_and_extract "$url" "$tag" 0)
 
-  if ((!no_link)); then
+  if ((! no_link)); then
     # auto-link to lutris so the runner shows up there
     mkdir -p "$LUTRIS_ROOT"
     if [[ ! -e "$LUTRIS_ROOT/$dirnm" ]]; then
@@ -910,7 +910,7 @@ cmd_probe() {
 
   local recorded="" info_ver=""
   if [[ -r "$prefix/version" ]]; then
-    recorded=$(tr -d '[:space:]' < "$prefix/version")
+    recorded=$(tr -d '[:space:]' <"$prefix/version")
     # a leading build timestamp can sneak in; keep just the tag
     if [[ "$recorded" =~ ^[0-9]+(GE-Proton.*)$ ]]; then
       recorded="${BASH_REMATCH[1]}"
@@ -1031,13 +1031,22 @@ _run_wineboot_once() {
   local rc=0
   if [[ -n "$umu" && -x "$umu" ]]; then
     echo -e "${D}using umu:${N} $(tilde "$umu")" >&2
-    if ! env "${envs[@]}" "$umu" wineboot -u 2>&1; then rc=$?; warn "umu wineboot exited $rc"; fi
+    if ! env "${envs[@]}" "$umu" wineboot -u 2>&1; then
+      rc=$?
+      warn "umu wineboot exited $rc"
+    fi
   elif [[ -x "$dir/proton" ]]; then
     echo -e "${D}using proton:${N} $(tilde "$dir/proton") run wineboot -u" >&2
-    if ! env "${envs[@]}" "$dir/proton" run wineboot -u 2>&1; then rc=$?; warn "proton wineboot exited $rc"; fi
+    if ! env "${envs[@]}" "$dir/proton" run wineboot -u 2>&1; then
+      rc=$?
+      warn "proton wineboot exited $rc"
+    fi
   elif [[ -x "$dir/files/bin/wine" ]]; then
     warn "no umu/proton runner, falling back to direct wine"
-    if ! env WINEPREFIX="$prefix" WINEARCH="$arch" "$dir/files/bin/wine" wineboot -u 2>&1; then rc=$?; warn "wine wineboot exited $rc"; fi
+    if ! env WINEPREFIX="$prefix" WINEARCH="$arch" "$dir/files/bin/wine" wineboot -u 2>&1; then
+      rc=$?
+      warn "wine wineboot exited $rc"
+    fi
   else
     die "no runner found to rebuild prefix (need umu-run or $dir/proton)"
   fi
@@ -1160,21 +1169,68 @@ cmd_migrate() {
   local -a positionals=() keeps=()
   while (($#)); do
     case "$1" in
-    -h|--help) _help_migrate; return ;;
-    --backup) do_backup="full"; shift ;;
-    --no-backup) do_backup="none"; shift ;;
-    --rebuild) do_rebuild=1; shift ;;
-    --no-rebuild) do_rebuild=0; shift ;;
-    --fresh|--nuke) fresh=1; force=1; shift ;;
-    --keep) keeps+=("${2:-}"); shift 2 ;;
-    --keep=*) keeps+=("${1#*=}"); shift ;;
-    -f|--force) force=1; shift ;;
-    -n|--dry-run) dry_run=1; shift ;;
-    -y|--yes) yes=1; shift ;;
-    --install) auto_install=1; shift ;;
-    --) shift; while (($#)); do positionals+=("$1"); shift; done; break ;;
+    -h | --help)
+      _help_migrate
+      return
+      ;;
+    --backup)
+      do_backup="full"
+      shift
+      ;;
+    --no-backup)
+      do_backup="none"
+      shift
+      ;;
+    --rebuild)
+      do_rebuild=1
+      shift
+      ;;
+    --no-rebuild)
+      do_rebuild=0
+      shift
+      ;;
+    --fresh | --nuke)
+      fresh=1
+      force=1
+      shift
+      ;;
+    --keep)
+      keeps+=("${2:-}")
+      shift 2
+      ;;
+    --keep=*)
+      keeps+=("${1#*=}")
+      shift
+      ;;
+    -f | --force)
+      force=1
+      shift
+      ;;
+    -n | --dry-run)
+      dry_run=1
+      shift
+      ;;
+    -y | --yes)
+      yes=1
+      shift
+      ;;
+    --install)
+      auto_install=1
+      shift
+      ;;
+    --)
+      shift
+      while (($#)); do
+        positionals+=("$1")
+        shift
+      done
+      break
+      ;;
     -*) die "unknown flag '$1' (try: pvm migrate --help)" ;;
-    *) positionals+=("$1"); shift ;;
+    *)
+      positionals+=("$1")
+      shift
+      ;;
     esac
   done
   if ((${#positionals[@]} < 2)); then
@@ -1204,12 +1260,16 @@ cmd_migrate() {
   # current version (probe logic)
   local recorded="" info_ver="" cur_tag="" cur_display="unknown"
   if [[ -r "$prefix/version" ]]; then
-    recorded=$(tr -d '[:space:]' < "$prefix/version")
+    recorded=$(tr -d '[:space:]' <"$prefix/version")
     if [[ "$recorded" =~ ^[0-9]+(GE-Proton.*)$ ]]; then recorded="${BASH_REMATCH[1]}"; fi
   fi
   if [[ -r "$prefix/config_info" ]]; then info_ver=$(head -1 "$prefix/config_info" | tr -d '[:space:]'); fi
-  if [[ -n "$recorded" ]]; then cur_tag=$(canonical_tag "$recorded" 2>/dev/null || echo "$recorded"); cur_display="$cur_tag"
-  elif [[ -n "$info_ver" ]]; then cur_tag=$(canonical_tag "$info_ver" 2>/dev/null || echo "$info_ver"); cur_display="$cur_tag"
+  if [[ -n "$recorded" ]]; then
+    cur_tag=$(canonical_tag "$recorded" 2>/dev/null || echo "$recorded")
+    cur_display="$cur_tag"
+  elif [[ -n "$info_ver" ]]; then
+    cur_tag=$(canonical_tag "$info_ver" 2>/dev/null || echo "$info_ver")
+    cur_display="$cur_tag"
   fi
   local tag
   tag=$(canonical_tag "$target_ver")
@@ -1220,12 +1280,15 @@ cmd_migrate() {
     [[ -x "$rp/proton" ]] || continue
     proton_dirs+=("$rp")
   done < <(find_ge_dirs "$tag")
-  if (( ${#proton_dirs[@]} == 0 )); then
+  if ((${#proton_dirs[@]} == 0)); then
     if ((auto_install)); then
       echo -e "${C}installing${N} $tag for migrate..." >&2
       cmd_install "$tag" || die "auto-install failed for $tag"
-      while IFS='|' read -r root bn rp sym; do [[ -x "$rp/proton" ]] || continue; proton_dirs+=("$rp"); done < <(find_ge_dirs "$tag")
-      (( ${#proton_dirs[@]} )) || die "proton '$target_ver' ($tag) still not found after install"
+      while IFS='|' read -r root bn rp sym; do
+        [[ -x "$rp/proton" ]] || continue
+        proton_dirs+=("$rp")
+      done < <(find_ge_dirs "$tag")
+      ((${#proton_dirs[@]})) || die "proton '$target_ver' ($tag) still not found after install"
     else
       die "proton '$target_ver' ($tag) is not installed (try: pvm install $tag  or  pvm migrate --install $prefix $tag)"
     fi
@@ -1244,19 +1307,21 @@ cmd_migrate() {
   echo -e "${B}arch${N}    ${arch:-unknown}"
   echo -e "${B}from${N}    ${cur_display}"
   echo -e "${B}to${N}      ${G}$tag${N} ${D}-> $(tilde "$dir")${N}"
-  echo -e "${B}rebuild${N} $( ((do_rebuild)) && echo "${G}yes (wineboot -u)${N}" || echo "${Y}no (swap files only)${N}" )"
+  echo -e "${B}rebuild${N} $( ((do_rebuild)) && echo "${G}yes (wineboot -u)${N}" || echo "${Y}no (swap files only)${N}")"
   if ((fresh)); then
     echo -e "${B}mode${N}    ${R}FRESH${N} ${D}nuke prefix, rebuild from scratch, restore saves${N}"
     echo -e "${B}keep${N}    drive_c/users drive_c/ProgramData lutris.json${keeps:+ ${keeps[*]}}"
   fi
-  if [[ "$do_backup" == "full" ]]; then echo -e "${B}backup${N}  full tarball"
-  elif [[ "$do_backup" == "meta" ]]; then echo -e "${B}backup${N}  meta files (version/config_info/*.reg)"
+  if [[ "$do_backup" == "full" ]]; then
+    echo -e "${B}backup${N}  full tarball"
+  elif [[ "$do_backup" == "meta" ]]; then
+    echo -e "${B}backup${N}  meta files (version/config_info/*.reg)"
   else echo -e "${B}backup${N}  ${D}none${N}"; fi
   if ((dry_run)); then
     echo -e "${Y}dry-run${N} ${D}no changes made${N}"
     return 0
   fi
-  if (( ! yes )); then
+  if ((! yes)); then
     echo ""
     local ans
     if ((fresh)); then
@@ -1264,7 +1329,10 @@ cmd_migrate() {
     else
       read -r -p "migrate $(tilde "$prefix") $cur_display -> $tag ? [y/N] " ans
     fi
-    [[ "$ans" == y || "$ans" == Y ]] || { echo "aborted"; return 0; }
+    [[ "$ans" == y || "$ans" == Y ]] || {
+      echo "aborted"
+      return 0
+    }
   fi
   local ts
   ts=$(date +%Y%m%d-%H%M%S)
@@ -1296,10 +1364,10 @@ cmd_migrate() {
     cmd_migrate_fresh "$prefix" "$dir" "$tag" "${arch:-win64}" "$ts" "${keeps[@]}"
     # fresh wineboot stamps version itself; enforce it matches target
     local fresh_ver=""
-    [[ -r "$prefix/version" ]] && fresh_ver=$(tr -d '[:space:]' < "$prefix/version")
+    [[ -r "$prefix/version" ]] && fresh_ver=$(tr -d '[:space:]' <"$prefix/version")
     if [[ -n "$fresh_ver" && "$fresh_ver" != "$tag" ]]; then
       warn "prefix reports '$fresh_ver' (expected $tag); stamping"
-      echo "$tag" > "$prefix/version" 2>/dev/null || true
+      echo "$tag" >"$prefix/version" 2>/dev/null || true
     fi
     echo -e "${G}migrated${N} ${R}fresh${N} ${D}$cur_display${N} ${C}->${N} ${G}$tag${N} ${D}$(tilde "$prefix")${N}"
     return 0
@@ -1310,7 +1378,7 @@ cmd_migrate() {
     _run_wineboot_once "$prefix" "$dir" "${arch:-win64}"
     # proton should have updated version/config_info; verify and stamp
     local new_ver="" new_info="" new_tag="" info_tag=""
-    if [[ -r "$prefix/version" ]]; then new_ver=$(tr -d '[:space:]' < "$prefix/version"); fi
+    if [[ -r "$prefix/version" ]]; then new_ver=$(tr -d '[:space:]' <"$prefix/version"); fi
     if [[ "$new_ver" =~ ^[0-9]+(GE-Proton.*)$ ]]; then new_ver="${BASH_REMATCH[1]}"; fi
     if [[ -r "$prefix/config_info" ]]; then new_info=$(head -1 "$prefix/config_info" | tr -d '[:space:]'); fi
     [[ -n "$new_ver" ]] && new_tag=$(canonical_tag "$new_ver" 2>/dev/null || echo "$new_ver")
@@ -1318,25 +1386,25 @@ cmd_migrate() {
     if [[ "$new_tag" == "$tag" ]]; then
       # also sync config_info if stale (proton sometimes only updates version)
       if [[ -n "$new_info" && "$info_tag" != "$tag" ]]; then
-        echo "$tag" > "$prefix/config_info" 2>/dev/null || true
+        echo "$tag" >"$prefix/config_info" 2>/dev/null || true
         echo -e "${D}synced config_info${N} $info_tag ${C}->${N} $tag" >&2
       elif [[ ! -e "$prefix/config_info" ]]; then
-        echo "$tag" > "$prefix/config_info" 2>/dev/null || true
+        echo "$tag" >"$prefix/config_info" 2>/dev/null || true
       fi
       echo -e "${G}rebuild done${N} ${D}prefix now reports $new_tag${N}" >&2
     elif [[ -n "$new_ver" ]]; then
       warn "prefix version is '$new_ver' (expected $tag) — proton may not have updated it; forcing"
-      echo "$tag" > "$prefix/version" 2>/dev/null || true
-      echo "$tag" > "$prefix/config_info" 2>/dev/null || true
+      echo "$tag" >"$prefix/version" 2>/dev/null || true
+      echo "$tag" >"$prefix/config_info" 2>/dev/null || true
     else
-      echo "$tag" > "$prefix/version" 2>/dev/null || true
-      echo "$tag" > "$prefix/config_info" 2>/dev/null || true
+      echo "$tag" >"$prefix/version" 2>/dev/null || true
+      echo "$tag" >"$prefix/config_info" 2>/dev/null || true
       echo -e "${G}rebuild done${N} ${D}stamped version $tag${N}" >&2
     fi
   else
     # no-rebuild: just swap version files
-    echo "$tag" > "$prefix/version" 2>/dev/null || warn "failed to write $prefix/version"
-    if [[ -e "$prefix/config_info" ]]; then echo "$tag" > "$prefix/config_info" 2>/dev/null || true; fi
+    echo "$tag" >"$prefix/version" 2>/dev/null || warn "failed to write $prefix/version"
+    if [[ -e "$prefix/config_info" ]]; then echo "$tag" >"$prefix/config_info" 2>/dev/null || true; fi
     echo -e "${Y}swapped${N} ${D}version files to $tag (no wineboot) — next 'pvm run' will rebuild${N}" >&2
   fi
   echo -e "${G}migrated${N} $cur_display ${C}->${N} ${G}$tag${N} ${D}$(tilde "$prefix")${N}"
@@ -1376,8 +1444,11 @@ _detect_appid() {
     d="$(dirname "$exe")"
     for i in 1 2 3 4; do
       if [[ -r "$d/steam_appid.txt" ]]; then
-        appid="$(tr -cd '0-9' < "$d/steam_appid.txt" 2>/dev/null | head -c 12)"
-        [[ "$appid" =~ ^[0-9]{2,10}$ ]] && { echo "$appid"; return 0; }
+        appid="$(tr -cd '0-9' <"$d/steam_appid.txt" 2>/dev/null | head -c 12)"
+        [[ "$appid" =~ ^[0-9]{2,10}$ ]] && {
+          echo "$appid"
+          return 0
+        }
       fi
       [[ "$d" == "/" || "$d" == "." ]] && break
       d="$(dirname "$d")"
@@ -1388,7 +1459,10 @@ _detect_appid() {
     local exe_esc="${exe//\'/\'\'}"
     local pfx_esc="${prefix//\'/\'\'}"
     appid="$(sqlite3 -separator '|' "$pga" "SELECT service_id FROM games WHERE service='steam' AND service_id GLOB '[0-9]*' AND (executable LIKE '%$exe_esc%' OR directory LIKE '%$pfx_esc%' OR configpath IN (SELECT configpath FROM games WHERE configpath LIKE '%$(basename "$prefix" 2>/dev/null)%')) LIMIT 1;" 2>/dev/null | tr -cd '0-9' | head -c 12)"
-    if [[ "$appid" =~ ^[0-9]{2,10}$ ]]; then echo "$appid"; return 0; fi
+    if [[ "$appid" =~ ^[0-9]{2,10}$ ]]; then
+      echo "$appid"
+      return 0
+    fi
     if [[ -n "$exe" ]]; then
       local lut_games="$HOME/.local/share/lutris/games"
       if [[ -d "$lut_games" ]]; then
@@ -1399,7 +1473,10 @@ _detect_appid() {
             local slug
             slug="$(basename "$yml" | sed -E 's/-[0-9]+\.yml$//')"
             appid="$(sqlite3 "$pga" "SELECT service_id FROM games WHERE slug='$slug' AND service='steam' AND service_id GLOB '[0-9]*' LIMIT 1;" 2>/dev/null | tr -cd '0-9' | head -c 12)"
-            [[ "$appid" =~ ^[0-9]{2,10}$ ]] && { echo "$appid"; return 0; }
+            [[ "$appid" =~ ^[0-9]{2,10}$ ]] && {
+              echo "$appid"
+              return 0
+            }
           fi
         done
       fi
@@ -1413,7 +1490,10 @@ _detect_appid() {
     local base
     base="$(basename "$exe" | tr '[:upper:]' '[:lower:]')"
     appid="$(grep -i -m1 "$base" "$umu_db" 2>/dev/null | awk -F',' '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]{2,10}$/) {print $i; exit}}' | tr -cd '0-9' | head -c 12)"
-    [[ "$appid" =~ ^[0-9]{2,10}$ ]] && { echo "$appid"; return 0; }
+    [[ "$appid" =~ ^[0-9]{2,10}$ ]] && {
+      echo "$appid"
+      return 0
+    }
   fi
   return 1
 }
@@ -1513,7 +1593,7 @@ cmd_run() {
   if [[ -n "$proton_ver" ]]; then
     ver="$proton_ver"
   elif [[ -r "$prefix/version" ]]; then
-    ver=$(tr -d '[:space:]' < "$prefix/version")
+    ver=$(tr -d '[:space:]' <"$prefix/version")
     [[ "$ver" =~ ^[0-9]+(GE-Proton.*)$ ]] && ver="${BASH_REMATCH[1]}"
   fi
   [[ -z "$ver" ]] && die "no proton version recorded in $(tilde "$prefix"); pass --proton <ver>"
@@ -1548,7 +1628,7 @@ cmd_run() {
   if [[ "$exe" =~ ^[A-Za-z]: ]] || [[ "$exe" == *\\* ]]; then
     windows_like=1
   fi
-  if ((!windows_like)) && [[ "$exe" != /* ]]; then
+  if ((! windows_like)) && [[ "$exe" != /* ]]; then
     # relative unix path: resolve against CWD so umu, appid detect, and cwd all see the real file
     local resolved
     resolved=$(readlink -f "$exe" 2>/dev/null || realpath -m "$exe" 2>/dev/null || echo "$exe")
@@ -1566,7 +1646,7 @@ cmd_run() {
   *.lnk) lexe=(start /unix "$exe") ;;
   *) lexe=("$exe") ;;
   esac
-  if ((!windows_like)); then
+  if ((! windows_like)); then
     [[ -f "$exe" ]] || warn "exe not found: $exe"
   fi
 
@@ -1612,7 +1692,7 @@ cmd_run() {
   [[ -n "${LC_ALL:-}" && -z "${HOST_LC_ALL:-}" ]] && env+=("HOST_LC_ALL=$LC_ALL")
 
   local cwd=""
-  if ((!windows_like)) && [[ "$exe" == /* ]]; then cwd=$(dirname "$exe"); fi
+  if ((! windows_like)) && [[ "$exe" == /* ]]; then cwd=$(dirname "$exe"); fi
 
   echo -e "${C}run${N}     ${G}$exe${N} ${D}in $(tilde "$prefix")${N}" >&2
   [[ -n "$cwd" ]] && cd "$cwd" 2>/dev/null || true

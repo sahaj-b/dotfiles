@@ -87,7 +87,7 @@ function getSubagentDepth(): number {
 const AGENTS: Record<string, AgentEntry> = {
 	scout: {
 		name: "scout",
-		model: "opencode/muse-spark-1.2-contributor-free",
+		model: "oc/deepseek-v4.1-flash-free",
 		// commands: ["/mode md"], // adds submit_tool so naah
 		commands: [],
 		systemPrompt:
@@ -98,17 +98,18 @@ const AGENTS: Record<string, AgentEntry> = {
 		name: "researcher",
 		// model: "b-ai/deepseek-v4-flash-vision-exp",
 		// model: "b-ai/qwen3.8-flash",
-		model: "opencode/muse-spark-1.2-contributor-free",
+		// model: "oc/muse-spark-1.3-contributor-free",
+		model: "oc/deepseek-v4.1-flash-free",
 		// model: "github-copilot/gpt-4.1",
 		// model: "nvidia/meta/muse-glimmer-30b",
-		// model: "opencode/mimo-v2.5-free",
+		// model: "oc/mimo-v2.5-free",
 		commands: [],
 		systemPrompt: "~/notes/prompts/dist/research_subagent.md",
 		thinking: "high",
 	},
 	worker: {
 		name: "worker",
-		model: "opencode/muse-spark-1.3-contributor-free",
+		model: "oc/deepseek-v4.1-flash-free",
 		commands: [],
 		thinking: "xhigh",
 	},
@@ -118,9 +119,9 @@ const AGENTS: Record<string, AgentEntry> = {
 const HIDDEN_AGENTS: Record<string, AgentEntry> = {
 	reviewer: {
 		name: "reviewer",
-		// model: "opencode/muse-spark-1.2-contributor-free",
-		model: "opencode/muse-spark-1.3-contributor-free",
-		// model: "opencode/mimo-v2.5-free",
+		// model: "oc/muse-spark-1.2-contributor-free",
+		model: "oc/deepseek-v4.1-flash-free",
+		// model: "oc/mimo-v2.5-free",
 		// model: "b-ai/glm-5.3-flash",
 
 		// model: "orca/glm-5.3-flash-free",
