@@ -85,6 +85,27 @@ PY
   fi
 }
 
+# Photon/OnlineFix Launcher.exe is a WPF app whose Newtonsoft.Json assembly is only
+# embedded as a resource. Wine-Mono resolves the MainWindow field type before the
+# launcher's AssemblyResolve hook is registered, so it needs the dll on disk next to
+# the exe or it dies with "Could not load file or assembly 'Newtonsoft.Json, 12.0.0.0'"
+NJ_VER="12.0.3"
+NJ_SHA="7f912b28a07c226e0be3acfb2f57f050538aba0100fa1f0bf2c39f1a1f1da814"
+NJ_DIR="$HOME/.cache/of-run/newtonsoft-$NJ_VER"
+
+launcher_dotnet_deps() {
+  [ -f "$GAME_DIR/Launcher.exe" ] || return 0
+  [ -f "$GAME_DIR/Newtonsoft.Json.dll" ] && return 0
+  echo "[of-run] launcher missing Newtonsoft.Json, fetching $NJ_VER" >&2
+  mkdir -p "$NJ_DIR" || return 1
+  if ! echo "$NJ_SHA  $NJ_DIR/Newtonsoft.Json.dll" | sha256sum -c - >/dev/null 2>&1; then
+    curl -L --fail -o "$NJ_DIR/nuget.zip" "https://www.nuget.org/api/v2/package/Newtonsoft.Json/$NJ_VER" >&2 || return 1
+    7z e -y -o"$NJ_DIR" "$NJ_DIR/nuget.zip" 'lib/net45/Newtonsoft.Json.dll' >/dev/null 2>&1 || return 1
+    echo "$NJ_SHA  $NJ_DIR/Newtonsoft.Json.dll" | sha256sum -c - >/dev/null 2>&1 || { echo "[of-run] newtonsoft hash mismatch" >&2; return 1; }
+  fi
+  cp -f "$NJ_DIR/Newtonsoft.Json.dll" "$GAME_DIR/" && echo "[of-run] installed Newtonsoft.Json.dll for the launcher" >&2
+}
+
 GBE_TAG="release-2026_09_27"
 GBE_URL="https://github.com/Detanup01/gbe_fork/releases/download/$GBE_TAG/emu-win-release-vs22.7z"
 GBE_SHA="300186c34f49a9ea75b33ce2af299267cc1dad0225cf45e81a229578d4e11c85"

@@ -130,6 +130,7 @@ return {
   },
   {
     "rest-nvim/rest.nvim",
+    dependencies = { "nvim-neotest/nvim-nio" },
     ft = { "http" },
     config = function()
       require("rest-nvim-extract")
